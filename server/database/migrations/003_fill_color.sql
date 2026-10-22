@@ -1,0 +1,1 @@
+ALTER TABLE seats ADD COLUMN IF NOT EXISTS fill_color TEXT;

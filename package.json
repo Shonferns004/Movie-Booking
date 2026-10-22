@@ -1,0 +1,25 @@
+{
+  "name": "movie-ticket-booking",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "client",
+    "server",
+    "server/vendor/youpi-pg/packages/common",
+    "server/vendor/youpi-pg/packages/core",
+    "server/vendor/youpi-pg/packages/db"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\" \"npm run dev:worker\"",
+    "dev:server": "npm --workspace server run dev",
+    "dev:client": "npm --workspace client run dev",
+    "dev:worker": "npm --workspace server run worker",
+    "migrate": "npm --workspace server run migrate",
+    "seed": "npm --workspace server run seed",
+    "test": "npm --workspace server run test",
+    "build": "npm --workspace client run build"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  }
+}

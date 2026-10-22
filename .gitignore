@@ -1,0 +1,23 @@
+# dependencies
+node_modules/
+
+# env
+.env
+.env.local
+*.local
+
+# build output
+dist/
+build/
+
+# runtime data
+server/uploads/
+server/vendor/youpi-pg/data/
+server/vendor/youpi-pg/.env
+*.log
+
+# editor / os
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
