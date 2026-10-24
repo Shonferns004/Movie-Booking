@@ -9,7 +9,7 @@ dotenv.config();
 
 export const env = {
   DATABASE_URL: process.env.DATABASE_URL,
-  API_PORT: Number(process.env.API_PORT || 4000),
+  API_PORT: Number(process.env.PORT || process.env.API_PORT || 4000),
   NODE_ENV: process.env.NODE_ENV || 'development',
   JWT_SECRET: process.env.JWT_SECRET || 'dev-secret-change-me',
   APP_BASE_URL: process.env.APP_BASE_URL || 'http://localhost:5173',
@@ -40,7 +40,7 @@ export const env = {
   YOUPI_UPI_ID: process.env.YOUPI_UPI_ID || '',
   YOUPI_PAYEE_NAME: process.env.YOUPI_PAYEE_NAME || '',
   // --- Gateway URL for server-to-server calls (through this server's own port) ---
-  YOUPI_API_URL: process.env.YOUPI_API_URL || `http://127.0.0.1:${Number(process.env.API_PORT || 4000)}/youpi`,
+  YOUPI_API_URL: process.env.YOUPI_API_URL || `http://127.0.0.1:${Number(process.env.PORT || process.env.API_PORT || 4000)}/youpi`,
   YOUPI_MERCHANT_ID: process.env.YOUPI_MERCHANT_ID || '00000000-0000-0000-0000-000000000001',
   YOUPI_MERCHANT_KEY: process.env.YOUPI_MERCHANT_KEY || '',
   YOUPI_WEBHOOK_SECRET: process.env.YOUPI_WEBHOOK_SECRET || '',
