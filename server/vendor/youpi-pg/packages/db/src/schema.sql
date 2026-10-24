@@ -1,7 +1,8 @@
 -- PostgreSQL Schema for YOUPI PG
 -- Canonical Production Schema
-
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+--
+-- Lives in the same database as the movie booking tables, so the one table
+-- whose name collides (`audit_logs`) is prefixed with `youpi_`.
 
 -- 1. Merchants Table
 CREATE TABLE IF NOT EXISTS merchants (
@@ -221,8 +222,8 @@ CREATE TABLE IF NOT EXISTS ticket_messages (
 
 CREATE INDEX IF NOT EXISTS idx_ticket_messages_ticket ON ticket_messages (ticket_id);
 
--- 9. Audit Logs Table
-CREATE TABLE IF NOT EXISTS audit_logs (
+-- 9. Audit Logs Table (prefixed to avoid collision with booking-schema audit_logs)
+CREATE TABLE IF NOT EXISTS youpi_audit_logs (
     id TEXT PRIMARY KEY,
     merchant_id TEXT REFERENCES merchants(id) ON DELETE CASCADE,
     entity_type VARCHAR(50) NOT NULL,
@@ -235,8 +236,8 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_audit_logs_merchant ON audit_logs (merchant_id);
-CREATE INDEX IF NOT EXISTS idx_audit_logs_entity ON audit_logs (entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_youpi_audit_logs_merchant ON youpi_audit_logs (merchant_id);
+CREATE INDEX IF NOT EXISTS idx_youpi_audit_logs_entity ON youpi_audit_logs (entity_type, entity_id);
 
 -- 10. Security Events Table
 CREATE TABLE IF NOT EXISTS security_events (

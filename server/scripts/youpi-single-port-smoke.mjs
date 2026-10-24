@@ -33,9 +33,9 @@ function show(name, ok, extra = '') {
     `status ${notFound.status}`
   );
 
-  // 4. admin surface is closed on the public port
+  // 4. admin surface is token protected (never public)
   const admin = await req('/youpi/api/v1/admin/merchants');
-  show('GET /youpi/api/v1/admin/* is blocked', admin.status === 404, `status ${admin.status}`);
+  show('GET /youpi/api/v1/admin/* requires the admin token', admin.status === 401 || admin.status === 403, `status ${admin.status}`);
 
   // 5. create a payment session straight through the gateway
   const orderId = `order_test_${Date.now()}`;

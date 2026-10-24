@@ -3,17 +3,41 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DatabaseSync } from 'node:sqlite';
 import { runMigrations } from './migrate.js';
+import { PostgresDatabase } from './postgres-client.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '../../..');
 
+/** PostgreSQL schema that holds the gateway tables (keeps them away from the booking tables). */
+export const DEFAULT_PG_SCHEMA = 'youpi';
+
+/**
+ * True when the given connection string points at PostgreSQL.
+ * @param {string | undefined | null} url
+ * @returns {boolean}
+ */
+export function isPostgresUrl(url) {
+  return typeof url === 'string' && /^postgres(ql)?:\/\//i.test(url.trim());
+}
+
 /**
  * Checks if core tables exist and executes migrations if not yet initialized.
- * @param {Database} db
+ * @param {Database | import('./postgres-client.js').PostgresDatabase} db
  */
 export function ensureDatabaseInitialized(db) {
   try {
+    if (db.dialect === 'postgres') {
+      const row = db.queryOne(
+        "SELECT count(*) as count FROM information_schema.tables WHERE table_schema = $1 AND table_name = 'merchants'",
+        [db.schema]
+      );
+      if (!row || Number(row.count) === 0) {
+        return runMigrations(db);
+      }
+      return db;
+    }
+
     const row = db.queryOne("SELECT count(*) as count FROM sqlite_master WHERE type='table' AND name='merchants'");
     if (!row || Number(row.count) === 0) {
       return runMigrations(db);
@@ -21,18 +45,42 @@ export function ensureDatabaseInitialized(db) {
   } catch {
     return runMigrations(db);
   }
+  return db;
 }
 
 /**
  * Universal Database Client for YOUPI PG.
- * Uses native node:sqlite for high-performance, embedded zero-dependency local operation
- * with full transactional ACID guarantees.
+ *
+ * Uses PostgreSQL (Supabase / Neon / RDS) when DATABASE_URL points at a
+ * PostgreSQL server, and falls back to embedded SQLite otherwise. Both backends
+ * expose the same synchronous API so repositories, routes and engines do not
+ * have to care which one is in use.
  */
 export class Database {
   /**
-   * @param {{ dbPath?: string, inMemory?: boolean, autoMigrate?: boolean }} [options={}]
+   * @param {{ dbPath?: string, inMemory?: boolean, autoMigrate?: boolean, connectionString?: string, schema?: string }} [options={}]
    */
   constructor(options = {}) {
+    const connectionString = options.connectionString || process.env.DATABASE_URL;
+
+    if (!options.inMemory && isPostgresUrl(connectionString)) {
+      // PostgreSQL mode: the real client lives in postgres-client.js.
+      const client = new PostgresDatabase({
+        connectionString,
+        schema: options.schema || process.env.YOUPI_DB_SCHEMA || DEFAULT_PG_SCHEMA
+      });
+      // Expose the PostgreSQL client under the same surface the rest of the
+      // package expects from a Database instance.
+      this.dialect = 'postgres';
+      this.schema = client.schema;
+      this.connectionString = connectionString;
+      this.pg = client;
+      return;
+    }
+
+    this.dialect = 'sqlite';
+    this.schema = 'main';
+
     if (options.inMemory) {
       this.db = new DatabaseSync(':memory:');
     } else {
@@ -89,6 +137,7 @@ export class Database {
    * @returns {{ changes: number, lastInsertRowid: number | bigint }}
    */
   execute(sql, params = []) {
+    if (this.dialect === 'postgres') return this.pg.execute(sql, params);
     const normalized = this.normalizeSql(sql);
     const stmt = this.db.prepare(normalized);
     return stmt.run(...params);
@@ -105,6 +154,7 @@ export class Database {
    * @returns {any[]}
    */
   query(sql, params = []) {
+    if (this.dialect === 'postgres') return this.pg.query(sql, params);
     const normalized = this.normalizeSql(sql);
     const stmt = this.db.prepare(normalized);
     return stmt.all(...params);
@@ -117,6 +167,7 @@ export class Database {
    * @returns {any | null}
    */
   queryOne(sql, params = []) {
+    if (this.dialect === 'postgres') return this.pg.queryOne(sql, params);
     const normalized = this.normalizeSql(sql);
     const stmt = this.db.prepare(normalized);
     const res = stmt.get(...params);
@@ -128,6 +179,7 @@ export class Database {
    * @param {string} sql
    */
   exec(sql) {
+    if (this.dialect === 'postgres') return this.pg.exec(sql);
     this.db.exec(sql);
   }
 
@@ -139,6 +191,8 @@ export class Database {
    * @returns {T}
    */
   transaction(callback) {
+    if (this.dialect === 'postgres') return this.pg.transaction(callback);
+
     // IMMEDIATE (not DEFERRED) so the write lock is taken up front. A deferred transaction
     // starts as a read transaction and only upgrades on first write, which lets two
     // concurrent slot-acquisition callers both observe a free slot before either writes.
@@ -161,6 +215,7 @@ export class Database {
    * Closes the database connection.
    */
   close() {
+    if (this.dialect === 'postgres') return this.pg.close();
     this.db.close();
   }
 }
@@ -169,7 +224,7 @@ let defaultDbInstance = null;
 
 /**
  * Returns the singleton database instance.
- * @param {{ dbPath?: string, inMemory?: boolean }} [options={}]
+ * @param {{ dbPath?: string, inMemory?: boolean, connectionString?: string, schema?: string }} [options={}]
  * @returns {Database}
  */
 export function getDatabase(options = {}) {

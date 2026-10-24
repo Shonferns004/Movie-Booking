@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>{{MERCHANT_NAME}} · {{APP_NAME}} Checkout</title>
-  <link rel="stylesheet" href="/css/checkout.css">
+  <link rel="stylesheet" href="/css/checkout.css?v=3">
 </head>
 
 <body>
@@ -19,11 +19,9 @@
 
     <!-- include:partials/header.html -->
 
-    <!-- 3. SCROLLABLE BODY -->
-    <div class="ypg-body">
-      <!-- include:partials/auth.html -->
-      <!-- include:partials/payment-methods.html -->
-    </div>
+    <!-- 3. SCROLLABLE BODY (opened by header.html, closed by payment-methods.html) -->
+    <!-- include:partials/auth.html -->
+    <!-- include:partials/payment-methods.html -->
 
     <!-- include:partials/footer.html -->
 
@@ -525,6 +523,7 @@
         const otpInput = document.getElementById('authOtpInput');
         if (otpInput) {
           otpInput.value = '';
+          if (lastReceivedDevOtp) otpInput.value = lastReceivedDevOtp;
           setTimeout(() => otpInput.focus(), 50);
         }
         startOtpCooldown(30);
@@ -982,6 +981,8 @@
 
     function hideAllContent() {
       document.getElementById('viewUpiContent').hidden = true;
+      const vBank = document.getElementById('viewBankQrContent');
+      if (vBank) vBank.hidden = true;
       const vCod = document.getElementById('viewCodContent');
       if (vCod) vCod.hidden = true;
       const vCash = document.getElementById('viewCashContent');
@@ -1077,15 +1078,24 @@
       const tabCod = document.getElementById('tabMethodCod');
       const tabCash = document.getElementById('tabMethodCash');
       const tabCard = document.getElementById('tabMethodCard');
+      const tabBank = document.getElementById('tabMethodBank');
 
       if (tabUpi) tabUpi.style.display = 'inline-flex';
+      if (tabBank) tabBank.style.display = enabledMethods.includes('BANK_QR') ? 'inline-flex' : 'none';
 
       const pcUpi = document.getElementById('pcMethodCardUpi');
       const pcCod = document.getElementById('pcMethodCardCod');
       const pcCash = document.getElementById('pcMethodCardCash');
       const pcCard = document.getElementById('pcMethodCardCard');
+      const pcBank = document.getElementById('pcMethodCardBank');
 
       if (pcUpi) pcUpi.style.display = 'block';
+      if (pcBank) pcBank.style.display = enabledMethods.includes('BANK_QR') ? 'block' : 'none';
+
+      renderBankQrDetails(data.bankQr || null);
+      if (data.method === 'BANK_QR' && enabledMethods.includes('BANK_QR')) {
+        currentSelectedMethod = 'BANK_QR';
+      }
 
       if (sellingMode === 'ONLINE') {
         // Online Selling Mode:
@@ -1118,9 +1128,69 @@
       updateMethodTabsUI(currentSelectedMethod);
     }
 
+    function renderBankQrDetails(bankQr) {
+      if (!bankQr) return;
+
+      const setText = (id, value) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = value || '-';
+      };
+
+      setText('bankAccountNameVal', bankQr.accountName);
+      setText('bankBankNameVal', bankQr.bankName || 'Bank transfer');
+      setText('bankAccountNumberVal', bankQr.accountNumber);
+      setText('bankIfscVal', bankQr.ifsc);
+      setText('bankUpiIdVal', bankQr.upiId || 'Not provided');
+      setText('bankQrBankNameShort', bankQr.bankName || 'Bank transfer');
+      setText('bankQrAccountShort', bankQr.accountNumber);
+
+      const upiRow = document.getElementById('bankUpiIdRow');
+      if (upiRow) upiRow.style.display = bankQr.upiId ? 'flex' : 'none';
+
+      const payable = Boolean(bankQr.upiId);
+      const promptTitle = document.getElementById('bankQrPromptTitle');
+      const promptSubtitle = document.getElementById('bankQrPromptSubtitle');
+      const upiInstructions = document.getElementById('bankQrUpiInstructions');
+      const transferInstructions = document.getElementById('bankQrTransferInstructions');
+
+      if (promptTitle) promptTitle.textContent = payable ? 'Scan the QR using any UPI App' : 'Scan to view bank transfer details';
+      if (promptSubtitle) {
+        promptSubtitle.textContent = payable
+          ? 'The QR is generated from the merchant bank details. Verify the payee name before paying.'
+          : 'No UPI ID is configured for this account. Scan the QR with a generic scanner or use the details below to pay by NEFT / IMPS.';
+      }
+      if (upiInstructions) upiInstructions.style.display = payable ? 'block' : 'none';
+      if (transferInstructions) transferInstructions.style.display = payable ? 'none' : 'block';
+    }
+
+    function copyBankDetail(kind, btn) {
+      const bankQr = state?.bankQr || {};
+      const values = {
+        account: bankQr.accountNumber,
+        ifsc: bankQr.ifsc,
+        upi: bankQr.upiId
+      };
+      const value = (values[kind] || '').trim();
+      if (!value) return;
+
+      const done = () => {
+        if (!btn) return;
+        const original = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = original; }, 1600);
+      };
+
+      if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(value).then(done).catch(done);
+      } else {
+        done();
+      }
+    }
+
     function updateMethodTabsUI(method) {
       const tabs = [
         { id: 'tabMethodUpi', method: 'UPI' },
+        { id: 'tabMethodBank', method: 'BANK_QR' },
         { id: 'tabMethodCod', method: 'COD' },
         { id: 'tabMethodCash', method: 'CASH_COUNTER' },
         { id: 'tabMethodCard', method: 'CARD_COUNTER' }
@@ -1137,6 +1207,7 @@
 
       const pcCards = [
         { id: 'pcMethodCardUpi', method: 'UPI' },
+        { id: 'pcMethodCardBank', method: 'BANK_QR' },
         { id: 'pcMethodCardCod', method: 'COD' },
         { id: 'pcMethodCardCash', method: 'CASH_COUNTER' },
         { id: 'pcMethodCardCard', method: 'CARD_COUNTER' }
@@ -1169,19 +1240,24 @@
 
       if (method === 'UPI') {
         document.getElementById('viewUpiContent').hidden = false;
-        document.getElementById('ypgStickyFooter').style.display = 'flex';
+        document.getElementById('ypgStickyFooter')?.style.setProperty('display', 'flex');
+      } else if (method === 'BANK_QR') {
+        const vBank = document.getElementById('viewBankQrContent');
+        if (vBank) vBank.hidden = false;
+        document.getElementById('ypgStickyFooter')?.style.setProperty('display', 'flex');
+        loadBankQrSvg();
       } else if (method === 'COD') {
         const vCod = document.getElementById('viewCodContent');
         if (vCod) vCod.hidden = false;
-        document.getElementById('ypgStickyFooter').style.display = 'none';
+        document.getElementById('ypgStickyFooter')?.style.setProperty('display', 'none');
       } else if (method === 'CASH_COUNTER') {
         const vCash = document.getElementById('viewCashContent');
         if (vCash) vCash.hidden = false;
-        document.getElementById('ypgStickyFooter').style.display = 'none';
+        document.getElementById('ypgStickyFooter')?.style.setProperty('display', 'none');
       } else if (method === 'CARD_COUNTER') {
         const vCard = document.getElementById('viewCardContent');
         if (vCard) vCard.hidden = false;
-        document.getElementById('ypgStickyFooter').style.display = 'none';
+        document.getElementById('ypgStickyFooter')?.style.setProperty('display', 'none');
       }
 
       try {
@@ -1218,6 +1294,21 @@
                 if (el) el.textContent = formatTime(sec);
               }, () => {
                 const el = document.getElementById('activeTimerText');
+                if (el) el.textContent = 'Expired';
+                fetch(`${API_BASE}/api/v1/checkout/${PAYMENT_ID}/expire`, { method: 'POST', headers: getApiHeaders() }).catch(() => { });
+                loadState();
+              });
+            } else if (resData.status === 'QUEUED') {
+              loadState();
+            }
+          } else if (method === 'BANK_QR') {
+            if (resData.status === 'ACTIVE') {
+              loadBankQrSvg();
+              runCountdown(resData.timeRemainingSeconds || 300, sec => {
+                const el = document.getElementById('bankQrTimerText');
+                if (el) el.textContent = formatTime(sec);
+              }, () => {
+                const el = document.getElementById('bankQrTimerText');
                 if (el) el.textContent = 'Expired';
                 fetch(`${API_BASE}/api/v1/checkout/${PAYMENT_ID}/expire`, { method: 'POST', headers: getApiHeaders() }).catch(() => { });
                 loadState();
@@ -2082,7 +2173,7 @@
 
         hideAllContent();
         document.getElementById('viewQueuedContent').hidden = false;
-        document.getElementById('ypgStickyFooter').style.display = 'none';
+        document.getElementById('ypgStickyFooter')?.style.setProperty('display', 'none');
         document.getElementById('queueNumberDisplay').textContent = `#${data.queuePosition || 1}`;
         runCountdown(data.timeRemainingSeconds, sec => {
           document.getElementById('queueTimerText').textContent = formatTime(sec);
@@ -2106,7 +2197,7 @@
         if (currentSelectedMethod === 'COD') {
           const vCod = document.getElementById('viewCodContent');
           if (vCod) vCod.hidden = false;
-          document.getElementById('ypgStickyFooter').style.display = 'none';
+          document.getElementById('ypgStickyFooter')?.style.setProperty('display', 'none');
 
           runCountdown(data.timeRemainingSeconds || 300, sec => {
             const el = document.getElementById('codTimerText');
@@ -2120,15 +2211,56 @@
         } else if (currentSelectedMethod === 'CASH_COUNTER') {
           const vCash = document.getElementById('viewCashContent');
           if (vCash) vCash.hidden = false;
-          document.getElementById('ypgStickyFooter').style.display = 'none';
+          document.getElementById('ypgStickyFooter')?.style.setProperty('display', 'none');
         } else if (currentSelectedMethod === 'CARD_COUNTER') {
           const vCard = document.getElementById('viewCardContent');
           if (vCard) vCard.hidden = false;
-          document.getElementById('ypgStickyFooter').style.display = 'none';
+          document.getElementById('ypgStickyFooter')?.style.setProperty('display', 'none');
+        } else if (currentSelectedMethod === 'BANK_QR') {
+          const vBank = document.getElementById('viewBankQrContent');
+          if (vBank) vBank.hidden = false;
+          document.getElementById('ypgStickyFooter')?.style.setProperty('display', 'flex');
+          renderBankQrDetails(data.bankQr || null);
+          loadBankQrSvg();
+
+          const btnContinue = document.getElementById('btnContinuePayment');
+          const remainingSec = (data.timeRemainingSeconds !== undefined && data.timeRemainingSeconds !== null) ? Number(data.timeRemainingSeconds) : 300;
+          const targetExpiry = data.expiresAt || new Date(Date.now() + remainingSec * 1000).toISOString();
+
+          if (remainingSec <= 0 && data.status === 'ACTIVE') {
+            const tText = document.getElementById('bankQrTimerText');
+            if (tText) tText.textContent = 'Expired';
+            if (btnContinue) btnContinue.style.display = 'none';
+            return;
+          }
+
+          if (btnContinue && remainingSec > 240) {
+            btnContinue.style.display = 'none';
+          } else if (btnContinue) {
+            btnContinue.style.display = 'block';
+          }
+
+          runCountdown(remainingSec, sec => {
+            const tText = document.getElementById('bankQrTimerText');
+            if (tText) tText.textContent = formatTime(sec);
+
+            if (sec <= 240 && btnContinue) {
+              btnContinue.style.display = 'block';
+            } else if (btnContinue) {
+              btnContinue.style.display = 'none';
+            }
+          }, () => {
+            const tText = document.getElementById('bankQrTimerText');
+            if (tText) tText.textContent = 'Expired';
+            if (btnContinue) btnContinue.style.display = 'none';
+            closeProcessingModal();
+            fetch(`${API_BASE}/api/v1/checkout/${PAYMENT_ID}/expire`, { method: 'POST', headers: getApiHeaders() }).catch(() => { });
+            loadState();
+          }, targetExpiry);
         } else {
           // Default: UPI QR (CRITICAL INVARIANT: ALWAYS SHOWS QR AND RUNS 5:00 TIMER REGARDLESS OF GREEN/YELLOW/RED)
           document.getElementById('viewUpiContent').hidden = false;
-          document.getElementById('ypgStickyFooter').style.display = 'flex';
+          document.getElementById('ypgStickyFooter')?.style.setProperty('display', 'flex');
           loadQrSvg();
 
           const btnContinue = document.getElementById('btnContinuePayment');
@@ -2178,7 +2310,7 @@
 
         hideAllContent();
         document.getElementById('viewProcessingContent').hidden = false;
-        document.getElementById('ypgStickyFooter').style.display = 'none';
+        document.getElementById('ypgStickyFooter')?.style.setProperty('display', 'none');
         runCountdown(data.timeRemainingSeconds, sec => {
           document.getElementById('procTimerText').textContent = `${sec}s`;
         }, () => loadState(), data.expiresAt);
@@ -2283,6 +2415,36 @@
       setTimeout(async () => {
         try {
           const res = await fetch(`/checkout/${PAYMENT_ID}/qr.svg`);
+          if (res.ok) {
+            const svg = await res.text();
+            if (svg && svg.includes('<svg')) {
+              container.innerHTML = svg;
+            }
+          }
+        } catch (e) {}
+      }, 400);
+    }
+
+    // --- BANK QR SVG LOADER (generated from merchant bank details) ---
+    async function loadBankQrSvg() {
+      const container = document.getElementById('bankQrImageContainer');
+      if (!container) return;
+      try {
+        const res = await fetch(`/checkout/${PAYMENT_ID}/bank-qr.svg`);
+        if (res.ok) {
+          const svg = await res.text();
+          if (svg && svg.includes('<svg')) {
+            container.innerHTML = svg;
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn('loadBankQrSvg error:', e);
+      }
+
+      setTimeout(async () => {
+        try {
+          const res = await fetch(`/checkout/${PAYMENT_ID}/bank-qr.svg`);
           if (res.ok) {
             const svg = await res.text();
             if (svg && svg.includes('<svg')) {

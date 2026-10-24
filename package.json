@@ -4,20 +4,25 @@
   "private": true,
   "workspaces": [
     "client",
+    "admin",
     "server",
     "server/vendor/youpi-pg/packages/common",
     "server/vendor/youpi-pg/packages/core",
-    "server/vendor/youpi-pg/packages/db"
+    "server/vendor/youpi-pg/packages/db",
+    "server/vendor/youpi-pg/packages/observer-sdk"
   ],
   "scripts": {
-    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\" \"npm run dev:worker\"",
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\" \"npm run dev:admin\" \"npm run dev:worker\"",
     "dev:server": "npm --workspace server run dev",
     "dev:client": "npm --workspace client run dev",
+    "dev:admin": "npm --workspace admin run dev",
     "dev:worker": "npm --workspace server run worker",
     "migrate": "npm --workspace server run migrate",
     "seed": "npm --workspace server run seed",
     "test": "npm --workspace server run test",
-    "build": "npm --workspace client run build"
+    "build": "npm --workspace client run build && npm --workspace admin run build",
+    "build:client": "npm --workspace client run build",
+    "build:admin": "npm --workspace admin run build"
   },
   "devDependencies": {
     "concurrently": "^9.0.0"

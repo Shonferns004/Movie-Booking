@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { generateQrSvg } from '@youpi/core';
-import { getInternalServiceToken } from '@youpi/common';
+import { buildUpiUri, getInternalServiceToken } from '@youpi/common';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -255,9 +255,15 @@ export class CheckoutServer {
     const tabCodStyle = (sellingMode === 'ONLINE' && enabledMethods.includes('COD')) ? 'display:inline-flex;' : 'display:none;';
     const tabCashStyle = (sellingMode === 'OFFLINE' && enabledMethods.includes('CASH_COUNTER')) ? 'display:inline-flex;' : 'display:none;';
     const tabCardStyle = (sellingMode === 'OFFLINE' && enabledMethods.includes('CARD_COUNTER')) ? 'display:inline-flex;' : 'display:none;';
+    const tabBankStyle = enabledMethods.includes('BANK_QR') ? 'display:inline-flex;' : 'display:none;';
     const pcCodStyle = (sellingMode === 'ONLINE' && enabledMethods.includes('COD')) ? 'display:block;' : 'display:none;';
     const pcCashStyle = (sellingMode === 'OFFLINE' && enabledMethods.includes('CASH_COUNTER')) ? 'display:block;' : 'display:none;';
     const pcCardStyle = (sellingMode === 'OFFLINE' && enabledMethods.includes('CARD_COUNTER')) ? 'display:block;' : 'display:none;';
+    const pcBankStyle = enabledMethods.includes('BANK_QR') ? 'display:block;' : 'display:none;';
+
+    const bankQr = state?.bankQr || null;
+    const bankQrPayable = Boolean(bankQr?.upiId);
+    const bankQrAmount = state?.amount || '0.00';
 
     const downtimeAltBtnDisplay = ((sellingMode === 'ONLINE' && enabledMethods.includes('COD')) || (sellingMode === 'OFFLINE' && enabledMethods.includes('CASH_COUNTER'))) ? 'inline-block' : 'none';
     const downtimeAltBtnLabel = (sellingMode === 'ONLINE') ? 'Pay via Cash on Delivery Instead' : 'Pay by Cash at Till Instead';
@@ -284,9 +290,20 @@ export class CheckoutServer {
       TAB_COD_STYLE: tabCodStyle,
       TAB_CASH_STYLE: tabCashStyle,
       TAB_CARD_STYLE: tabCardStyle,
+      TAB_BANK_STYLE: tabBankStyle,
       PC_COD_STYLE: pcCodStyle,
       PC_CASH_STYLE: pcCashStyle,
       PC_CARD_STYLE: pcCardStyle,
+      PC_BANK_STYLE: pcBankStyle,
+      BANK_ACCOUNT_NAME: bankQr?.accountName || '',
+      BANK_NAME: bankQr?.bankName || '',
+      BANK_ACCOUNT_NUMBER: bankQr?.accountNumber || '',
+      BANK_IFSC: bankQr?.ifsc || '',
+      BANK_UPI_ID: bankQr?.upiId || '',
+      BANK_QR_PAYABLE: bankQrPayable ? 'true' : 'false',
+      BANK_QR_PAYABLE_STYLE: bankQrPayable ? 'block' : 'none',
+      BANK_QR_TRANSFER_STYLE: bankQrPayable ? 'none' : 'block',
+      BANK_QR_AMOUNT: bankQrAmount,
       DOWNTIME_ALT_BTN_DISPLAY: downtimeAltBtnDisplay,
       DOWNTIME_ALT_BTN_LABEL: downtimeAltBtnLabel,
       INITIAL_STATE_JSON: serializeForScript(state || {})
@@ -413,6 +430,63 @@ export class CheckoutServer {
         const upiUri = state?.upiUri || `upi://pay?pa=${encodeURIComponent(state?.payeeVpa || 'merchant@upi')}&pn=${encodeURIComponent(state?.merchantName || 'Store')}&am=${encodeURIComponent(state?.amount || '100.00')}&tn=${encodeURIComponent(paymentId)}`;
 
         const svg = generateQrSvg(upiUri, 220);
+        res.writeHead(200, {
+          'Content-Type': 'image/svg+xml',
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+          'Access-Control-Allow-Origin': '*',
+          ...BASE_SECURITY_HEADERS
+        });
+        res.end(svg);
+        return;
+      }
+
+      // Bank QR SVG: GET /checkout/:id/bank-qr.svg (Merchant bank transfer details)
+      const bankQrMatch = pathname.match(/^\/checkout\/([^/]+)\/bank-qr\.svg$/);
+      if (bankQrMatch) {
+        const paymentId = bankQrMatch[1];
+        const state = await this.fetchPaymentState(paymentId);
+        const bankQr = state?.bankQr;
+
+        if (!bankQr) {
+          res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8', ...BASE_SECURITY_HEADERS });
+          res.end('Bank QR is not configured for this checkout');
+          return;
+        }
+
+        let payload = bankQr.upiUri || null;
+
+        // Prefer a payable UPI URI when the merchant supplied a VPA; the state
+        // route normally builds it, but this fallback keeps the QR valid for
+        // sessions that are not ACTIVE yet.
+        if (!payload && bankQr.upiId) {
+          try {
+            payload = buildUpiUri({
+              payeeVpa: bankQr.upiId,
+              payeeName: bankQr.accountName || state?.merchantName || 'Merchant Store',
+              amountPaise: state?.amountPaise || '0',
+              transactionRef: state?.orderId || paymentId,
+              currency: state?.currency || 'INR'
+            });
+          } catch {
+            payload = null;
+          }
+        }
+
+        if (!payload) {
+          payload = [
+            'BANK TRANSFER DETAILS',
+            `Account Name: ${bankQr.accountName}`,
+            bankQr.bankName ? `Bank: ${bankQr.bankName}` : null,
+            `Account Number: ${bankQr.accountNumber}`,
+            `IFSC: ${bankQr.ifsc}`,
+            state?.amount ? `Amount: INR ${state.amount}` : null,
+            state?.orderId ? `Reference: ${state.orderId}` : null
+          ].filter(Boolean).join('\n');
+        }
+
+        const svg = generateQrSvg(payload, 220);
         res.writeHead(200, {
           'Content-Type': 'image/svg+xml',
           'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import multer from 'multer';
 import path from 'node:path';
 import fs from 'node:fs';
+import os from 'node:os';
 import { v2 as cloudinary } from 'cloudinary';
 import { z } from 'zod';
 import * as movies from './service.js';
@@ -9,8 +10,11 @@ import { validate } from '../../middleware/validate.js';
 import { requireAuth, requireRole } from '../../middleware/auth.js';
 
 const uploadDir = path.resolve(process.cwd(), 'uploads');
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-const upload = multer({ dest: uploadDir });
+// Serverless platforms (Vercel, Lambda) have a read-only filesystem, so uploads are
+// staged in the temp dir and pushed to Cloudinary instead of being kept on disk.
+const isEphemeralFs = !!process.env.VERCEL || !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+if (!isEphemeralFs && !fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+const upload = multer({ dest: isEphemeralFs ? os.tmpdir() : uploadDir });
 
 if (process.env.CLOUDINARY_CLOUD_NAME) {
   cloudinary.config({
@@ -61,6 +65,11 @@ router.post('/:id/media', requireAuth, requireRole('ADMIN'), upload.single('file
       url = result.secure_url;
       fs.unlinkSync(req.file.path);
     } else {
+      if (isEphemeralFs) {
+        fs.unlinkSync(req.file.path);
+        res.status(503).json({ error: 'media storage is not configured on this deployment' });
+        return;
+      }
       const ext = path.extname(req.file.originalname) || '';
       const newName = req.file.filename + ext;
       const newPath = path.join(uploadDir, newName);

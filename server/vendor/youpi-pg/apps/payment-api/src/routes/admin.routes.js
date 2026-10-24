@@ -5,6 +5,31 @@ import { PaymentVerificationPipeline } from '@youpi/core';
 import { globalTunnelManager } from '../services/tunnel-manager.js';
 import { formatQrDataUrl } from '../services/whatsapp-berry.service.js';
 
+function normalizeBankQrDetails(raw = {}) {
+  if (!raw || typeof raw !== 'object') return null;
+
+  const accountName = String(raw.accountName || '').trim();
+  const bankName = String(raw.bankName || '').trim();
+  const accountNumber = String(raw.accountNumber || '').replace(/[^0-9A-Za-z]/g, '');
+  const ifsc = String(raw.ifsc || '').trim().toUpperCase();
+  const upiId = String(raw.upiId || '').trim();
+  const enabled = raw.enabled !== false;
+
+  return { enabled, accountName, bankName, accountNumber, ifsc, upiId };
+}
+
+function validateBankQrDetails(bankQr) {
+  if (!bankQr || !bankQr.enabled) return null;
+
+  if (!bankQr.accountName) return 'Bank QR: account holder name is required.';
+  if (!bankQr.accountNumber) return 'Bank QR: account number is required.';
+  if (!/^[0-9A-Za-z]{6,30}$/.test(bankQr.accountNumber)) return 'Bank QR: account number must be 6-30 letters or digits.';
+  if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(bankQr.ifsc)) return 'Bank QR: IFSC must look like HDFC0001234.';
+  if (bankQr.upiId && !isValidVpa(bankQr.upiId)) return `Bank QR: invalid UPI ID "${bankQr.upiId}". Expected format: username@bank`;
+
+  return null;
+}
+
 function resolveSellingModeAndMethods(body, currentBranding = {}) {
   const inputBranding = body.branding || {};
   let sellingMode = body.sellingMode || inputBranding.sellingMode || currentBranding.sellingMode;
@@ -685,6 +710,7 @@ export function registerAdminRoutes(server, ctx) {
         counterInstructions: branding.counterInstructions || 'Please visit the store billing counter and present this screen to the cashier.',
         cardCounterInstructions: branding.cardCounterInstructions || 'Please swipe, insert, or tap your credit or debit card on the store POS terminal at the billing desk.',
         termsUrl: branding.termsUrl || null,
+        bankQr: branding.bankQr || null,
         sellingMode,
         enabledPaymentMethods,
         supportEmails,
@@ -751,6 +777,15 @@ export function registerAdminRoutes(server, ctx) {
     if (inputBranding.counterInstructions !== undefined) mergedBranding.counterInstructions = inputBranding.counterInstructions ? inputBranding.counterInstructions.trim() : null;
     if (inputBranding.cardCounterInstructions !== undefined) mergedBranding.cardCounterInstructions = inputBranding.cardCounterInstructions ? inputBranding.cardCounterInstructions.trim() : null;
     if (inputBranding.termsUrl !== undefined) mergedBranding.termsUrl = inputBranding.termsUrl ? inputBranding.termsUrl.trim() : null;
+    if (inputBranding.bankQr !== undefined) {
+      const bankQr = normalizeBankQrDetails(inputBranding.bankQr);
+      const bankQrError = validateBankQrDetails(bankQr);
+      if (bankQrError) {
+        HttpServer.json(res, 400, { error: bankQrError });
+        return;
+      }
+      mergedBranding.bankQr = bankQr;
+    }
 
     if (body.enabledPaymentMethods || inputBranding.enabledPaymentMethods || body.sellingMode || inputBranding.sellingMode || body.codEnabled !== undefined || body.cashEnabled !== undefined || body.cardEnabled !== undefined) {
       const modeResult = resolveSellingModeAndMethods(body, currentBranding);
@@ -968,6 +1003,15 @@ export function registerAdminRoutes(server, ctx) {
       if (inputBranding.counterInstructions !== undefined) mergedBranding.counterInstructions = inputBranding.counterInstructions ? inputBranding.counterInstructions.trim() : null;
       if (inputBranding.cardCounterInstructions !== undefined) mergedBranding.cardCounterInstructions = inputBranding.cardCounterInstructions ? inputBranding.cardCounterInstructions.trim() : null;
       if (inputBranding.termsUrl !== undefined) mergedBranding.termsUrl = inputBranding.termsUrl ? inputBranding.termsUrl.trim() : null;
+      if (inputBranding.bankQr !== undefined) {
+        const bankQr = normalizeBankQrDetails(inputBranding.bankQr);
+        const bankQrError = validateBankQrDetails(bankQr);
+        if (bankQrError) {
+          HttpServer.json(res, 400, { error: bankQrError });
+          return;
+        }
+        mergedBranding.bankQr = bankQr;
+      }
 
       if (
         body.sellingMode !== undefined ||
@@ -1164,7 +1208,9 @@ export function registerAdminRoutes(server, ctx) {
       isConnected: info.isConnected,
       qrCode: qrPayload || qr?.dataUrl || qr?.raw || (typeof qr === 'string' ? qr : null),
       pairingCode: info.pairingCode || null,
-      pairingPhone: info.pairingPhone || null
+      pairingPhone: info.pairingPhone || null,
+      // LOCAL PATCH (single-port mode): surface why the session is not connected.
+      lastError: berry.lastError || null
     });
   });
 

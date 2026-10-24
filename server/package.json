@@ -11,11 +11,14 @@
     "build": "echo \"no build step\"",
     "test": "vitest run",
     "youpi:smoke": "node scripts/youpi-single-port-smoke.mjs",
-    "youpi:e2e": "node scripts/youpi-e2e.mjs"
+    "youpi:e2e": "node scripts/youpi-e2e.mjs",
+    "youpi:panel": "node scripts/youpi-admin-panel.mjs",
+    "youpi:confirm": "node scripts/youpi-confirm-live.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",
     "bcryptjs": "^2.4.3",
+    "berryprotocol": "^0.1.10",
     "cloudinary": "^2.11.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",

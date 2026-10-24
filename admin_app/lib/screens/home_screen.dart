@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api.dart';
 import 'scanner_screen.dart';
 import 'show_detail_screen.dart';
+import 'seat_builder_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -22,6 +23,7 @@ class _HomeScreenState extends State<HomeScreen> {
   XFile? _pickedThumb;
   final _dateCtrl = TextEditingController();
   final _timeCtrl = TextEditingController();
+  List<dynamic> _theatres = [];
   List<dynamic> _auditoriums = [];
   String? _theatreId;
   String? _auditoriumId;
@@ -56,6 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_token == null) return;
     try {
       final t = await Api.getTheatres(_token!);
+      setState(() => _theatres = t);
       if (t.isNotEmpty && _theatreId == null) {
         _theatreId = t[0]['id'];
         await _loadAuditoriums();
@@ -157,11 +160,12 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Add Show'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+        content: StatefulBuilder(
+          builder: (ctx, setD) => SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
               TextField(controller: _titleCtrl, decoration: const InputDecoration(labelText: 'Movie title')),
               const SizedBox(height: 8),
               Row(children: [
@@ -190,7 +194,26 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 8),
               TextField(controller: _timeCtrl, readOnly: true, decoration: const InputDecoration(labelText: 'Show time'), onTap: _pickTime),
               const SizedBox(height: 8),
-              Text('Auditorium: ${_auditoriums.isNotEmpty ? _auditoriums.firstWhere((a) => a['id'] == _auditoriumId, orElse: () => _auditoriums[0])['name'] : 'Loading...'}'),
+              DropdownButtonFormField<String>(
+                initialValue: _theatreId,
+                decoration: const InputDecoration(labelText: 'Theatre'),
+                items: _theatres.map((t) => DropdownMenuItem(value: t['id'] as String, child: Text(t['name']))).toList(),
+                onChanged: (v) async {
+                  setD(() { _theatreId = v; _auditoriumId = null; _auditoriums = []; });
+                  await _loadAuditoriums();
+                  setD(() {});
+                },
+              ),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                initialValue: _auditoriumId,
+                decoration: const InputDecoration(labelText: 'Auditorium'),
+                items: _auditoriums.map((a) => DropdownMenuItem(value: a['id'] as String, child: Text(a['name']))).toList(),
+                onChanged: (v) {
+                  setD(() => _auditoriumId = v);
+                  _loadSeats();
+                },
+              ),
               const SizedBox(height: 8),
               const Text('Seat categories & prices', style: TextStyle(fontWeight: FontWeight.bold)),
               ..._categories.map((c) {
@@ -212,6 +235,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
         ),
+         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           ElevatedButton(onPressed: _createShow, child: const Text('Create')),
@@ -326,6 +350,12 @@ class _HomeScreenState extends State<HomeScreen> {
               onPressed: _openAddShow,
               icon: const Icon(Icons.add),
               label: const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Text('Add Show')),
+            ),
+            const SizedBox(height: 8),
+            ElevatedButton.icon(
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SeatBuilderScreen(token: _token!))),
+              icon: const Icon(Icons.chair),
+              label: const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Text('Theaters')),
             ),
             const SizedBox(height: 16),
             ..._shows.map((s) {

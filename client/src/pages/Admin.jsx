@@ -138,6 +138,13 @@ export default function Admin() {
               {form.movieName && !form.movieId && <div style={{ color: 'var(--danger)', fontSize: 12, marginTop: 4 }}>No matching movie</div>}
             </div>
             <div>
+              <label>Theatre</label>
+              <select value={form.theatreId} onChange={(e) => setForm({ ...form, theatreId: e.target.value, auditoriumId: '' })} required>
+                <option value="">Select theatre</option>
+                {theatres.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+              </select>
+            </div>
+            <div>
               <label>Auditorium</label>
               <select value={form.auditoriumId} onChange={(e) => setForm({ ...form, auditoriumId: e.target.value })} required>
                 <option value="">Select auditorium</option>

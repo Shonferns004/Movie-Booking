@@ -423,6 +423,17 @@ export class WhatsAppBerryService extends EventEmitter {
       console.warn(`[WhatsAppBerryService] Connection closed: reason=${reason}, statusCode=${statusCode}`);
       const isManual = reason === 'manual_logout' || statusCode === 401;
 
+      // LOCAL PATCH (single-port mode): remember why the session died so the admin panel
+      // can explain it instead of showing a bare "DISCONNECTED".
+      this.lastError = {
+        reason: reason || 'unknown',
+        statusCode: statusCode ?? null,
+        at: new Date().toISOString(),
+        message: reason === 'logged_out' || statusCode === 401
+          ? 'WhatsApp rejected this device session (logged_out / 401). The Berry transport is an unofficial WhatsApp Web client and is frequently blocked by WhatsApp - retry later, or use a different customer sign-in channel.'
+          : `WhatsApp connection closed (${reason || 'unknown'})`
+      };
+
       if (isManual) {
         this.status = 'DISCONNECTED';
         this.phoneNumber = null;

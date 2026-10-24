@@ -27,6 +27,7 @@ export const PublicPaymentOutcome = Object.freeze({
  */
 export const PaymentMethod = Object.freeze({
   UPI: 'UPI',
+  BANK_QR: 'BANK_QR',
   COD: 'COD',
   CASH_COUNTER: 'CASH_COUNTER',
   CARD_COUNTER: 'CARD_COUNTER'

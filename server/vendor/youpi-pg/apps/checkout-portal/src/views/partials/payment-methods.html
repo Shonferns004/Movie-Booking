@@ -7,6 +7,11 @@
               <img src="/icons/upi.svg" alt="UPI" class="ypg-tab-icon" style="height:15px;" />
               <span>UPI QR</span>
             </button>
+            <button type="button" class="ypg-method-tab" id="tabMethodBank" onclick="selectPaymentMethod('BANK_QR')"
+              style="{{TAB_BANK_STYLE}}">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:2px; vertical-align:middle;"><path d="M3 10h18M5 10V6l7-3 7 3v4M5 10v8m4-8v8m6-8v8m4-8v8M3 21h18"/></svg>
+              <span>Bank QR</span>
+            </button>
             <button type="button" class="ypg-method-tab" id="tabMethodCod" onclick="selectPaymentMethod('COD')"
               style="{{TAB_COD_STYLE}}">
               <img src="/icons/cash.svg" alt="COD" class="ypg-tab-icon" style="height:14px; width:14px;" />
@@ -44,6 +49,22 @@
                     onerror="if(window.FALLBACK_ICONS)this.src=window.FALLBACK_ICONS.paytm" alt="Paytm" />
                   <img class="ypg-pc-mini-icon" src="/icons/cred.png"
                     onerror="if(window.FALLBACK_ICONS)this.src=window.FALLBACK_ICONS.cred" alt="CRED" />
+                </div>
+              </div>
+
+              <!-- Bank QR Card -->
+              <div class="ypg-pc-method-card" id="pcMethodCardBank" onclick="selectPaymentMethod('BANK_QR')" style="{{PC_BANK_STYLE}}">
+                <div class="ypg-pc-method-header">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px; vertical-align:middle; color:#475569;"><path d="M3 10h18M5 10V6l7-3 7 3v4M5 10v8m4-8v8m6-8v8m4-8v8M3 21h18"/></svg>
+                  <div class="ypg-pc-method-title">Bank QR</div>
+                  <span class="ypg-pc-cash-pill" style="background:#ecfdf5; color:#047857;">Bank</span>
+                </div>
+                <div class="ypg-pc-method-sub">Scan or use bank transfer details</div>
+                <div class="ypg-pc-method-icons" style="margin-top:6px;">
+                  <span style="font-size:10.5px; font-weight:700; color:#047857; background:#ecfdf5; padding:2px 8px; border-radius:5px; display:inline-flex; align-items:center; gap:4px; border:1px solid #a7f3d0;">
+                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10h18M5 10V6l7-3 7 3v4M5 10v8m4-8v8m6-8v8m4-8v8M3 21h18"/></svg>
+                    NEFT / IMPS / UPI
+                  </span>
                 </div>
               </div>
 
@@ -185,6 +206,114 @@
                   <div class="ypg-instruction-step">
                     <div class="ypg-step-num">3</div>
                     <div>Payment is detected automatically, or tap <strong>Continue</strong> below after paying.</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- VIEW BANK QR: BANK TRANSFER / BANK UPI QR -->
+              <div id="viewBankQrContent" hidden>
+                <h2 class="ypg-page-title">Bank QR Payment</h2>
+
+                <div class="ypg-section-label-row">
+                  <span class="ypg-section-heading">Pay to Bank Account</span>
+                  <div class="ypg-countdown-pill" id="bankQrTimerBadge">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      stroke-width="2.2">
+                      <circle cx="12" cy="12" r="10" />
+                      <polyline points="12 6 12 12 16 14" />
+                    </svg>
+                    <span id="bankQrTimerText">05:00</span>
+                  </div>
+                </div>
+
+                <div class="ypg-qr-card-container">
+                  <div class="ypg-qr-image-box" id="bankQrImageContainer">
+                    <div style="font-size:11px; color:#94a3b8; text-align:center;">Loading QR...</div>
+                  </div>
+
+                  <div class="ypg-qr-details-col">
+                    <div class="ypg-qr-prompt-title" id="bankQrPromptTitle">Scan the QR using any UPI App</div>
+                    <div style="font-size:12px; color:#64748b; line-height:1.4; margin-top:5px;" id="bankQrPromptSubtitle">
+                      The QR is generated from the merchant's bank details. Verify the payee name before paying.
+                    </div>
+                    <div style="margin-top:10px; font-size:13px; font-weight:800; color:#0f172a;">
+                      Amount: <span style="color:#0b63e5;">₹{{BANK_QR_AMOUNT}}</span>
+                    </div>
+                    <div style="margin-top:8px; font-size:11px; color:#64748b; line-height:1.45;">
+                      Bank: <strong style="color:#334155;" id="bankQrBankNameShort">{{BANK_NAME}}</strong><br />
+                      Account: <strong style="color:#334155; font-family:monospace;" id="bankQrAccountShort">{{BANK_ACCOUNT_NUMBER}}</strong>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Bank account details for NEFT / IMPS / manual verification -->
+                <div style="background:#ffffff; border:1px solid var(--ypg-border); border-radius:12px; padding:14px; margin-top:12px;">
+                  <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px;">
+                    <div style="font-size:12.5px; font-weight:800; color:#0f172a;">Bank Transfer Details</div>
+                    <span style="font-size:10px; font-weight:800; color:#047857; background:#ecfdf5; border:1px solid #a7f3d0; border-radius:999px; padding:3px 8px;">VERIFIED MERCHANT</span>
+                  </div>
+                  <div style="display:grid; grid-template-columns:1fr; gap:7px; font-size:12px;">
+                    <div style="display:flex; justify-content:space-between; gap:12px; border-bottom:1px dashed #e2e8f0; padding-bottom:6px;">
+                      <span style="color:#64748b;">Account Holder</span>
+                      <strong style="color:#0f172a; text-align:right;" id="bankAccountNameVal">{{BANK_ACCOUNT_NAME}}</strong>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; gap:12px; border-bottom:1px dashed #e2e8f0; padding-bottom:6px;">
+                      <span style="color:#64748b;">Bank Name</span>
+                      <strong style="color:#0f172a; text-align:right;" id="bankBankNameVal">{{BANK_NAME}}</strong>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; border-bottom:1px dashed #e2e8f0; padding-bottom:6px;">
+                      <span style="color:#64748b;">Account Number</span>
+                      <span style="display:inline-flex; align-items:center; gap:8px;">
+                        <strong style="color:#0f172a; font-family:monospace; text-align:right;" id="bankAccountNumberVal">{{BANK_ACCOUNT_NUMBER}}</strong>
+                        <button type="button" onclick="copyBankDetail('account', this)" style="border:1px solid #cbd5e1; background:#f8fafc; color:#334155; border-radius:5px; padding:2px 7px; font-size:10px; font-weight:700; cursor:pointer;">Copy</button>
+                      </span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; border-bottom:1px dashed #e2e8f0; padding-bottom:6px;">
+                      <span style="color:#64748b;">IFSC Code</span>
+                      <span style="display:inline-flex; align-items:center; gap:8px;">
+                        <strong style="color:#0f172a; font-family:monospace; text-align:right;" id="bankIfscVal">{{BANK_IFSC}}</strong>
+                        <button type="button" onclick="copyBankDetail('ifsc', this)" style="border:1px solid #cbd5e1; background:#f8fafc; color:#334155; border-radius:5px; padding:2px 7px; font-size:10px; font-weight:700; cursor:pointer;">Copy</button>
+                      </span>
+                    </div>
+                    <div id="bankUpiIdRow" style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+                      <span style="color:#64748b;">UPI ID</span>
+                      <span style="display:inline-flex; align-items:center; gap:8px;">
+                        <strong style="color:#0f172a; font-family:monospace; text-align:right;" id="bankUpiIdVal">{{BANK_UPI_ID}}</strong>
+                        <button type="button" onclick="copyBankDetail('upi', this)" style="border:1px solid #cbd5e1; background:#f8fafc; color:#334155; border-radius:5px; padding:2px 7px; font-size:10px; font-weight:700; cursor:pointer;">Copy</button>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- UPI-payable instructions -->
+                <div class="ypg-instructions-card" id="bankQrUpiInstructions" style="display:{{BANK_QR_PAYABLE_STYLE}};">
+                  <div class="ypg-instruction-step">
+                    <div class="ypg-step-num">1</div>
+                    <div>Open any UPI app on your phone (Google Pay, PhonePe, Paytm, or your bank app).</div>
+                  </div>
+                  <div class="ypg-instruction-step">
+                    <div class="ypg-step-num">2</div>
+                    <div>Scan the Bank QR above and verify the payee name before paying <strong>₹{{BANK_QR_AMOUNT}}</strong>.</div>
+                  </div>
+                  <div class="ypg-instruction-step">
+                    <div class="ypg-step-num">3</div>
+                    <div>Payment is detected automatically, or tap <strong>Payment Done</strong> below after paying.</div>
+                  </div>
+                </div>
+
+                <!-- NEFT / IMPS instructions when no UPI VPA is configured -->
+                <div class="ypg-instructions-card" id="bankQrTransferInstructions" style="display:{{BANK_QR_TRANSFER_STYLE}};">
+                  <div class="ypg-instruction-step">
+                    <div class="ypg-step-num">1</div>
+                    <div>Scan the QR to view the bank transfer details, or copy the account number and IFSC above.</div>
+                  </div>
+                  <div class="ypg-instruction-step">
+                    <div class="ypg-step-num">2</div>
+                    <div>Open your bank app and send <strong>₹{{BANK_QR_AMOUNT}}</strong> via NEFT or IMPS to the account shown.</div>
+                  </div>
+                  <div class="ypg-instruction-step">
+                    <div class="ypg-step-num">3</div>
+                    <div>Keep the transfer reference handy and tap <strong>Payment Done</strong> below after paying.</div>
                   </div>
                 </div>
               </div>

@@ -202,7 +202,8 @@ export async function createYoupiOrder({ bookingReference, customer, publicBase 
 
   const orderId = `order_${randomToken(8)}`;
   const amount = toRupees(booking.total_minor);
-  const returnUrl = `${env.APP_BASE_URL}/booking/${booking.booking_reference}`;
+  const baseOrigin = (publicBase || env.APP_BASE_URL || '').replace(/\/$/, '');
+  const returnUrl = `${baseOrigin}/booking/${booking.booking_reference}`;
 
   // reserve a local payment row first so the webhook can be matched
   const { rows: pays } = await pool.query(
@@ -262,7 +263,7 @@ export async function createYoupiOrder({ bookingReference, customer, publicBase 
     provider: 'youpi',
     paymentId: session.paymentId,
     checkoutUrl: `${base}/checkout/${session.paymentId}`,
-    scriptUrl: `${base}/youpi.js`,
+    scriptUrl: `${base}/youpi.js?v=2`,
     apiUrl: `${base}/youpi`,
     portalUrl: base,
     // The SDK sends this as X-Merchant-Id, so it must be the merchant id, not the secret.
