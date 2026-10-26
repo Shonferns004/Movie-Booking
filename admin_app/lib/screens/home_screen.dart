@@ -1004,13 +1004,9 @@ class _HomeScreenState extends State<HomeScreen> {
       show['price_min_minor'],
       show['price_max_minor'],
     );
-    final pct = totalSeats > 0 ? occupiedSeats / totalSeats : 0.0;
-    final meterColor = pct >= 0.8
-        ? const Color(0xFFD96B43)
-        : const Color(0xFF8E9E8A);
     final venue = [
-      if (theatre.isNotEmpty) 'Theatre: $theatre',
-      if (screen.isNotEmpty) 'Screen: $screen',
+      if (theatre.isNotEmpty) theatre,
+      if (screen.isNotEmpty) screen,
     ].join(' • ');
     final meta = <Widget>[
       if (venue.isNotEmpty)
@@ -1134,39 +1130,17 @@ class _HomeScreenState extends State<HomeScreen> {
                         border: Border(top: BorderSide(color: Colors.white12)),
                       ),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          if (totalSeats > 0)
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    capacityText,
-                                    style: const TextStyle(
-                                      fontFamily: 'monospace',
-                                      fontSize: 9,
-                                      color: Color(0xFFF5EFEB),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 5),
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(99),
-                                    child: LinearProgressIndicator(
-                                      value: pct.clamp(0.0, 1.0).toDouble(),
-                                      minHeight: 6,
-                                      backgroundColor: const Color(0xFF2F2F37),
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        meterColor,
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                          if (capacityText.isNotEmpty)
+                            Text(
+                              capacityText,
+                              style: const TextStyle(
+                                fontFamily: 'monospace',
+                                fontSize: 9,
+                                color: Color(0xFFF5EFEB),
                               ),
-                            )
-                          else
-                            const SizedBox.shrink(),
-                          const SizedBox(width: 16),
+                            ),
+                          const Spacer(),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
@@ -1245,8 +1219,8 @@ class _HomeScreenState extends State<HomeScreen> {
       final theatre = _asText(s['theatre_name']);
       final screen = _asText(s['auditorium_name']);
       final venue = [
-        if (theatre.isNotEmpty) 'Theatre: $theatre',
-        if (screen.isNotEmpty) 'Screen: $screen',
+        if (theatre.isNotEmpty) theatre,
+        if (screen.isNotEmpty) screen,
       ].join(' • ');
       final dateSlash = _formatDateSlash(s['starts_at']);
       final weekday = _weekday(s['starts_at']);
