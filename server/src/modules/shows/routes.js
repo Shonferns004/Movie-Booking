@@ -14,8 +14,20 @@ const showSchema = z.object({
   endsAt: z.string(),
   bookingOpensAt: z.string(),
   bookingClosesAt: z.string(),
+  status: z.string().optional(),
   prices: z.array(priceSchema).optional(),
   defaultPriceMinor: z.number().int().optional(),
+});
+const updateShowSchema = z.object({
+  movieId: z.string().uuid().optional(),
+  auditoriumId: z.string().uuid().optional(),
+  startsAt: z.string().optional(),
+  endsAt: z.string().optional(),
+  bookingOpensAt: z.string().optional(),
+  bookingClosesAt: z.string().optional(),
+  status: z.string().optional(),
+  prices: z.array(priceSchema).optional(),
+  defaultPriceMinor: z.number().int().positive().optional(),
 });
 
 router.get('/', async (req, res, next) => {
@@ -38,7 +50,7 @@ router.delete('/:id', requireAuth, requireRole('ADMIN'), async (req, res, next) 
   try { res.json(await shows.deleteShow(req.params.id)); } catch (e) { next(e); }
 });
 
-router.patch('/:id', requireAuth, requireRole('ADMIN'), async (req, res, next) => {
+router.patch('/:id', requireAuth, requireRole('ADMIN'), validate(updateShowSchema), async (req, res, next) => {
   try { res.json(await shows.updateShow(req.params.id, req.body)); } catch (e) { next(e); }
 });
 

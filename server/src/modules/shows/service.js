@@ -30,8 +30,8 @@ export async function createShow(data) {
 
     const { rows } = await client.query(
       `INSERT INTO shows (movie_id, auditorium_id, starts_at, ends_at, booking_opens_at, booking_closes_at, status)
-       VALUES ($1,$2,$3,$4,$5,$6,'scheduled') RETURNING *`,
-      [data.movieId, data.auditoriumId, data.startsAt, data.endsAt, data.bookingOpensAt, data.bookingClosesAt]);
+       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+      [data.movieId, data.auditoriumId, data.startsAt, data.endsAt, data.bookingOpensAt, data.bookingClosesAt, data.status || 'scheduled']);
     const show = rows[0];
 
     // prices
@@ -75,27 +75,202 @@ export async function deleteShow(id) {
 }
 
 export async function updateShow(id, data) {
-  const { rows } = await pool.query('SELECT * FROM shows WHERE id=$1', [id]);
-  if (!rows.length) throw notFound('show not found');
-  const m = rows[0];
-  const { rows: updated } = await pool.query(
-    `UPDATE shows SET starts_at=$1, ends_at=$2, booking_opens_at=$3, booking_closes_at=$4, status=$5, updated_at=now()
-     WHERE id=$6 RETURNING *`,
-    [data.startsAt ?? m.starts_at, data.endsAt ?? m.ends_at, data.bookingOpensAt ?? m.booking_opens_at,
-     data.bookingClosesAt ?? m.booking_closes_at, data.status ?? m.status, id]);
-  return updated[0];
+  return withTransaction(async (client) => {
+    const { rows } = await client.query(
+      'SELECT * FROM shows WHERE id=$1 FOR UPDATE',
+      [id],
+    );
+    if (!rows.length) throw notFound('show not found');
+    const current = rows[0];
+
+    const movieId = data.movieId ?? current.movie_id;
+    const auditoriumId = data.auditoriumId ?? current.auditorium_id;
+    const startsAt = data.startsAt ?? current.starts_at;
+    const endsAt = data.endsAt ?? current.ends_at;
+    const bookingOpensAt = data.bookingOpensAt ?? current.booking_opens_at;
+    const bookingClosesAt = data.bookingClosesAt ?? current.booking_closes_at;
+    const status = data.status ?? current.status;
+
+    if (String(movieId) !== String(current.movie_id)) {
+      const movie = await client.query('SELECT id FROM movies WHERE id=$1', [movieId]);
+      if (!movie.rows.length) throw badRequest('movie not found');
+    }
+
+    const venueChanged = String(auditoriumId) !== String(current.auditorium_id);
+    let targetAuditorium = null;
+    if (venueChanged) {
+      const auditorium = await client.query(
+        'SELECT id, active_layout_version_id FROM auditoriums WHERE id=$1',
+        [auditoriumId],
+      );
+      if (!auditorium.rows.length) throw badRequest('auditorium not found');
+      targetAuditorium = auditorium.rows[0];
+      if (!targetAuditorium.active_layout_version_id) {
+        throw badRequest('auditorium has no active layout');
+      }
+
+      const activeBookings = await client.query(
+        `SELECT 1 FROM bookings WHERE show_id=$1 AND status IN ('pending','confirmed') LIMIT 1`,
+        [id],
+      );
+      if (activeBookings.rows.length) {
+        throw conflict('cannot change the screen while this show has active bookings');
+      }
+    }
+
+    if (String(status).toLowerCase() !== 'cancelled') {
+      const clash = await client.query(
+        `SELECT id FROM shows WHERE auditorium_id=$1 AND id<>$2 AND status<>'cancelled'
+         AND starts_at < $3 AND ends_at > $4 LIMIT 1`,
+        [auditoriumId, id, endsAt, startsAt],
+      );
+      if (clash.rows.length) {
+        throw conflict('screen already has a show at this time');
+      }
+    }
+
+    const { rows: updatedRows } = await client.query(
+      `UPDATE shows SET movie_id=$1, auditorium_id=$2, starts_at=$3, ends_at=$4,
+         booking_opens_at=$5, booking_closes_at=$6, status=$7, updated_at=now()
+       WHERE id=$8 RETURNING *`,
+      [movieId, auditoriumId, startsAt, endsAt, bookingOpensAt, bookingClosesAt, status, id],
+    );
+    const updated = updatedRows[0];
+
+    const prices = Array.isArray(data.prices) ? data.prices : [];
+    for (const price of prices) {
+      if (!price || !Number.isInteger(price.amountMinor) || price.amountMinor <= 0) {
+        throw badRequest('seat prices must be positive amounts in minor units');
+      }
+      const currency = price.currency || 'INR';
+      if (price.categoryId) {
+        await client.query(
+          'DELETE FROM show_seat_prices WHERE show_id=$1 AND category_id=$2 AND seat_id IS NULL',
+          [id, price.categoryId],
+        );
+        await client.query(
+          `INSERT INTO show_seat_prices (show_id, category_id, seat_id, amount_minor, currency)
+           VALUES ($1,$2,NULL,$3,$4)`,
+          [id, price.categoryId, price.amountMinor, currency],
+        );
+      } else if (price.seatId) {
+        await client.query(
+          'DELETE FROM show_seat_prices WHERE show_id=$1 AND seat_id=$2',
+          [id, price.seatId],
+        );
+        await client.query(
+          `INSERT INTO show_seat_prices (show_id, category_id, seat_id, amount_minor, currency)
+           VALUES ($1,NULL,$2,$3,$4)`,
+          [id, price.seatId, price.amountMinor, currency],
+        );
+      }
+    }
+
+    if (venueChanged) {
+      // Existing seat holds were created for the old auditorium layout.
+      await client.query(
+        `UPDATE seat_holds SET status='released', released_at=now()
+         WHERE show_id=$1 AND status='active'`,
+        [id],
+      );
+      await client.query(
+        `UPDATE show_seats SET status='available', hold_id=NULL, updated_at=now()
+         WHERE show_id=$1 AND status='held'`,
+        [id],
+      );
+
+      const priceRows = await client.query(
+        'SELECT category_id, seat_id, amount_minor, currency FROM show_seat_prices WHERE show_id=$1',
+        [id],
+      );
+      const categoryPrices = new Map();
+      const seatPrices = new Map();
+      let fallback = null;
+      for (const row of priceRows.rows) {
+        if (row.category_id) categoryPrices.set(row.category_id, row);
+        if (row.seat_id) seatPrices.set(row.seat_id, row);
+        if (fallback == null) fallback = row;
+      }
+      if (fallback == null) {
+        const previousSeat = await client.query(
+          `SELECT price_minor, currency FROM show_seats
+           WHERE show_id=$1 AND price_minor IS NOT NULL
+           ORDER BY updated_at DESC LIMIT 1`,
+          [id],
+        );
+        if (previousSeat.rows.length) {
+          fallback = {
+            amount_minor: previousSeat.rows[0].price_minor,
+            currency: previousSeat.rows[0].currency,
+          };
+        }
+      }
+      const defaultAmount = data.defaultPriceMinor ?? fallback?.amount_minor ?? 15000;
+      const defaultCurrency = fallback?.currency || 'INR';
+
+      const seats = await client.query(
+        `SELECT id, category_id FROM seats
+         WHERE auditorium_id=$1 AND layout_version_id=$2`,
+        [auditoriumId, targetAuditorium.active_layout_version_id],
+      );
+      if (!seats.rows.length) {
+        throw badRequest('auditorium has no seats in its active layout');
+      }
+      const seatIds = [];
+      const seatAmounts = [];
+      const seatCurrencies = [];
+      for (const seat of seats.rows) {
+        const exact = seatPrices.get(seat.id);
+        const byCategory = seat.category_id ? categoryPrices.get(seat.category_id) : null;
+        seatIds.push(seat.id);
+        seatAmounts.push(exact?.amount_minor ?? byCategory?.amount_minor ?? defaultAmount);
+        seatCurrencies.push(exact?.currency || byCategory?.currency || defaultCurrency);
+      }
+      await client.query(
+        `INSERT INTO show_seats (show_id, seat_id, status, price_minor, currency)
+         SELECT $1::uuid, x.seat_id, 'available', x.amount_minor, x.currency
+         FROM unnest($2::uuid[], $3::int[], $4::text[]) AS x(seat_id, amount_minor, currency)
+         ON CONFLICT (show_id, seat_id) DO UPDATE SET
+           status='available', hold_id=NULL, booking_id=NULL,
+           price_minor=EXCLUDED.price_minor, currency=EXCLUDED.currency, updated_at=now()`,
+        [id, seatIds, seatAmounts, seatCurrencies],
+      );
+    }
+
+    for (const price of prices) {
+      const currency = price.currency || 'INR';
+      if (price.categoryId) {
+        await client.query(
+          `UPDATE show_seats ss SET price_minor=$1, currency=$2, updated_at=now()
+           FROM seats s
+           WHERE ss.show_id=$3 AND ss.seat_id=s.id
+             AND s.auditorium_id=$4 AND s.category_id=$5`,
+          [price.amountMinor, currency, id, auditoriumId, price.categoryId],
+        );
+      } else if (price.seatId) {
+        await client.query(
+          `UPDATE show_seats SET price_minor=$1, currency=$2, updated_at=now()
+           WHERE show_id=$3 AND seat_id=$4`,
+          [price.amountMinor, currency, id, price.seatId],
+        );
+      }
+    }
+
+    return updated;
+  });
 }
 
 export async function getShowSeats(showId) {
   const show = await getShow(showId);
   const { rows } = await pool.query(
     `SELECT ss.id AS show_seat_id, ss.status, ss.price_minor, ss.currency, ss.hold_id, ss.booking_id,
-            s.id AS seat_id, s.seat_key, s.row_label, s.seat_number, s.x, s.y, s.accessible, s.seat_type, s.col_span, s.fill_color,
+            s.id AS seat_id, s.category_id, s.seat_key, s.row_label, s.seat_number, s.x, s.y, s.accessible, s.seat_type, s.col_span, s.fill_color,
             sc.name AS category_name
      FROM show_seats ss
+     JOIN shows sh ON sh.id = ss.show_id
      JOIN seats s ON s.id = ss.seat_id
      LEFT JOIN seat_categories sc ON sc.id = s.category_id
-     WHERE ss.show_id = $1
+     WHERE ss.show_id = $1 AND s.auditorium_id = sh.auditorium_id
      ORDER BY s.y, s.x`, [showId]);
   // mark expired holds as available in response? We'll treat expired holds as available via status? DB status remains held. We handle in hold creation. For read, mark expired holds as available.
   const now = new Date();

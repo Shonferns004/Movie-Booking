@@ -28,8 +28,41 @@ class _AuthGateState extends State<AuthGate> {
   Widget build(BuildContext context) {
     return const Scaffold(
       backgroundColor: Color(0xFF121214),
-      body: Center(
-        child: CircularProgressIndicator(color: Color(0xFFD96B43)),
+      body: SafeArea(
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Konkani Samudai',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFFF5EFEB),
+                  letterSpacing: -0.5,
+                ),
+              ),
+              SizedBox(height: 6),
+              Text(
+                'Cinema Gazette & Curatorial Control',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF9E9890),
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+              SizedBox(height: 28),
+              SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Color(0xFFD96B43),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

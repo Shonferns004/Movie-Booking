@@ -112,6 +112,20 @@ class Api {
   static Future<List<dynamic>> getMovies(String token) =>
       _getList(token, '/movies', 'Failed to load movies');
 
+  static Future<Map<String, dynamic>> getMovie(String token, String movieId) =>
+      _getMap(token, '/movies/$movieId', 'Failed to load movie');
+
+  static Future<void> updateMovie(
+    String token,
+    String movieId,
+    Map<String, dynamic> data,
+  ) async {
+    final res = await _request(token, 'PATCH', '/movies/$movieId', body: data);
+    if (res.statusCode != 200) {
+      throw Exception('Failed to update movie: ${res.body}');
+    }
+  }
+
   static Future<Map<String, dynamic>> createMovie(
     String token,
     Map<String, dynamic> data,
@@ -169,14 +183,12 @@ class Api {
     }
   }
 
-  static Future<List<dynamic>> getAuditoriums(
-    String token,
-    String theatreId,
-  ) => _getList(
-    token,
-    '/theatres/$theatreId/auditoriums',
-    'Failed to load auditoriums',
-  );
+  static Future<List<dynamic>> getAuditoriums(String token, String theatreId) =>
+      _getList(
+        token,
+        '/theatres/$theatreId/auditoriums',
+        'Failed to load auditoriums',
+      );
 
   static Future<Map<String, dynamic>> createAuditorium(
     String token,
@@ -275,12 +287,7 @@ class Api {
     String showId,
     Map<String, dynamic> data,
   ) async {
-    final res = await _request(
-      token,
-      'PATCH',
-      '/shows/$showId',
-      body: data,
-    );
+    final res = await _request(token, 'PATCH', '/shows/$showId', body: data);
     if (res.statusCode != 200) {
       throw Exception('Failed to update show: ${res.body}');
     }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../services/api.dart';
+import '../widgets/skeleton.dart';
 import 'seat_builder_screen.dart';
 
 class TheaterListSheet extends StatefulWidget {
@@ -28,10 +30,16 @@ class _TheaterListSheetState extends State<TheaterListSheet> {
       final prefs = await SharedPreferences.getInstance();
       _token = prefs.getString('token');
     }
-    if (_token == null) return;
+    if (_token == null) {
+      if (mounted) setState(() => _loading = false);
+      return;
+    }
     try {
       final t = await Api.getTheatres(_token!);
-      setState(() { _theatres = t; _loading = false; });
+      setState(() {
+        _theatres = t;
+        _loading = false;
+      });
     } catch (_) {
       setState(() => _loading = false);
     }
@@ -44,24 +52,48 @@ class _TheaterListSheetState extends State<TheaterListSheet> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A1E),
-        title: const Text('Add Theater', style: TextStyle(color: Color(0xFFF4F4F5))),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Name')),
-          const SizedBox(height: 8),
-          TextField(controller: addrCtrl, decoration: const InputDecoration(labelText: 'Address')),
-        ]),
+        title: const Text(
+          'Add Theater',
+          style: TextStyle(color: Color(0xFFF4F4F5)),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameCtrl,
+              decoration: const InputDecoration(labelText: 'Name'),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: addrCtrl,
+              decoration: const InputDecoration(labelText: 'Address'),
+            ),
+          ],
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Add')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Add'),
+          ),
         ],
       ),
     );
     if (ok != true) return;
     try {
-      await Api.createTheatre(_token!, nameCtrl.text.trim(), addrCtrl.text.trim());
+      await Api.createTheatre(
+        _token!,
+        nameCtrl.text.trim(),
+        addrCtrl.text.trim(),
+      );
       await _load();
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      if (mounted)
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
@@ -70,7 +102,9 @@ class _TheaterListSheetState extends State<TheaterListSheet> {
       await Api.deleteTheatre(_token!, t['id']);
       await _load();
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      if (mounted)
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
@@ -96,17 +130,40 @@ class _TheaterListSheetState extends State<TheaterListSheet> {
         children: [
           Padding(
             padding: const EdgeInsets.only(top: 8, bottom: 4),
-            child: Container(width: 36, height: 4, decoration: BoxDecoration(color: sumi500, borderRadius: BorderRadius.circular(2))),
+            child: Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: sumi500,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Theaters', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: sand)),
+                const Text(
+                  'Theaters',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: sand,
+                  ),
+                ),
                 InkWell(
                   onTap: () => Navigator.pop(context),
-                  child: Container(width: 28, height: 28, decoration: BoxDecoration(color: sumi800, borderRadius: BorderRadius.circular(8), border: Border.all(color: sumi600)), child: const Icon(Icons.close, size: 14, color: sumi300)),
+                  child: Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: sumi800,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: sumi600),
+                    ),
+                    child: const Icon(Icons.close, size: 14, color: sumi300),
+                  ),
                 ),
               ],
             ),
@@ -114,33 +171,99 @@ class _TheaterListSheetState extends State<TheaterListSheet> {
           Container(height: 1, color: sumi600),
           Padding(
             padding: const EdgeInsets.all(16),
-            child: Row(children: [
-              Expanded(child: TextField(
-                style: const TextStyle(fontSize: 12, color: sand),
-                decoration: InputDecoration(
-                  hintText: 'Search by theater or location...',
-                  hintStyle: TextStyle(fontSize: 12, color: sumi300),
-                  prefixIcon: const Icon(Icons.search, size: 16, color: sumi300),
-                  filled: true,
-                  fillColor: sumi850,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: sumi600)),
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: sumi600)),
-                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: terracotta)),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    style: const TextStyle(fontSize: 12, color: sand),
+                    decoration: InputDecoration(
+                      hintText: 'Search by theater or location...',
+                      hintStyle: TextStyle(fontSize: 12, color: sumi300),
+                      prefixIcon: const Icon(
+                        Icons.search,
+                        size: 16,
+                        color: sumi300,
+                      ),
+                      filled: true,
+                      fillColor: sumi850,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: sumi600),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: sumi600),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: terracotta),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                    ),
+                  ),
                 ),
-              )),
-              const SizedBox(width: 10),
-              ElevatedButton.icon(
-                onPressed: _addTheatre,
-                icon: const Icon(Icons.add, size: 16),
-                label: const Text('Add', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                style: ElevatedButton.styleFrom(backgroundColor: terracotta, foregroundColor: sand, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10)),
-              ),
-            ]),
+                const SizedBox(width: 10),
+                ElevatedButton.icon(
+                  onPressed: _addTheatre,
+                  icon: const Icon(Icons.add, size: 16),
+                  label: const Text(
+                    'Add',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: terracotta,
+                    foregroundColor: sand,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
           Expanded(
             child: _loading
-                ? const Center(child: CircularProgressIndicator())
+                ? SkeletonPulse(
+                    child: ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: 5,
+                      itemBuilder: (_, i) {
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: sumi800,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: sumi600),
+                          ),
+                          child: const Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    SkeletonBox(width: 148, height: 13),
+                                    SizedBox(height: 7),
+                                    SkeletonBox(width: 96, height: 9),
+                                  ],
+                                ),
+                              ),
+                              SizedBox(width: 12),
+                              SkeletonCircle(size: 20),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  )
                 : ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     itemCount: _theatres.length,
@@ -149,34 +272,84 @@ class _TheaterListSheetState extends State<TheaterListSheet> {
                       return InkWell(
                         onTap: () {
                           Navigator.pop(context);
-                          Navigator.push(context, MaterialPageRoute(builder: (_) => SeatBuilderScreen(token: _token!, initialTheatreId: t['id'])));
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => SeatBuilderScreen(
+                                token: _token!,
+                                initialTheatreId: t['id'],
+                              ),
+                            ),
+                          );
                         },
                         child: Container(
-                        margin: const EdgeInsets.only(bottom: 10),
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(color: sumi800, borderRadius: BorderRadius.circular(16), border: Border.all(color: sumi600)),
-                        child: Row(
-                          children: [
-                            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              Text(t['name'] ?? '', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: sand)),
-                              const SizedBox(height: 2),
-                              Text(t['address'] ?? '', style: TextStyle(fontSize: 11, color: sumi300)),
-                            ])),
-                            IconButton(icon: Icon(Icons.delete, size: 16, color: sumi300), onPressed: () => _deleteTheatre(t)),
-                          ],
+                          margin: const EdgeInsets.only(bottom: 10),
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: sumi800,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: sumi600),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      t['name'] ?? '',
+                                      style: const TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.bold,
+                                        color: sand,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      t['address'] ?? '',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: sumi300,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              IconButton(
+                                icon: Icon(
+                                  Icons.delete,
+                                  size: 16,
+                                  color: sumi300,
+                                ),
+                                onPressed: () => _deleteTheatre(t),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
                       );
                     },
                   ),
           ),
           Padding(
             padding: const EdgeInsets.all(16),
-            child: SizedBox(width: double.infinity, child: ElevatedButton(
-              onPressed: () {},
-              style: ElevatedButton.styleFrom(backgroundColor: terracotta, foregroundColor: sand, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), padding: const EdgeInsets.symmetric(vertical: 10)),
-              child: const Text('Done', style: TextStyle(fontWeight: FontWeight.bold)),
-            )),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {},
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: terracotta,
+                  foregroundColor: sand,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                ),
+                child: const Text(
+                  'Done',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
           ),
         ],
       ),

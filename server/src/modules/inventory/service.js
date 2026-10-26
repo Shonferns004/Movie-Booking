@@ -9,10 +9,10 @@ export async function createHold({ showId, seatIds, userId, sessionRef, guestEma
   if (unique.length !== seatIds.length) throw badRequest('duplicate seats');
 
   return withTransaction(async (client) => {
-    const showRes = await client.query('SELECT * FROM shows WHERE id=$1', [showId]);
+    const showRes = await client.query('SELECT * FROM shows WHERE id=$1 FOR SHARE', [showId]);
     if (!showRes.rows.length) throw notFound('show not found');
     const show = showRes.rows[0];
-    if (show.status !== 'scheduled') throw badRequest('show not bookable');
+    if (!['scheduled', 'active'].includes(show.status)) throw badRequest('show not bookable');
     const now = new Date();
     if (now < new Date(show.booking_opens_at) || now > new Date(show.booking_closes_at)) throw badRequest('booking window closed');
 
@@ -20,8 +20,8 @@ export async function createHold({ showId, seatIds, userId, sessionRef, guestEma
     const seatsRes = await client.query(
       `SELECT ss.*, s.seat_key, s.row_label, s.seat_number, s.category_id
        FROM show_seats ss JOIN seats s ON s.id=ss.seat_id
-       WHERE ss.show_id=$1 AND ss.seat_id = ANY($2::uuid[])
-       ORDER BY ss.id FOR UPDATE`, [showId, unique]);
+       WHERE ss.show_id=$1 AND ss.seat_id = ANY($2::uuid[]) AND s.auditorium_id=$3
+       ORDER BY ss.id FOR UPDATE`, [showId, unique, show.auditorium_id]);
     if (seatsRes.rows.length !== unique.length) throw badRequest('invalid seats for show');
 
     // check availability / expired holds

@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../services/api.dart';
 import '../services/auth_service.dart';
+import '../widgets/skeleton.dart';
 import 'scanner_screen.dart';
 import 'show_detail_screen.dart';
 import 'add_show_screen.dart' show AddShowSheet;
@@ -42,6 +45,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _selectedShowId;
 
   int _scannedCount = 0;
+  bool _loading = true;
 
   @override
   void initState() {
@@ -55,15 +59,20 @@ class _HomeScreenState extends State<HomeScreen> {
     final token = await AuthService.validAccessToken(cachedToken);
     if (token.isEmpty) {
       if (mounted) {
-        Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+        Navigator.of(context)
+            .pushNamedAndRemoveUntil('/login', (route) => false);
       }
       return;
     }
     _token = token;
     setState(() {
-      _roles = (prefs.getString('roles') ?? '').split(',').where((r) => r.isNotEmpty).toList();
+      _roles = (prefs.getString('roles') ?? '')
+          .split(',')
+          .where((r) => r.isNotEmpty)
+          .toList();
     });
     await _refresh();
+    if (mounted) setState(() => _loading = false);
     await _loadTheatres();
     await _loadCategories();
   }
@@ -111,20 +120,24 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (_) {}
   }
 
-
-
   Future<void> _refresh() async {
     if (_token == null) return;
     List<dynamic> shows = [];
-    try { shows = await Api.getShows(_token!); } catch (_) {}
+    try {
+      shows = await Api.getShows(_token!);
+    } catch (_) {}
     List<dynamic> movies = [];
-    try { movies = await Api.getMovies(_token!); } catch (_) {}
+    try {
+      movies = await Api.getMovies(_token!);
+    } catch (_) {}
     if (!mounted) return;
     setState(() {
       _shows = shows;
       _movies = movies;
-      if (_selectedShowId == null && shows.isNotEmpty) _selectedShowId = shows[0]['id'];
-      if (_heroIndex >= _ongoingShows.length && _ongoingShows.isNotEmpty) _heroIndex = 0;
+      if (_selectedShowId == null && shows.isNotEmpty)
+        _selectedShowId = shows[0]['id'];
+      if (_heroIndex >= _ongoingShows.length && _ongoingShows.isNotEmpty)
+        _heroIndex = 0;
     });
     _startHeroTimer();
   }
@@ -135,7 +148,10 @@ class _HomeScreenState extends State<HomeScreen> {
       final title = _titleCtrl.text.trim();
       if (title.isEmpty) throw Exception('Enter movie title');
       const duration = 120;
-      final slug = title.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '-').replaceAll(RegExp(r'^-|-$'), '');
+      final slug = title
+          .toLowerCase()
+          .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
+          .replaceAll(RegExp(r'^-|-$'), '');
       final movie = await Api.createMovie(_token!, {
         'slug': slug,
         'title': title,
@@ -143,7 +159,9 @@ class _HomeScreenState extends State<HomeScreen> {
         'language': 'English',
         'certification': 'UA',
         'status': 'published',
-        'trailerUrl': _trailerCtrl.text.trim().isEmpty ? null : _trailerCtrl.text.trim(),
+        'trailerUrl': _trailerCtrl.text.trim().isEmpty
+            ? null
+            : _trailerCtrl.text.trim(),
       });
       if (_pickedThumb != null) {
         await Api.uploadMedia(_token!, movie['id'], _pickedThumb!, 'poster');
@@ -160,43 +178,67 @@ class _HomeScreenState extends State<HomeScreen> {
         'startsAt': startsAt.toIso8601String(),
         'endsAt': endsAt.toIso8601String(),
         'bookingOpensAt': DateTime.now().toIso8601String(),
-        'bookingClosesAt': startsAt.subtract(const Duration(minutes: 15)).toIso8601String(),
+        'bookingClosesAt': startsAt
+            .subtract(const Duration(minutes: 15))
+            .toIso8601String(),
         'prices': prices,
       });
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Show created')));
+      if (mounted)
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Show created')));
       await _refresh();
       if (mounted) Navigator.pop(context);
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      if (mounted)
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
-
 
   Future<void> _openAddShowSheet() async {
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setD) => Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom, left: 16, right: 16, top: 16),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
+            left: 16,
+            right: 16,
+            top: 16,
+          ),
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Add Show', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                const Text(
+                  'Add Show',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 12),
-                TextField(controller: _titleCtrl, decoration: const InputDecoration(labelText: 'Movie title')),
+                TextField(
+                  controller: _titleCtrl,
+                  decoration: const InputDecoration(labelText: 'Movie title'),
+                ),
                 const SizedBox(height: 8),
                 ElevatedButton.icon(
                   onPressed: () async {
                     try {
                       final picker = ImagePicker();
-                      final img = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+                      final img = await picker.pickImage(
+                        source: ImageSource.gallery,
+                        imageQuality: 80,
+                      );
                       if (img != null) setState(() => _pickedThumb = img);
                     } catch (e) {
-                      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gallery error: $e')));
+                      if (mounted)
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Gallery error: $e')),
+                        );
                     }
                   },
                   icon: const Icon(Icons.photo_library),
@@ -207,18 +249,44 @@ class _HomeScreenState extends State<HomeScreen> {
                   Image.file(File(_pickedThumb!.path), height: 120),
                 ],
                 const SizedBox(height: 8),
-                TextField(controller: _trailerCtrl, decoration: const InputDecoration(labelText: 'Trailer URL (optional)')),
+                TextField(
+                  controller: _trailerCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Trailer URL (optional)',
+                  ),
+                ),
                 const SizedBox(height: 8),
-                TextField(controller: _dateCtrl, readOnly: true, decoration: const InputDecoration(labelText: 'Show date'), onTap: _pickDate),
+                TextField(
+                  controller: _dateCtrl,
+                  readOnly: true,
+                  decoration: const InputDecoration(labelText: 'Show date'),
+                  onTap: _pickDate,
+                ),
                 const SizedBox(height: 8),
-                TextField(controller: _timeCtrl, readOnly: true, decoration: const InputDecoration(labelText: 'Show time'), onTap: _pickTime),
+                TextField(
+                  controller: _timeCtrl,
+                  readOnly: true,
+                  decoration: const InputDecoration(labelText: 'Show time'),
+                  onTap: _pickTime,
+                ),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
                   initialValue: _theatreId,
                   decoration: const InputDecoration(labelText: 'Theatre'),
-                  items: _theatres.map((t) => DropdownMenuItem(value: t['id'] as String, child: Text(t['name']))).toList(),
+                  items: _theatres
+                      .map(
+                        (t) => DropdownMenuItem(
+                          value: t['id'] as String,
+                          child: Text(t['name']),
+                        ),
+                      )
+                      .toList(),
                   onChanged: (v) async {
-                    setD(() { _theatreId = v; _auditoriumId = null; _auditoriums = []; });
+                    setD(() {
+                      _theatreId = v;
+                      _auditoriumId = null;
+                      _auditoriums = [];
+                    });
                     await _loadAuditoriums();
                     setD(() {});
                   },
@@ -227,14 +295,24 @@ class _HomeScreenState extends State<HomeScreen> {
                 DropdownButtonFormField<String>(
                   initialValue: _auditoriumId,
                   decoration: const InputDecoration(labelText: 'Auditorium'),
-                  items: _auditoriums.map((a) => DropdownMenuItem(value: a['id'] as String, child: Text(a['name']))).toList(),
+                  items: _auditoriums
+                      .map(
+                        (a) => DropdownMenuItem(
+                          value: a['id'] as String,
+                          child: Text(a['name']),
+                        ),
+                      )
+                      .toList(),
                   onChanged: (v) {
                     setD(() => _auditoriumId = v);
                     _loadSeats();
                   },
                 ),
                 const SizedBox(height: 8),
-                const Text('Seat categories & prices', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text(
+                  'Seat categories & prices',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 ..._categories.map((c) {
                   final count = _seatCount(c['name']);
                   final total = _seats.length;
@@ -243,16 +321,40 @@ class _HomeScreenState extends State<HomeScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 4),
                     child: Row(
                       children: [
-                        Expanded(child: Text('${c['name']} — $count seats • $pct%')),
-                        SizedBox(width: 120, child: TextField(controller: _priceCtrls[c['name']], decoration: const InputDecoration(labelText: 'Price'), keyboardType: TextInputType.number, onChanged: (_) => setD(() {}))),
+                        Expanded(
+                          child: Text('${c['name']} — $count seats • $pct%'),
+                        ),
+                        SizedBox(
+                          width: 120,
+                          child: TextField(
+                            controller: _priceCtrls[c['name']],
+                            decoration: const InputDecoration(
+                              labelText: 'Price',
+                            ),
+                            keyboardType: TextInputType.number,
+                            onChanged: (_) => setD(() {}),
+                          ),
+                        ),
                       ],
                     ),
                   );
                 }),
                 const SizedBox(height: 8),
-                Text('Max gross: ${_gross.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                Text(
+                  'Max gross: ${_gross.toStringAsFixed(0)}',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 12),
-                SizedBox(width: double.infinity, child: ElevatedButton(onPressed: () async { await _createShow(); if (mounted) Navigator.pop(context); }, child: const Text('Create'))),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      await _createShow();
+                      if (mounted) Navigator.pop(context);
+                    },
+                    child: const Text('Create'),
+                  ),
+                ),
                 const SizedBox(height: 16),
               ],
             ),
@@ -264,16 +366,26 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _pickDate() async {
     final now = DateTime.now();
-    final d = await showDatePicker(context: context, initialDate: now, firstDate: now, lastDate: now.add(const Duration(days: 365)));
+    final d = await showDatePicker(
+      context: context,
+      initialDate: now,
+      firstDate: now,
+      lastDate: now.add(const Duration(days: 365)),
+    );
     if (d != null) {
-      _dateCtrl.text = '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+      _dateCtrl.text =
+          '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
     }
   }
 
   Future<void> _pickTime() async {
-    final t = await showTimePicker(context: context, initialTime: TimeOfDay.now());
+    final t = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
     if (t != null) {
-      _timeCtrl.text = '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+      _timeCtrl.text =
+          '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
     }
   }
 
@@ -290,7 +402,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final now = DateTime.now();
     final filtered = _shows.where((s) {
       final status = (s['status'] ?? '').toString().toLowerCase();
-      if (status != 'scheduled' && status != 'active' && status.isNotEmpty) return false;
+      if (status != 'scheduled' && status != 'active' && status.isNotEmpty)
+        return false;
       final t = DateTime.tryParse(s['starts_at']?.toString() ?? '');
       if (t == null) return true;
       return t.isAfter(now.subtract(const Duration(hours: 3)));
@@ -307,16 +420,14 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  int _seatCount(String cat) => _seats.where((s) => s['category_name'] == cat).length;
-
+  int _seatCount(String cat) =>
+      _seats.where((s) => s['category_name'] == cat).length;
 
   double get _gross => _categories.fold(0.0, (sum, c) {
     final count = _seatCount(c['name']);
     final price = double.tryParse(_priceCtrls[c['name']]?.text ?? '0') ?? 0;
     return sum + count * price;
   });
-
-
 
   @override
   void dispose() {
@@ -326,9 +437,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_loading) return _buildHomeSkeleton();
     if (_isScanner && !_isAdmin) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Ticket Scanner'), actions: [IconButton(onPressed: () => _logout(context), icon: const Icon(Icons.logout))]),
+        appBar: AppBar(
+          title: const Text('Ticket Scanner'),
+          actions: [
+            IconButton(
+              onPressed: () => _logout(context),
+              icon: const Icon(Icons.logout),
+            ),
+          ],
+        ),
         body: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -340,12 +460,27 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Scan for show', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      const Text(
+                        'Scan for show',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
                         initialValue: _selectedShowId,
-                        decoration: const InputDecoration(labelText: 'Select show'),
-                        items: _shows.map((s) => DropdownMenuItem(value: s['id'] as String, child: Text('${s['id']}'.substring(0, 8)))).toList(),
+                        decoration: const InputDecoration(
+                          labelText: 'Select show',
+                        ),
+                        items: _shows
+                            .map(
+                              (s) => DropdownMenuItem(
+                                value: s['id'] as String,
+                                child: Text('${s['id']}'.substring(0, 8)),
+                              ),
+                            )
+                            .toList(),
                         onChanged: (v) => setState(() => _selectedShowId = v),
                       ),
                       const SizedBox(height: 16),
@@ -353,7 +488,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           const Icon(Icons.confirmation_number),
                           const SizedBox(width: 8),
-                          Text('Scanned tickets: $_scannedCount', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          Text(
+                            'Scanned tickets: $_scannedCount',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ],
                       ),
                     ],
@@ -364,13 +505,27 @@ class _HomeScreenState extends State<HomeScreen> {
               ElevatedButton.icon(
                 onPressed: () {
                   if (_selectedShowId == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Select a show first')));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Select a show first')),
+                    );
                     return;
                   }
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => ScannerScreen(showId: _selectedShowId, token: _token, onValidated: (_) => setState(() => _scannedCount++))));
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ScannerScreen(
+                        showId: _selectedShowId,
+                        token: _token,
+                        onValidated: (_) => setState(() => _scannedCount++),
+                      ),
+                    ),
+                  );
                 },
                 icon: const Icon(Icons.qr_code_scanner),
-                label: const Padding(padding: EdgeInsets.symmetric(vertical: 14), child: Text('Start Scanning', style: TextStyle(fontSize: 16))),
+                label: const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 14),
+                  child: Text('Start Scanning', style: TextStyle(fontSize: 16)),
+                ),
               ),
             ],
           ),
@@ -386,58 +541,72 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              _buildHomeHeader(),
+              const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Text('Konkani Samudai', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Color(0xFFF5EFEB), letterSpacing: -0.5)),
-                    const Text('Cinema Gazette and Curatorial Control', style: TextStyle(fontSize: 11, color: Color(0xFF9E9890), fontWeight: FontWeight.w500)),
-                  ]),
-                  GestureDetector(
-                    onTap: () => _logout(context),
-                    child: const CircleAvatar(radius: 16, backgroundColor: Color(0xFFD96B43), child: Text('AD', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11))),
+                  Row(
+                    children: [
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFD96B43),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'ENGRAVED SCREENINGS',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF9E9890),
+                          letterSpacing: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    '${_shows.length} showings scheduled',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontStyle: FontStyle.italic,
+                      color: Color(0xFF9E9890),
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                Row(children: [
-                  Container(width: 6, height: 6, decoration: const BoxDecoration(color: Color(0xFFD96B43), shape: BoxShape.circle)),
-                  const SizedBox(width: 8),
-                  const Text('ENGRAVED SCREENINGS', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFF9E9890), letterSpacing: 1.4)),
-                ]),
-                Text('${_shows.length} showings scheduled', style: const TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: Color(0xFF9E9890), fontWeight: FontWeight.w500)),
-              ]),
               const SizedBox(height: 12),
               _buildHeroCard(context),
               const SizedBox(height: 16),
-              Row(children: [
-                Expanded(child: ElevatedButton(
-                  onPressed: () => showModalBottomSheet(context: context, isScrollControlled: true, backgroundColor: Colors.transparent, builder: (_) => AddShowSheet(token: _token)),
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD96B43), foregroundColor: const Color(0xFFFAF7F2), shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(12))), padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12), elevation: 0),
-                  child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text('+ Add Screening', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFFFAF7F2))),
-                    SizedBox(height: 2),
-                    Text('Publish new ceremony', style: TextStyle(fontSize: 9, fontStyle: FontStyle.italic, color: Color(0xFFF5EFEB))),
-                  ]),
-                )),
-                const SizedBox(width: 12),
-                Expanded(child: ElevatedButton(
-                  onPressed: () => showModalBottomSheet(context: context, isScrollControlled: true, backgroundColor: Colors.transparent, builder: (_) => TheaterListSheet(token: _token)),
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1A1A1E), foregroundColor: const Color(0xFFF5EFEB), shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(12))), padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12), side: const BorderSide(color: Color(0xFF2F2F37)), elevation: 0),
-                  child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text('Theatres', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFFF5EFEB))),
-                    SizedBox(height: 2),
-                    Text('Audi allocation', style: TextStyle(fontSize: 9, fontStyle: FontStyle.italic, color: Color(0xFF9E9890))),
-                  ]),
-                )),
-              ]),
+              _buildHomeQuickActions(),
               const SizedBox(height: 20),
-              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                const Text("TODAY'S GATHERINGS", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF9E9890), letterSpacing: 1.4)),
-                Text('${_shows.length} showings scheduled', style: const TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: Color(0xFF9E9890), fontWeight: FontWeight.w500)),
-              ]),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    "TODAY'S GATHERINGS",
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF9E9890),
+                      letterSpacing: 1.4,
+                    ),
+                  ),
+                  Text(
+                    '${_shows.length} showings scheduled',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontStyle: FontStyle.italic,
+                      color: Color(0xFF9E9890),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 10),
               ..._buildShowItems(context),
             ],
@@ -446,22 +615,307 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
+  Widget _buildHomeHeader() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Konkani Samudai',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFFF5EFEB),
+                letterSpacing: -0.5,
+              ),
+            ),
+            const Text(
+              'Cinema Gazette and Curatorial Control',
+              style: TextStyle(
+                fontSize: 11,
+                color: Color(0xFF9E9890),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+        GestureDetector(
+          onTap: () => _logout(context),
+          child: const CircleAvatar(
+            radius: 16,
+            backgroundColor: Color(0xFFD96B43),
+            child: Text(
+              'AD',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 11,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHomeQuickActions() {
+    return Row(
+      children: [
+        Expanded(
+          child: ElevatedButton(
+            onPressed: () async {
+              await showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (_) => AddShowSheet(token: _token),
+              );
+              if (mounted) await _refresh();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFD96B43),
+              foregroundColor: const Color(0xFFFAF7F2),
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+              elevation: 0,
+            ),
+            child: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '+ Add Screening',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFFFAF7F2),
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  'Publish new ceremony',
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontStyle: FontStyle.italic,
+                    color: Color(0xFFF5EFEB),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: ElevatedButton(
+            onPressed: () => showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (_) => TheaterListSheet(token: _token),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1A1A1E),
+              foregroundColor: const Color(0xFFF5EFEB),
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+              side: const BorderSide(color: Color(0xFF2F2F37)),
+              elevation: 0,
+            ),
+            child: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Theatres',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFFF5EFEB),
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  'Audi allocation',
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontStyle: FontStyle.italic,
+                    color: Color(0xFF9E9890),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHomeSkeleton() {
+    return Scaffold(
+      backgroundColor: const Color(0xFF121214),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          physics: const NeverScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHomeHeader(),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFD96B43),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'ENGRAVED SCREENINGS',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF9E9890),
+                          letterSpacing: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SkeletonPulse(
+                    child: SkeletonBox(width: 104, height: 8),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              SkeletonPulse(
+                child: Container(
+                  height: 320,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF161618),
+                    borderRadius: BorderRadius.circular(28),
+                    border: Border.all(color: const Color(0xFF2F2F37)),
+                  ),
+                  child: const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      SkeletonBox(width: 150, height: 9),
+                      SizedBox(height: 12),
+                      SkeletonBox(width: 220, height: 26),
+                      SizedBox(height: 8),
+                      SkeletonBox(width: 120, height: 14),
+                      SizedBox(height: 18),
+                      Row(
+                        children: [
+                          SkeletonCircle(size: 34),
+                          SizedBox(width: 8),
+                          SkeletonBox(width: 110, height: 9),
+                          Spacer(),
+                          SkeletonBox(width: 60, height: 12),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              _buildHomeQuickActions(),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    "TODAY'S GATHERINGS",
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF9E9890),
+                      letterSpacing: 1.4,
+                    ),
+                  ),
+                  const SkeletonPulse(
+                    child: SkeletonBox(width: 104, height: 9),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              SkeletonPulse(
+                child: Column(
+                  children: [
+                    for (var i = 0; i < 3; i++)
+                      const SkeletonCard(
+                        radius: 24,
+                        margin: EdgeInsets.only(bottom: 14),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                SkeletonBox(width: 60, height: 20),
+                                SkeletonBox(width: 92, height: 18),
+                              ],
+                            ),
+                            SizedBox(height: 14),
+                            SkeletonBox(width: 160, height: 12),
+                            SizedBox(height: 10),
+                            SkeletonBox(width: double.infinity, height: 4),
+                            SizedBox(height: 12),
+                            SkeletonBox(width: 100, height: 9),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _heroFallbackImage() {
-    return Image.network('https://lh3.googleusercontent.com/aida-public/AB6AXuDZWlPSvgwhQVZ_6gMlCAF40dbl91vTWQK5nObenJpinYz4EVkrdfOSlhHEgv5oGNwXYWBuj1GmnCqgkI4qFiHsoaB5m_Qyqx6kZAoOwrhrkYyIi1gV-Mk_KWVc9IT_D3QoI3yWvcUScFTxzlarbP4OJKPDiS_tMo6wTwKy96mOvOw0pQWUG0iyCozcirRuoY93nFhf811aPM42zkD6Z4V9rPoKR7RmSg6jZESmrfo3c0qD5Yh_RpiQ', fit: BoxFit.cover);
+    return Image.network(
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuDZWlPSvgwhQVZ_6gMlCAF40dbl91vTWQK5nObenJpinYz4EVkrdfOSlhHEgv5oGNwXYWBuj1GmnCqgkI4qFiHsoaB5m_Qyqx6kZAoOwrhrkYyIi1gV-Mk_KWVc9IT_D3QoI3yWvcUScFTxzlarbP4OJKPDiS_tMo6wTwKy96mOvOw0pQWUG0iyCozcirRuoY93nFhf811aPM42zkD6Z4V9rPoKR7RmSg6jZESmrfo3c0qD5Yh_RpiQ',
+      fit: BoxFit.cover,
+    );
   }
 
   Widget _buildHeroCard(BuildContext context) {
     final ongoing = _ongoingShows;
-    final safeIndex = ongoing.isEmpty ? 0 : _heroIndex.clamp(0, ongoing.length - 1);
-    final show = ongoing.isNotEmpty ? ongoing[safeIndex] : (_shows.isNotEmpty ? _shows.first : null);
+    final safeIndex = ongoing.isEmpty
+        ? 0
+        : _heroIndex.clamp(0, ongoing.length - 1);
+    final show = ongoing.isNotEmpty
+        ? ongoing[safeIndex]
+        : (_shows.isNotEmpty ? _shows.first : null);
     final movie = show == null
         ? (_movies.isNotEmpty ? _movies.first : null)
-        : _movies.firstWhere((m) => m['id'].toString() == show['movie_id']?.toString(), orElse: () => (_movies.isNotEmpty ? _movies.first : null));
+        : _movies.firstWhere(
+            (m) => m['id'].toString() == show['movie_id']?.toString(),
+            orElse: () => (_movies.isNotEmpty ? _movies.first : null),
+          );
     final title = (movie?['title'] ?? 'KANTARA').toString();
     final thumb = movie?['thumbnail_url']?.toString();
     final timeStr = _formatTime(show?['starts_at']);
     final dateStr = _formatDateShort(show?['starts_at']);
-    final theatre = (show?['theatre_name'] ?? show?['auditorium_name'] ?? 'Jyothi Talkies').toString();
+    final theatre =
+        (show?['theatre_name'] ?? show?['auditorium_name'] ?? 'Jyothi Talkies')
+            .toString();
     return Container(
       height: 320,
       decoration: BoxDecoration(
@@ -474,67 +928,193 @@ class _HomeScreenState extends State<HomeScreen> {
         fit: StackFit.expand,
         children: [
           if (thumb != null)
-            Image.network(thumb, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _heroFallbackImage())
+            Image.network(
+              thumb,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => _heroFallbackImage(),
+            )
           else
             _heroFallbackImage(),
           Container(color: const Color(0xFF0E0E10).withOpacity(0.6)),
           Positioned(
-            top: 16, left: 16, right: 16,
+            top: 16,
+            left: 16,
+            right: 16,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(color: const Color(0xFFD96B43), borderRadius: BorderRadius.circular(999)),
-                  child: const Row(children: [
-                    SizedBox(width: 6, height: 6, child: DecoratedBox(decoration: BoxDecoration(color: Color(0xFFFAF7F2), shape: BoxShape.circle))),
-                    SizedBox(width: 6),
-                    Text('IMMINENT CAPACITY', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFFFAF7F2), letterSpacing: 1.2)),
-                  ]),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD96B43),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: const Row(
+                    children: [
+                      SizedBox(
+                        width: 6,
+                        height: 6,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: Color(0xFFFAF7F2),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 6),
+                      Text(
+                        'IMMINENT CAPACITY',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFFFAF7F2),
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
           Positioned(
-            bottom: 0, left: 0, right: 0,
+            bottom: 0,
+            left: 0,
+            right: 0,
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(children: [
-                    Text(theatre, style: const TextStyle(fontSize: 11, color: Color(0xFFD8C7A5), fontWeight: FontWeight.w500)),
-                    const Text('  •  ', style: TextStyle(color: Color(0xFF9E9890))),
-                    Text('Main Screen', style: const TextStyle(fontSize: 11, color: Color(0xFF9E9890))),
-                    const Text('  •  ', style: TextStyle(color: Color(0xFF9E9890))),
-                    Text(dateStr, style: const TextStyle(fontSize: 11, color: Color(0xFFF5EFEB), fontWeight: FontWeight.w600)),
-                  ]),
+                  Row(
+                    children: [
+                      Text(
+                        theatre,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Color(0xFFD8C7A5),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const Text(
+                        '  •  ',
+                        style: TextStyle(color: Color(0xFF9E9890)),
+                      ),
+                      Text(
+                        'Main Screen',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Color(0xFF9E9890),
+                        ),
+                      ),
+                      const Text(
+                        '  •  ',
+                        style: TextStyle(color: Color(0xFF9E9890)),
+                      ),
+                      Text(
+                        dateStr,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Color(0xFFF5EFEB),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 6),
-                  Text(title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Color(0xFFFAF7F2), letterSpacing: 1.2, height: 1)),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFFFAF7F2),
+                      letterSpacing: 1.2,
+                      height: 1,
+                    ),
+                  ),
                   const SizedBox(height: 2),
-                  Text('Chapter 1', style: const TextStyle(fontSize: 16, fontStyle: FontStyle.italic, color: Color(0xFFD8C7A5), fontWeight: FontWeight.w500, height: 1)),
+                  Text(
+                    'Chapter 1',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontStyle: FontStyle.italic,
+                      color: Color(0xFFD8C7A5),
+                      fontWeight: FontWeight.w500,
+                      height: 1,
+                    ),
+                  ),
                   const SizedBox(height: 10),
                   Container(
                     padding: const EdgeInsets.only(top: 8),
-                    decoration: const BoxDecoration(border: Border(top: BorderSide(color: Colors.white12))),
+                    decoration: const BoxDecoration(
+                      border: Border(top: BorderSide(color: Colors.white12)),
+                    ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(children: [
-                          SizedBox(
-                            width: 34, height: 34,
-                            child: Stack(alignment: Alignment.center, children: [
-                              CircularProgressIndicator(value: 0.94, strokeWidth: 3, backgroundColor: const Color(0xFF2F2F37), valueColor: const AlwaysStoppedAnimation(Color(0xFF8E9E8A))),
-                              const Text('94%', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFFFAF7F2))),
-                            ]),
-                          ),
-                          const SizedBox(width: 8),
-                          const Text('CAPACITY (376/400)', style: TextStyle(fontFamily: 'monospace', fontSize: 9, color: Color(0xFFF5EFEB))),
-                        ]),
-                        Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                          Text(timeStr, style: const TextStyle(fontFamily: 'monospace', fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFFAF7F2))),
-                          const Text('₹250 — ₹350', style: TextStyle(fontFamily: 'monospace', fontSize: 9, color: Color(0xFFD8C7A5))),
-                        ]),
+                        Row(
+                          children: [
+                            SizedBox(
+                              width: 34,
+                              height: 34,
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  CircularProgressIndicator(
+                                    value: 0.94,
+                                    strokeWidth: 3,
+                                    backgroundColor: const Color(0xFF2F2F37),
+                                    valueColor: const AlwaysStoppedAnimation(
+                                      Color(0xFF8E9E8A),
+                                    ),
+                                  ),
+                                  const Text(
+                                    '94%',
+                                    style: TextStyle(
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFFFAF7F2),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'CAPACITY (376/400)',
+                              style: TextStyle(
+                                fontFamily: 'monospace',
+                                fontSize: 9,
+                                color: Color(0xFFF5EFEB),
+                              ),
+                            ),
+                          ],
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              timeStr,
+                              style: const TextStyle(
+                                fontFamily: 'monospace',
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFFFAF7F2),
+                              ),
+                            ),
+                            const Text(
+                              '₹250 — ₹350',
+                              style: TextStyle(
+                                fontFamily: 'monospace',
+                                fontSize: 9,
+                                color: Color(0xFFD8C7A5),
+                              ),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
                   ),
@@ -546,118 +1126,312 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
   List<Widget> _buildShowItems(BuildContext context) {
     if (_shows.isEmpty) {
-      return [const Padding(padding: EdgeInsets.symmetric(vertical: 20), child: Text('No programmes yet.', style: TextStyle(color: Color(0xFF9E9890))))];
+      return [
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 20),
+          child: Text(
+            'No programmes yet.',
+            style: TextStyle(color: Color(0xFF9E9890)),
+          ),
+        ),
+      ];
     }
     return _shows.asMap().entries.map((e) {
       final i = e.key;
       final s = e.value;
-      final movie = _movies.firstWhere((m) => m['id'].toString() == s['movie_id']?.toString(), orElse: () => <String, dynamic>{});
+      final movie = _movies.firstWhere(
+        (m) => m['id'].toString() == s['movie_id']?.toString(),
+        orElse: () => <String, dynamic>{},
+      );
       final title = (movie['title'] ?? 'SHOW').toString();
       final thumb = movie['thumbnail_url']?.toString();
       final id = s['id']?.toString() ?? '';
-      final shortId = id.length >= 8 ? id.substring(0, 8).toUpperCase() : id.toUpperCase();
+      final shortId = id.length >= 8
+          ? id.substring(0, 8).toUpperCase()
+          : id.toUpperCase();
       final status = (s['status'] ?? 'SCHEDULED').toString().toUpperCase();
       final pct = i == 0 ? 65 : (i == 1 ? 88 : 94);
       final seats = i == 0 ? '130/200' : (i == 1 ? '264/300' : '376/400');
-      final meterColor = i == 0 ? const Color(0xFF8E9E8A) : const Color(0xFFD96B43);
-      final badgeColor = status == 'SCHEDULED' ? const Color(0xFFD96B43) : const Color(0xFF8E9E8A);
+      final meterColor = i == 0
+          ? const Color(0xFF8E9E8A)
+          : const Color(0xFFD96B43);
+      final badgeColor = status == 'SCHEDULED'
+          ? const Color(0xFFD96B43)
+          : const Color(0xFF8E9E8A);
       return InkWell(
-        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ShowDetailScreen(showId: s['id'], token: _token))),
-        child: Container(
-        margin: const EdgeInsets.only(bottom: 14),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1A1A1E),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: const Color(0xFF2F2F37)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
-              children: [
-                Row(crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic, children: [
-                  Text(_formatDateSlash(s['starts_at']), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFFF5EFEB), height: 1)),
-                  const SizedBox(width: 8),
-                  Text('${_weekday(s['starts_at'])} • ${_formatTime(s['starts_at'])}', style: const TextStyle(fontFamily: 'monospace', fontSize: 10, color: Color(0xFF9E9890), fontWeight: FontWeight.w500)),
-                ]),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(color: badgeColor.withOpacity(0.15), borderRadius: BorderRadius.circular(999), border: Border.all(color: badgeColor.withOpacity(0.4))),
-                  child: Row(children: [
-                    Container(width: 6, height: 6, decoration: BoxDecoration(color: badgeColor, shape: BoxShape.circle)),
-                    const SizedBox(width: 4),
-                    Text(status == 'SCHEDULED' ? 'High Interest' : status, style: TextStyle(fontFamily: 'monospace', fontSize: 9, fontWeight: FontWeight.bold, color: badgeColor)),
-                  ]),
-                ),
-              ],
+        onTap: () async {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ShowDetailScreen(showId: s['id'], token: _token),
             ),
-            const SizedBox(height: 10),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Container(
-                  width: 64, height: 80,
-                  decoration: BoxDecoration(color: const Color(0xFF161619), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFF2F2F37))),
-                  clipBehavior: Clip.antiAlias,
-                  child: Stack(fit: StackFit.expand, children: [
-                    if (thumb != null)
-                      Image.network(thumb, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.movie, color: Color(0xFF9E9890)))
-                    else
-                      const Icon(Icons.movie, color: Color(0xFF9E9890)),
-                    Positioned(bottom: 4, right: 4, child: Container(padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2), decoration: BoxDecoration(color: const Color(0xFF0E0E10).withOpacity(0.85), borderRadius: BorderRadius.circular(4)), child: const Text('2D', style: TextStyle(fontFamily: 'monospace', fontSize: 8, fontWeight: FontWeight.bold, color: Color(0xFFF5EFEB))))),
-                  ]),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+          );
+          if (mounted) await _refresh();
+        },
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 14),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A1A1E),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: const Color(0xFF2F2F37)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
                     children: [
-                      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                        Text('ID: $shortId', style: const TextStyle(fontFamily: 'monospace', fontSize: 9, color: Color(0xFF9E9890), fontWeight: FontWeight.w500)),
-                        Text('Rs 180 - 250', style: const TextStyle(fontFamily: 'monospace', fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFF5EFEB))),
-                      ]),
-                      const SizedBox(height: 2),
-                      Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFFF5EFEB), height: 1.1)),
-                      Text('Sangam Theatre - Screen 1', style: const TextStyle(fontFamily: 'serif', fontSize: 11, fontStyle: FontStyle.italic, color: Color(0xFF9E9890), fontWeight: FontWeight.w500)),
-                      const SizedBox(height: 6),
-                      Row(children: [
-                        Expanded(child: Container(height: 6, decoration: BoxDecoration(color: const Color(0xFF232329), borderRadius: BorderRadius.circular(3)), child: FractionallySizedBox(alignment: Alignment.centerLeft, widthFactor: pct / 100.0, child: Container(decoration: BoxDecoration(color: meterColor, borderRadius: BorderRadius.circular(3)))))),
-                        const SizedBox(width: 8),
-                        Text('$seats', style: const TextStyle(fontFamily: 'monospace', fontSize: 9, color: Color(0xFF9E9890))),
-                      ]),
+                      Text(
+                        _formatDateSlash(s['starts_at']),
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFFF5EFEB),
+                          height: 1,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${_weekday(s['starts_at'])} • ${_formatTime(s['starts_at'])}',
+                        style: const TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: 10,
+                          color: Color(0xFF9E9890),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                     ],
                   ),
-                ),
-              ],
-            ),
-
-          ],
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: badgeColor.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: badgeColor.withOpacity(0.4)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: badgeColor,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          status == 'SCHEDULED' ? 'High Interest' : status,
+                          style: TextStyle(
+                            fontFamily: 'monospace',
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                            color: badgeColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 64,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF161619),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFF2F2F37)),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        if (thumb != null)
+                          Image.network(
+                            thumb,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const Icon(
+                              Icons.movie,
+                              color: Color(0xFF9E9890),
+                            ),
+                          )
+                        else
+                          const Icon(Icons.movie, color: Color(0xFF9E9890)),
+                        Positioned(
+                          bottom: 4,
+                          right: 4,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0E0E10).withOpacity(0.85),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text(
+                              '2D',
+                              style: TextStyle(
+                                fontFamily: 'monospace',
+                                fontSize: 8,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFFF5EFEB),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'ID: $shortId',
+                              style: const TextStyle(
+                                fontFamily: 'monospace',
+                                fontSize: 9,
+                                color: Color(0xFF9E9890),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            Text(
+                              'Rs 180 - 250',
+                              style: const TextStyle(
+                                fontFamily: 'monospace',
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFFF5EFEB),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          title,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFFF5EFEB),
+                            height: 1.1,
+                          ),
+                        ),
+                        Text(
+                          'Sangam Theatre - Screen 1',
+                          style: const TextStyle(
+                            fontFamily: 'serif',
+                            fontSize: 11,
+                            fontStyle: FontStyle.italic,
+                            color: Color(0xFF9E9890),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Container(
+                                height: 6,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF232329),
+                                  borderRadius: BorderRadius.circular(3),
+                                ),
+                                child: FractionallySizedBox(
+                                  alignment: Alignment.centerLeft,
+                                  widthFactor: pct / 100.0,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: meterColor,
+                                      borderRadius: BorderRadius.circular(3),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '$seats',
+                              style: const TextStyle(
+                                fontFamily: 'monospace',
+                                fontSize: 9,
+                                color: Color(0xFF9E9890),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-      ),
-    );
+      );
     }).toList();
   }
-  Widget _fabButton(String label, IconData icon, VoidCallback onTap, bool primary) {
+
+  Widget _fabButton(
+    String label,
+    IconData icon,
+    VoidCallback onTap,
+    bool primary,
+  ) {
     return ElevatedButton(
       onPressed: onTap,
       style: ElevatedButton.styleFrom(
-        backgroundColor: primary ? const Color(0xFFC85A32) : const Color(0xFFFAF7F2),
+        backgroundColor: primary
+            ? const Color(0xFFC85A32)
+            : const Color(0xFFFAF7F2),
         foregroundColor: primary ? Colors.white : const Color(0xFF1A1412),
         elevation: 8,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero, side: BorderSide(color: Color(0xFF1A1412), width: 2)),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.zero,
+          side: BorderSide(color: Color(0xFF1A1412), width: 2),
+        ),
       ),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, size: 14, color: primary ? Colors.white : const Color(0xFFC85A32)),
-        const SizedBox(width: 6),
-        Text(label, style: GoogleFonts.syne(fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
-      ]),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 14,
+            color: primary ? Colors.white : const Color(0xFFC85A32),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: GoogleFonts.syne(
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -688,7 +1462,20 @@ class _HomeScreenState extends State<HomeScreen> {
     if (v == null) return 'OCT 31';
     try {
       final d = DateTime.parse(v.toString());
-      const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+      const months = [
+        'JAN',
+        'FEB',
+        'MAR',
+        'APR',
+        'MAY',
+        'JUN',
+        'JUL',
+        'AUG',
+        'SEP',
+        'OCT',
+        'NOV',
+        'DEC',
+      ];
       return '${months[d.month - 1]} ${d.day}';
     } catch (_) {
       return 'OCT 31';
@@ -699,7 +1486,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (v == null) return 'FRI';
     try {
       final d = DateTime.parse(v.toString());
-      const days = ['MON','TUE','WED','THU','FRI','SAT','SUN'];
+      const days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
       return days[(d.weekday - 1) % 7];
     } catch (_) {
       return 'FRI';

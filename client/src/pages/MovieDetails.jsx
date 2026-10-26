@@ -103,7 +103,7 @@ function Meta({ children }) {
 function ShowTicket({ show, index }) {
   const { date, time } = formatShowtime(show.starts_at);
   const status = show.status || 'Scheduled';
-  const available = status.toLowerCase() === 'scheduled';
+  const available = ['scheduled', 'active'].includes(status.toLowerCase());
 
   return (
     <article

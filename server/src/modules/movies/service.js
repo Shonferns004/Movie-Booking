@@ -3,7 +3,7 @@ import { notFound, badRequest } from '../../utils/errors.js';
 
 export async function listPublished() {
   const { rows } = await pool.query(`
-    SELECT m.*, (SELECT url FROM movie_media WHERE movie_id=m.id AND media_type='poster' ORDER BY display_order LIMIT 1) AS thumbnail_url
+    SELECT m.*, (SELECT url FROM movie_media WHERE movie_id=m.id AND media_type='poster' ORDER BY display_order, created_at DESC LIMIT 1) AS thumbnail_url
     FROM movies m WHERE m.status='published' ORDER BY m.created_at DESC`);
   return rows;
 }
@@ -12,7 +12,10 @@ export async function getById(id) {
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) throw notFound('movie not found');
   const { rows } = await pool.query('SELECT * FROM movies WHERE id=$1', [id]);
   if (!rows.length) throw notFound('movie not found');
-  const media = await pool.query('SELECT * FROM movie_media WHERE movie_id=$1 ORDER BY display_order', [id]);
+  const media = await pool.query(
+    'SELECT * FROM movie_media WHERE movie_id=$1 ORDER BY display_order, created_at DESC',
+    [id],
+  );
   return { ...rows[0], media: media.rows };
 }
 
@@ -23,6 +26,13 @@ export async function getBySlug(slug) {
 }
 
 export async function addMedia(movieId, type, url) {
+  if (type === 'poster') {
+    // New posters take the first slot so list/detail thumbnails update immediately.
+    await pool.query(
+      'UPDATE movie_media SET display_order = display_order + 1 WHERE movie_id=$1 AND media_type=$2',
+      [movieId, type],
+    );
+  }
   await pool.query('INSERT INTO movie_media (movie_id, media_type, url, display_order) VALUES ($1,$2,$3,$4)',
     [movieId, type, url, 0]);
   return { url };
