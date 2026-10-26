@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/api.dart';
 import '../services/auth_service.dart';
+import '../widgets/app_toast.dart';
 import '../widgets/skeleton.dart';
 import 'scanner_screen.dart';
 import 'show_detail_screen.dart';
@@ -202,7 +203,7 @@ class _HomeScreenState extends State<HomeScreen> {
         'durationMinutes': duration,
         'language': 'English',
         'certification': 'UA',
-        'status': 'published',
+        'status': 'draft',
         'trailerUrl': _trailerCtrl.text.trim().isEmpty
             ? null
             : _trailerCtrl.text.trim(),
@@ -227,15 +228,24 @@ class _HomeScreenState extends State<HomeScreen> {
             .toIso8601String(),
         'prices': prices,
       });
-      if (mounted)
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Show created')));
+      if (mounted) {
+        AppToast.show(
+          context,
+          'Movie saved as a draft.',
+          type: AppToastType.success,
+        );
+      }
       await _refresh();
       if (mounted) Navigator.pop(context);
     } catch (e) {
-      if (mounted)
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
+      if (mounted) {
+        final detail = e.toString().replaceFirst('Exception: ', '');
+        AppToast.show(
+          context,
+          'Could not create the show. $detail',
+          type: AppToastType.error,
+        );
+      }
     }
   }
 
@@ -279,10 +289,13 @@ class _HomeScreenState extends State<HomeScreen> {
                       );
                       if (img != null) setState(() => _pickedThumb = img);
                     } catch (e) {
-                      if (mounted)
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Gallery error: $e')),
+                      if (mounted) {
+                        AppToast.show(
+                          context,
+                          'Could not open the gallery. Please try again.',
+                          type: AppToastType.error,
                         );
+                      }
                     }
                   },
                   icon: const Icon(Icons.photo_library),
@@ -549,8 +562,10 @@ class _HomeScreenState extends State<HomeScreen> {
               ElevatedButton.icon(
                 onPressed: () {
                   if (_selectedShowId == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Select a show first')),
+                    AppToast.show(
+                      context,
+                      'Select a show before opening the scanner.',
+                      type: AppToastType.error,
                     );
                     return;
                   }
@@ -742,7 +757,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 SizedBox(height: 2),
                 Text(
-                  'Publish a new movie',
+                  'Draft until priced',
                   style: TextStyle(
                     fontSize: 9,
                     fontStyle: FontStyle.italic,
@@ -1546,7 +1561,8 @@ class _HomeScreenState extends State<HomeScreen> {
     if (v == null) return '';
     try {
       final d = DateTime.parse(v.toString());
-      return '${d.day.toString().padLeft(2, '0')} / ${d.month.toString().padLeft(2, '0')}';
+      return '${d.day.toString().padLeft(2, '0')}-'
+          '${d.month.toString().padLeft(2, '0')}-${d.year}';
     } catch (_) {
       return '';
     }
@@ -1556,21 +1572,8 @@ class _HomeScreenState extends State<HomeScreen> {
     if (v == null) return '';
     try {
       final d = DateTime.parse(v.toString());
-      const months = [
-        'JAN',
-        'FEB',
-        'MAR',
-        'APR',
-        'MAY',
-        'JUN',
-        'JUL',
-        'AUG',
-        'SEP',
-        'OCT',
-        'NOV',
-        'DEC',
-      ];
-      return '${months[d.month - 1]} ${d.day}';
+      return '${d.day.toString().padLeft(2, '0')}-'
+          '${d.month.toString().padLeft(2, '0')}-${d.year}';
     } catch (_) {
       return '';
     }

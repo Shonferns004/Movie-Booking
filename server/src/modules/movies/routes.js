@@ -7,7 +7,7 @@ import { v2 as cloudinary } from 'cloudinary';
 import { z } from 'zod';
 import * as movies from './service.js';
 import { validate } from '../../middleware/validate.js';
-import { requireAuth, requireRole } from '../../middleware/auth.js';
+import { optionalAuth, requireAuth, requireRole } from '../../middleware/auth.js';
 import {
   supabase,
   supabaseStorageBucket,
@@ -84,7 +84,7 @@ const movieSchema = z.object({
   genre: z.string().optional(),
   certification: z.string().optional(),
   releaseDate: z.string().optional(),
-  status: z.enum(['draft', 'published', 'archived']).optional(),
+  status: z.enum(['draft', 'pending', 'published', 'archived']).optional(),
 });
 
 // Public
@@ -92,13 +92,14 @@ router.get('/', async (req, res, next) => {
   try { res.json(await movies.listPublished()); } catch (e) { next(e); }
 });
 
-router.get('/:id', async (req, res, next) => {
+router.get('/:id', optionalAuth, async (req, res, next) => {
   try {
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(req.params.id);
+    const options = { publicOnly: !req.user?.roles?.includes('ADMIN') };
     if (!isUuid) {
-      return res.json(await movies.getBySlug(req.params.id));
+      return res.json(await movies.getBySlug(req.params.id, options));
     }
-    res.json(await movies.getById(req.params.id));
+    res.json(await movies.getById(req.params.id, options));
   } catch (e) { next(e); }
 });
 

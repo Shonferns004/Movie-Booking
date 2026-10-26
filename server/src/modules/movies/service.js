@@ -1,16 +1,21 @@
 import { pool } from '../../db/pool.js';
-import { notFound, badRequest } from '../../utils/errors.js';
+import { notFound } from '../../utils/errors.js';
+import { publishDueMovies } from '../../jobs/publish.js';
 
 export async function listPublished() {
+  await publishDueMovies();
   const { rows } = await pool.query(`
     SELECT m.*, (SELECT url FROM movie_media WHERE movie_id=m.id AND media_type='poster' ORDER BY display_order, created_at DESC LIMIT 1) AS thumbnail_url
     FROM movies m WHERE m.status='published' ORDER BY m.created_at DESC`);
   return rows;
 }
 
-export async function getById(id) {
+export async function getById(id, { publicOnly = false } = {}) {
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) throw notFound('movie not found');
-  const { rows } = await pool.query('SELECT * FROM movies WHERE id=$1', [id]);
+  if (publicOnly) await publishDueMovies();
+  const { rows } = publicOnly
+    ? await pool.query("SELECT * FROM movies WHERE id=$1 AND status='published'", [id])
+    : await pool.query('SELECT * FROM movies WHERE id=$1', [id]);
   if (!rows.length) throw notFound('movie not found');
   const media = await pool.query(
     'SELECT * FROM movie_media WHERE movie_id=$1 ORDER BY display_order, created_at DESC',
@@ -19,10 +24,13 @@ export async function getById(id) {
   return { ...rows[0], media: media.rows };
 }
 
-export async function getBySlug(slug) {
-  const { rows } = await pool.query('SELECT * FROM movies WHERE slug=$1', [slug]);
+export async function getBySlug(slug, options = {}) {
+  if (options.publicOnly) await publishDueMovies();
+  const { rows } = options.publicOnly
+    ? await pool.query("SELECT * FROM movies WHERE slug=$1 AND status='published'", [slug])
+    : await pool.query('SELECT * FROM movies WHERE slug=$1', [slug]);
   if (!rows.length) throw notFound('movie not found');
-  return getById(rows[0].id);
+  return getById(rows[0].id, options);
 }
 
 export async function addMedia(movieId, type, url) {

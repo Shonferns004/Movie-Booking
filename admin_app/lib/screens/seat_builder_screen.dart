@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/api.dart';
+import '../widgets/app_toast.dart';
 import '../widgets/skeleton.dart';
 
 class SeatBuilderScreen extends StatefulWidget {
@@ -286,9 +287,14 @@ class _SeatBuilderScreenState extends State<SeatBuilderScreen> {
       );
       await _loadTheatres();
     } catch (e) {
-      if (mounted)
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
+      if (mounted) {
+        final detail = e.toString().replaceFirst('Exception: ', '');
+        AppToast.show(
+          context,
+          'Could not add theatre. $detail',
+          type: AppToastType.error,
+        );
+      }
     }
   }
 
@@ -334,9 +340,14 @@ class _SeatBuilderScreenState extends State<SeatBuilderScreen> {
       );
       await _loadTheatres();
     } catch (e) {
-      if (mounted)
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
+      if (mounted) {
+        final detail = e.toString().replaceFirst('Exception: ', '');
+        AppToast.show(
+          context,
+          'Could not update theatre. $detail',
+          type: AppToastType.error,
+        );
+      }
     }
   }
 
@@ -369,9 +380,14 @@ class _SeatBuilderScreenState extends State<SeatBuilderScreen> {
       }
       await _loadTheatres();
     } catch (e) {
-      if (mounted)
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
+      if (mounted) {
+        final detail = e.toString().replaceFirst('Exception: ', '');
+        AppToast.show(
+          context,
+          'Could not delete theatre. $detail',
+          type: AppToastType.error,
+        );
+      }
     }
   }
 
@@ -596,8 +612,11 @@ class _SeatBuilderScreenState extends State<SeatBuilderScreen> {
       (row) => row[col]['type'] == 'gap' || row[col]['type'] == 'empty',
     );
     if (!allGap) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Column contains seats')));
+      AppToast.show(
+        context,
+        'This column still contains seats. Clear it first.',
+        type: AppToastType.error,
+      );
       return;
     }
     for (int y = 0; y < _grid.length; y++) _grid[y].removeAt(col);
@@ -639,8 +658,11 @@ class _SeatBuilderScreenState extends State<SeatBuilderScreen> {
       (c) => c['type'] == 'gap' || c['type'] == 'empty',
     );
     if (!allGap) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Row contains seats')));
+      AppToast.show(
+        context,
+        'This row still contains seats. Clear it first.',
+        type: AppToastType.error,
+      );
       return;
     }
     _grid.removeAt(row);
@@ -660,13 +682,22 @@ class _SeatBuilderScreenState extends State<SeatBuilderScreen> {
         _grid.isEmpty ? 0 : _grid[0].length,
         _grid,
       );
-      if (mounted)
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Layout saved')));
+      if (mounted) {
+        AppToast.show(
+          context,
+          'Seat layout saved.',
+          type: AppToastType.success,
+        );
+      }
     } catch (e) {
-      if (mounted)
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
+      if (mounted) {
+        final detail = e.toString().replaceFirst('Exception: ', '');
+        AppToast.show(
+          context,
+          'Could not save the layout. $detail',
+          type: AppToastType.error,
+        );
+      }
     }
   }
 
@@ -1006,9 +1037,14 @@ class _SeatBuilderScreenState extends State<SeatBuilderScreen> {
       await Api.createAuditorium(widget.token, _theatreId!, ctrl.text.trim());
       await _loadAuditoriums();
     } catch (e) {
-      if (mounted)
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
+      if (mounted) {
+        final detail = e.toString().replaceFirst('Exception: ', '');
+        AppToast.show(
+          context,
+          'Could not add screen. $detail',
+          type: AppToastType.error,
+        );
+      }
     }
   }
 

@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import * as shows from './service.js';
 import { validate } from '../../middleware/validate.js';
-import { requireAuth, requireRole } from '../../middleware/auth.js';
+import { optionalAuth, requireAuth, requireRole } from '../../middleware/auth.js';
 
 const router = Router();
 
@@ -30,16 +30,30 @@ const updateShowSchema = z.object({
   defaultPriceMinor: z.number().int().positive().optional(),
 });
 
-router.get('/', async (req, res, next) => {
-  try { res.json(await shows.listShows({ movieId: req.query.movieId, from: req.query.from, to: req.query.to })); } catch (e) { next(e); }
+router.get('/', optionalAuth, async (req, res, next) => {
+  try {
+    const includeUnpublished = !!req.user?.roles?.includes('ADMIN');
+    res.json(await shows.listShows({
+      movieId: req.query.movieId,
+      from: req.query.from,
+      to: req.query.to,
+      includeUnpublished,
+    }));
+  } catch (e) { next(e); }
 });
 
-router.get('/:id', async (req, res, next) => {
-  try { res.json(await shows.getShow(req.params.id)); } catch (e) { next(e); }
+router.get('/:id', optionalAuth, async (req, res, next) => {
+  try {
+    const publicOnly = !req.user?.roles?.includes('ADMIN');
+    res.json(await shows.getShow(req.params.id, { publicOnly }));
+  } catch (e) { next(e); }
 });
 
-router.get('/:id/seats', async (req, res, next) => {
-  try { res.json(await shows.getShowSeats(req.params.id)); } catch (e) { next(e); }
+router.get('/:id/seats', optionalAuth, async (req, res, next) => {
+  try {
+    const publicOnly = !req.user?.roles?.includes('ADMIN');
+    res.json(await shows.getShowSeats(req.params.id, { publicOnly }));
+  } catch (e) { next(e); }
 });
 
 router.post('/', requireAuth, requireRole('ADMIN'), validate(showSchema), async (req, res, next) => {

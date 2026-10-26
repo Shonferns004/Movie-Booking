@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../services/api.dart';
+import '../widgets/app_toast.dart';
 import '../widgets/skeleton.dart';
 
 class ShowDetailScreen extends StatefulWidget {
@@ -33,6 +34,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
   bool _auditoriumLoading = false;
   String? _movieTitle;
   String? _movieThumbnailUrl;
+  String? _movieStatus;
   String? _error;
   DateTime? _startsAt;
   DateTime? _bookingOpensAt;
@@ -93,6 +95,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
         _seatRows = null;
         final rawShow = data['show'];
         _show = rawShow is Map ? Map<String, dynamic>.from(rawShow) : null;
+        _movieStatus = _show?['movie_status']?.toString() ?? _movieStatus;
         _hydrateShowForm();
         _seatsLoading = false;
       });
@@ -166,6 +169,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
       setState(() {
         if (title.isNotEmpty) _movieTitle = title;
         _movieThumbnailUrl = poster;
+        _movieStatus = movie['status']?.toString() ?? _movieStatus;
         _movieTitleCtrl.text = _movieTitle ?? title;
         _movieLoading = false;
       });
@@ -329,12 +333,9 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
     } catch (e) {
       if (!mounted) return;
       setState(() => _deletingShow = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Could not delete show. ${e.toString().replaceFirst('Exception: ', '')}',
-          ),
-        ),
+      _showSnack(
+        'Could not delete show. ${e.toString().replaceFirst('Exception: ', '')}',
+        type: AppToastType.error,
       );
     }
   }
@@ -939,24 +940,12 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
     if (raw == null || raw.isEmpty) return '—';
     final date = DateTime.tryParse(raw)?.toLocal();
     if (date == null) return raw;
-    const months = [
-      'JAN',
-      'FEB',
-      'MAR',
-      'APR',
-      'MAY',
-      'JUN',
-      'JUL',
-      'AUG',
-      'SEP',
-      'OCT',
-      'NOV',
-      'DEC',
-    ];
     final hour = date.hour % 12 == 0 ? 12 : date.hour % 12;
     final minute = date.minute.toString().padLeft(2, '0');
     final suffix = date.hour >= 12 ? 'PM' : 'AM';
-    return '${date.day} ${months[date.month - 1]} · $hour:$minute $suffix';
+    return '${date.day.toString().padLeft(2, '0')}-'
+        '${date.month.toString().padLeft(2, '0')}-${date.year} · '
+        '$hour:$minute $suffix';
   }
 
   Widget _buildCollectionLoading() {
@@ -1341,10 +1330,14 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
           ],
         ),
         const SizedBox(height: 12),
-        const Text(
-          'Movie, screen, pricing, schedule, and booking window updates are applied immediately.',
+        Text(
+          _saveNote,
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 9, height: 1.4, color: Color(0xFF71717A)),
+          style: const TextStyle(
+            fontSize: 9,
+            height: 1.4,
+            color: Color(0xFF71717A),
+          ),
         ),
         const SizedBox(height: 20),
         Container(
@@ -2209,6 +2202,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
         final rawShow = data['show'];
         if (rawShow is Map) {
           _show = Map<String, dynamic>.from(rawShow);
+          _movieStatus = _show?['movie_status']?.toString() ?? _movieStatus;
           _hydrateShowForm();
           final serverAuditorium = _show?['auditorium_id']?.toString();
           if (serverAuditorium != null && serverAuditorium.isNotEmpty) {
@@ -2398,6 +2392,8 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
       }
     }
 
+    final shouldSchedulePublish = _movieStatus == 'draft' && prices.isNotEmpty;
+
     final originalStart = _parseShowTimestamp(_show?['starts_at']);
     final originalEnd = _parseShowTimestamp(_show?['ends_at']);
     var duration = const Duration(minutes: 120);
@@ -2440,9 +2436,18 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
         }
       });
 
-      if (titleChanged) {
-        await Api.updateMovie(token, movieId, {'title': movieTitle});
-        if (mounted) setState(() => _movieTitle = movieTitle);
+      final moviePayload = <String, dynamic>{
+        if (titleChanged) 'title': movieTitle,
+        if (shouldSchedulePublish) 'status': 'pending',
+      };
+      if (moviePayload.isNotEmpty) {
+        await Api.updateMovie(token, movieId, moviePayload);
+        if (mounted) {
+          setState(() {
+            if (titleChanged) _movieTitle = movieTitle;
+            if (shouldSchedulePublish) _movieStatus = 'pending';
+          });
+        }
       }
       if (_pickedPoster != null) {
         final uploaded = await Api.uploadMedia(
@@ -2456,7 +2461,12 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
         }
       }
       if (mounted) setState(() => _pickedPoster = null);
-      _showSnack('Show updated successfully.');
+      _showSnack(
+        shouldSchedulePublish
+            ? 'Seat prices saved. This movie goes live in 10 minutes.'
+            : 'Show updated successfully.',
+        type: AppToastType.success,
+      );
     } catch (e) {
       if (mounted) {
         final detail = e.toString().replaceFirst('Exception: ', '');
@@ -2464,6 +2474,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
           showSaved
               ? 'Show saved, but movie details could not be updated. $detail'
               : 'Could not save changes. $detail',
+          type: AppToastType.error,
         );
       }
     } finally {
@@ -2474,35 +2485,49 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
     }
   }
 
-  void _showSnack(String message) {
+  void _showSnack(String message, {AppToastType? type}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: const Color(0xFF26262B),
-      ),
-    );
+    AppToast.show(context, message, type: type ?? _toastTypeFor(message));
+  }
+
+  AppToastType _toastTypeFor(String message) {
+    final lower = message.toLowerCase();
+    if (lower.contains('saved') ||
+        lower.contains('success') ||
+        lower.contains('updated') ||
+        lower.contains('live') ||
+        lower.contains('deleted')) {
+      return AppToastType.success;
+    }
+    if (lower.contains('error') ||
+        lower.contains('could not') ||
+        lower.contains('expired') ||
+        lower.contains('invalid') ||
+        lower.contains('select') ||
+        lower.contains('enter') ||
+        lower.contains('unavailable') ||
+        lower.contains('cannot') ||
+        lower.contains('must') ||
+        lower.contains('wait')) {
+      return AppToastType.error;
+    }
+    return AppToastType.info;
+  }
+
+  String get _saveNote {
+    if (_movieStatus == 'draft') {
+      return 'Saving seat prices keeps this movie hidden for 10 minutes, then publishes it automatically.';
+    }
+    if (_movieStatus == 'pending') {
+      return 'This movie goes live automatically within 10 minutes of its last price save.';
+    }
+    return 'Movie, screen, pricing, schedule, and booking window updates are applied immediately.';
   }
 
   String _formatEditDate(DateTime? value) {
     if (value == null) return 'Select date';
-    const months = [
-      'JAN',
-      'FEB',
-      'MAR',
-      'APR',
-      'MAY',
-      'JUN',
-      'JUL',
-      'AUG',
-      'SEP',
-      'OCT',
-      'NOV',
-      'DEC',
-    ];
-    return '${value.day.toString().padLeft(2, '0')} '
-        '${months[value.month - 1]} ${value.year}';
+    return '${value.day.toString().padLeft(2, '0')}-'
+        '${value.month.toString().padLeft(2, '0')}-${value.year}';
   }
 
   String _formatEditTime(DateTime? value) {

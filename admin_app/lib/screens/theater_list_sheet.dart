@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/api.dart';
+import '../widgets/app_toast.dart';
 import '../widgets/skeleton.dart';
 import 'seat_builder_screen.dart';
 
@@ -90,10 +91,18 @@ class _TheaterListSheetState extends State<TheaterListSheet> {
         addrCtrl.text.trim(),
       );
       await _load();
+      if (mounted) {
+        AppToast.show(context, 'Theatre added.', type: AppToastType.success);
+      }
     } catch (e) {
-      if (mounted)
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
+      if (mounted) {
+        final detail = e.toString().replaceFirst('Exception: ', '');
+        AppToast.show(
+          context,
+          'Could not add theatre. $detail',
+          type: AppToastType.error,
+        );
+      }
     }
   }
 
@@ -101,10 +110,18 @@ class _TheaterListSheetState extends State<TheaterListSheet> {
     try {
       await Api.deleteTheatre(_token!, t['id']);
       await _load();
+      if (mounted) {
+        AppToast.show(context, 'Theatre deleted.', type: AppToastType.success);
+      }
     } catch (e) {
-      if (mounted)
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
+      if (mounted) {
+        final detail = e.toString().replaceFirst('Exception: ', '');
+        AppToast.show(
+          context,
+          'Could not delete theatre. $detail',
+          type: AppToastType.error,
+        );
+      }
     }
   }
 

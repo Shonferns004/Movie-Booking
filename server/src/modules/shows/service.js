@@ -1,12 +1,15 @@
 import { pool, withTransaction } from '../../db/pool.js';
 import { notFound, badRequest, conflict } from '../../utils/errors.js';
+import { publishDueMovies } from '../../jobs/publish.js';
 
-export async function listShows({ movieId, from, to } = {}) {
+export async function listShows({ movieId, from, to, includeUnpublished = false } = {}) {
+  if (!includeUnpublished) await publishDueMovies();
   const params = [];
   let where = 'WHERE 1=1';
   if (movieId) { params.push(movieId); where += ` AND s.movie_id=$${params.length}`; }
   if (from) { params.push(from); where += ` AND s.starts_at >= $${params.length}`; }
   if (to) { params.push(to); where += ` AND s.starts_at <= $${params.length}`; }
+  if (!includeUnpublished) where += " AND m.status='published'";
   const { rows } = await pool.query(
     `SELECT s.*,
             t.name AS theatre_name,
@@ -47,10 +50,18 @@ export async function listShows({ movieId, from, to } = {}) {
   return rows;
 }
 
-export async function getShow(id) {
-  const { rows } = await pool.query('SELECT * FROM shows WHERE id=$1', [id]);
+export async function getShow(id, { publicOnly = false } = {}) {
+  if (publicOnly) await publishDueMovies();
+  const { rows } = await pool.query(
+    `SELECT s.*, m.status AS movie_status
+       FROM shows s
+       JOIN movies m ON m.id = s.movie_id
+      WHERE s.id=$1`,
+    [id],
+  );
   if (!rows.length) throw notFound('show not found');
   const show = rows[0];
+  if (publicOnly && show.movie_status !== 'published') throw notFound('show not found');
   const prices = await pool.query('SELECT category_id, amount_minor FROM show_seat_prices WHERE show_id=$1', [id]);
   return { ...show, prices: prices.rows };
 }
@@ -296,8 +307,8 @@ export async function updateShow(id, data) {
   });
 }
 
-export async function getShowSeats(showId) {
-  const show = await getShow(showId);
+export async function getShowSeats(showId, { publicOnly = false } = {}) {
+  const show = await getShow(showId, { publicOnly });
   const { rows } = await pool.query(
     `SELECT ss.id AS show_seat_id, ss.status, ss.price_minor, ss.currency, ss.hold_id, ss.booking_id,
             s.id AS seat_id, s.category_id, s.seat_key, s.row_label, s.seat_number, s.x, s.y, s.accessible, s.seat_type, s.col_span, s.fill_color,

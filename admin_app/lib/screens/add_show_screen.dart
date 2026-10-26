@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/api.dart';
+import '../widgets/app_toast.dart';
 import '../widgets/skeleton.dart';
 
 class AddShowSheet extends StatefulWidget {
@@ -19,7 +20,7 @@ class _AddShowSheetState extends State<AddShowSheet> {
   String? _token;
   final _titleCtrl = TextEditingController();
   final _trailerCtrl = TextEditingController();
-  final _dateCtrl = TextEditingController(text: '2026-10-31');
+  final _dateCtrl = TextEditingController(text: '31-10-2026');
   final _timeCtrl = TextEditingController(text: '09:30 PM');
 
   XFile? _pickedThumb;
@@ -89,6 +90,27 @@ class _AddShowSheetState extends State<AddShowSheet> {
     } catch (_) {}
   }
 
+  Future<void> _pickThumbnail() async {
+    if (_submitting) return;
+    try {
+      final picker = ImagePicker();
+      final image = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 82,
+      );
+      if (image != null && mounted) {
+        setState(() => _pickedThumb = image);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      AppToast.show(
+        context,
+        'Could not open the gallery. Please try again.',
+        type: AppToastType.error,
+      );
+    }
+  }
+
   Future<void> _pickDate() async {
     final now = DateTime.now();
     final d = await showDatePicker(
@@ -97,9 +119,11 @@ class _AddShowSheetState extends State<AddShowSheet> {
       firstDate: now,
       lastDate: now.add(const Duration(days: 365)),
     );
-    if (d != null) {
-      _dateCtrl.text =
-          '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+    if (d != null && mounted) {
+      setState(() {
+        _dateCtrl.text =
+            '${d.day.toString().padLeft(2, '0')}-${d.month.toString().padLeft(2, '0')}-${d.year}';
+      });
     }
   }
 
@@ -109,12 +133,24 @@ class _AddShowSheetState extends State<AddShowSheet> {
       initialTime: TimeOfDay.now(),
     );
     if (t != null && mounted) {
-      _timeCtrl.text = t.format(context);
+      setState(() => _timeCtrl.text = t.format(context));
     }
   }
 
   DateTime? _parseStartDateTime() {
-    final date = DateTime.tryParse(_dateCtrl.text.trim());
+    final dateText = _dateCtrl.text.trim();
+    DateTime? date;
+    final dayFirst = RegExp(r'^(\d{1,2})-(\d{1,2})-(\d{4})$')
+        .firstMatch(dateText);
+    if (dayFirst != null) {
+      date = DateTime(
+        int.parse(dayFirst.group(3)!),
+        int.parse(dayFirst.group(2)!),
+        int.parse(dayFirst.group(1)!),
+      );
+    } else {
+      date = DateTime.tryParse(dateText);
+    }
     if (date == null) return null;
     final normalized = _timeCtrl.text.trim().replaceAll(RegExp(r'\s+'), ' ');
     final match = RegExp(
@@ -136,6 +172,11 @@ class _AddShowSheetState extends State<AddShowSheet> {
     try {
       final title = _titleCtrl.text.trim();
       if (title.isEmpty) throw Exception('Enter movie title');
+      if (_auditoriumId == null) throw Exception('Choose a screen');
+      final startsAt = _parseStartDateTime();
+      if (startsAt == null) {
+        throw Exception('Enter a valid show date and time');
+      }
       const duration = 120;
       final slug = title
           .toLowerCase()
@@ -147,7 +188,7 @@ class _AddShowSheetState extends State<AddShowSheet> {
         'durationMinutes': duration,
         'language': 'English',
         'certification': 'UA',
-        'status': 'published',
+        'status': 'draft',
         'trailerUrl': _trailerCtrl.text.trim().isEmpty
             ? null
             : _trailerCtrl.text.trim(),
@@ -155,48 +196,36 @@ class _AddShowSheetState extends State<AddShowSheet> {
       if (_pickedThumb != null) {
         await Api.uploadMedia(_token!, movie['id'], _pickedThumb!, 'poster');
       }
-      final startsAt = _parseStartDateTime() ?? DateTime.now();
       final endsAt = startsAt.add(Duration(minutes: duration));
       final prices = _categories
           .map((c) => {'categoryId': c['id'], 'amountMinor': 25000})
           .toList();
-      final createdShow = await Api.createShow(_token!, {
+      await Api.createShow(_token!, {
         'movieId': movie['id'],
         'auditoriumId': _auditoriumId,
         'startsAt': startsAt.toIso8601String(),
         'endsAt': endsAt.toIso8601String(),
         'bookingOpensAt': startsAt.toIso8601String(),
         'bookingClosesAt': startsAt.toIso8601String(),
-        'status': 'active',
+        'status': 'scheduled',
         'prices': prices,
       });
-      var isActive =
-          createdShow['status']?.toString().toLowerCase() == 'active';
-      final createdId = createdShow['id']?.toString();
-      if (!isActive && createdId != null) {
-        try {
-          await Api.updateShow(_token!, createdId, {'status': 'active'});
-          isActive = true;
-        } catch (_) {
-          // The show exists; activation can be retried from Edit Show.
-        }
-      }
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              isActive
-                  ? 'Show created'
-                  : 'Show created. Activate it from Edit Show.',
-            ),
-          ),
+        AppToast.show(
+          context,
+          'Movie saved as a draft. Add seat prices to go live in 10 minutes.',
+          type: AppToastType.success,
         );
         Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
+        final detail = e.toString().replaceFirst('Exception: ', '');
+        AppToast.show(
+          context,
+          'Could not add the movie. $detail',
+          type: AppToastType.error,
+        );
       }
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -256,7 +285,7 @@ class _AddShowSheetState extends State<AddShowSheet> {
                       ),
                     ),
                     const Text(
-                      'Publish a new movie',
+                      'Saved as a draft until seat pricing is set',
                       style: TextStyle(
                         fontSize: 11,
                         color: sumi300,
@@ -302,78 +331,104 @@ class _AddShowSheetState extends State<AddShowSheet> {
                   ),
                   const SizedBox(height: 12),
                   // thumbnail picker
-                  Container(
-                    decoration: BoxDecoration(
-                      color: sumi850,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: sumi600,
-                        style: BorderStyle.solid,
+                  InkWell(
+                    onTap: _pickThumbnail,
+                    borderRadius: BorderRadius.circular(12),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF202024), sumi850],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: _pickedThumb == null
+                              ? sumi600
+                              : terracotta.withValues(alpha: 0.65),
+                          width: _pickedThumb == null ? 1 : 1.4,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.18),
+                            blurRadius: 14,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                      padding: const EdgeInsets.all(10),
+                      child: Row(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(9),
+                            child: _pickedThumb == null
+                                ? Container(
+                                    width: 62,
+                                    height: 52,
+                                    color: sumi800,
+                                    child: const Icon(
+                                      Icons.add_photo_alternate_outlined,
+                                      size: 23,
+                                      color: terracotta,
+                                    ),
+                                  )
+                                : Image.file(
+                                    File(_pickedThumb!.path),
+                                    width: 62,
+                                    height: 52,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, _, _) => Container(
+                                      width: 62,
+                                      height: 52,
+                                      color: sumi800,
+                                      child: const Icon(
+                                        Icons.broken_image_outlined,
+                                        size: 21,
+                                        color: sumi400,
+                                      ),
+                                    ),
+                                  ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _pickedThumb == null
+                                      ? 'Tap to choose a poster'
+                                      : 'Poster selected',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: sand,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  _pickedThumb == null
+                                      ? 'PNG, JPG or WebP • 16:9 • max 5MB'
+                                      : 'Tap to choose a different image',
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    color: sumi400,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Icon(
+                            _pickedThumb == null
+                                ? Icons.chevron_right_rounded
+                                : Icons.check_circle_outline_rounded,
+                            size: 19,
+                            color: _pickedThumb == null ? sumi400 : terracotta,
+                          ),
+                        ],
                       ),
                     ),
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 10,
-                      horizontal: 12,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            color: sumi800,
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: const Icon(
-                            Icons.image,
-                            size: 16,
-                            color: terracotta,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Click to upload or drag & drop',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: sand,
-                              ),
-                            ),
-                            const Text(
-                              'SVG, PNG, JPG or WebP • 16:9 (max 5MB)',
-                              style: TextStyle(fontSize: 10, color: sumi400),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (_pickedThumb != null) ...[
-                    const SizedBox(height: 8),
-                    Image.file(File(_pickedThumb!.path), height: 80),
-                  ],
-                  InkWell(
-                    onTap: () async {
-                      final messenger = ScaffoldMessenger.of(context);
-                      try {
-                        final picker = ImagePicker();
-                        final img = await picker.pickImage(
-                          source: ImageSource.gallery,
-                          imageQuality: 80,
-                        );
-                        if (img != null) setState(() => _pickedThumb = img);
-                      } catch (e) {
-                        if (!mounted) return;
-                        messenger.showSnackBar(
-                          SnackBar(content: Text('Gallery error: $e')),
-                        );
-                      }
-                    },
-                    child: const SizedBox(height: 4),
                   ),
                   const SizedBox(height: 12),
                   // trailer url
@@ -447,7 +502,18 @@ class _AddShowSheetState extends State<AddShowSheet> {
                           fontWeight: FontWeight.w600,
                           color: sand,
                         ),
-                        dropdownColor: sumi800,
+                        dropdownColor: const Color(0xFF202024),
+                        borderRadius: BorderRadius.circular(12),
+                        menuMaxHeight: 260,
+                        icon: const Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          size: 18,
+                          color: sumi300,
+                        ),
+                        hint: const Text(
+                          'Select theatre',
+                          style: TextStyle(fontSize: 12, color: sumi400),
+                        ),
                         items: _theatres
                             .map(
                               (t) => DropdownMenuItem(
@@ -468,10 +534,11 @@ class _AddShowSheetState extends State<AddShowSheet> {
                       ),
                       sumi850,
                       sumi600,
+                      icon: Icons.location_city_outlined,
                     ),
                   const SizedBox(height: 10),
                   // auditorium
-                  _fieldLabel('Auditorium', sumi300),
+                  _fieldLabel('Screen', sumi300),
                   const SizedBox(height: 4),
                   if (_loadingOptions || _loadingAuditoriums)
                     _optionSkeleton(sumi850, sumi600)
@@ -486,7 +553,18 @@ class _AddShowSheetState extends State<AddShowSheet> {
                           fontWeight: FontWeight.w600,
                           color: sand,
                         ),
-                        dropdownColor: sumi800,
+                        dropdownColor: const Color(0xFF202024),
+                        borderRadius: BorderRadius.circular(12),
+                        menuMaxHeight: 260,
+                        icon: const Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          size: 18,
+                          color: sumi300,
+                        ),
+                        hint: const Text(
+                          'Select screen',
+                          style: TextStyle(fontSize: 12, color: sumi400),
+                        ),
                         items: _auditoriums
                             .map(
                               (a) => DropdownMenuItem(
@@ -499,6 +577,7 @@ class _AddShowSheetState extends State<AddShowSheet> {
                       ),
                       sumi850,
                       sumi600,
+                      icon: Icons.meeting_room_outlined,
                     ),
                 ],
               ),
@@ -534,7 +613,13 @@ class _AddShowSheetState extends State<AddShowSheet> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
+                const Text(
+                  'New movies stay hidden. After seat prices are saved, they go live automatically in 10 minutes.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 9.5, height: 1.35, color: sumi400),
+                ),
+                const SizedBox(height: 4),
                 SizedBox(
                   width: double.infinity,
                   child: TextButton(
@@ -613,13 +698,25 @@ class _AddShowSheetState extends State<AddShowSheet> {
   ) {
     return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
       child: Container(
-        height: 36,
+        height: 40,
         padding: const EdgeInsets.symmetric(horizontal: 10),
         decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(8),
+          gradient: LinearGradient(
+            colors: [const Color(0xFF202024), bg],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(color: border),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.16),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
         ),
         child: Row(
           children: [
@@ -628,27 +725,59 @@ class _AddShowSheetState extends State<AddShowSheet> {
                 ctrl.text.isEmpty ? 'Select' : ctrl.text,
                 style: TextStyle(
                   fontSize: 12,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w600,
                   color: text,
                 ),
               ),
             ),
-            Icon(icon, size: 14, color: hint),
+            Icon(icon, size: 15, color: hint),
           ],
         ),
       ),
     );
   }
 
-  Widget _dropdownBox(Widget dropdown, Color bg, Color border) {
+  Widget _dropdownBox(
+    Widget dropdown,
+    Color bg,
+    Color border, {
+    required IconData icon,
+  }) {
+    const terracotta = Color(0xFFC85A32);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.fromLTRB(9, 4, 8, 4),
       decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(8),
+        gradient: LinearGradient(
+          colors: [const Color(0xFF202024), bg],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      child: dropdown,
+      child: Row(
+        children: [
+          Container(
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(
+              color: const Color(0xFF2A2A2E),
+              borderRadius: BorderRadius.circular(9),
+              border: Border.all(color: const Color(0xFF3A3A40)),
+            ),
+            child: Icon(icon, size: 15, color: terracotta),
+          ),
+          const SizedBox(width: 9),
+          Expanded(child: dropdown),
+        ],
+      ),
     );
   }
 

@@ -1,6 +1,7 @@
 import { pool } from '../db/pool.js';
 import nodemailer from 'nodemailer';
 import { env } from '../config/env.js';
+import { publishDueMovies } from './publish.js';
 
 const transporter = env.EMAIL_PROVIDER === 'smtp' ? nodemailer.createTransport({
   host: env.SMTP_HOST, port: env.SMTP_PORT, auth: { user: env.SMTP_USER, pass: env.SMTP_PASS },
@@ -65,9 +66,10 @@ export async function processOutbox() {
   return sent;
 }
 
-/** One maintenance tick: release stale holds and flush the email outbox. */
+/** One maintenance tick: release stale holds, publish movies, flush email. */
 export async function runTick() {
   const expired = await expireHolds();
+  const published = await publishDueMovies();
   const sent = await processOutbox();
-  return { expired, sent };
+  return { expired, sent, published };
 }
