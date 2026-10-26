@@ -156,9 +156,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _openAddShow() async {
-    await showDialog(
+    await showModalBottomSheet(
       context: context,
-      builder: (ctx) => AlertDialog(
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))), 
         title: const Text('Add Show'),
         content: StatefulBuilder(
           builder: (ctx, setD) => SingleChildScrollView(
@@ -244,6 +245,96 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+
+  Future<void> _openAddShowSheet() async {
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setD) => Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom, left: 16, right: 16, top: 16),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Add Show', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
+                TextField(controller: _titleCtrl, decoration: const InputDecoration(labelText: 'Movie title')),
+                const SizedBox(height: 8),
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    try {
+                      final picker = ImagePicker();
+                      final img = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+                      if (img != null) setState(() => _pickedThumb = img);
+                    } catch (e) {
+                      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gallery error: $e')));
+                    }
+                  },
+                  icon: const Icon(Icons.photo_library),
+                  label: const Text('Pick thumbnail'),
+                ),
+                if (_pickedThumb != null) ...[
+                  const SizedBox(height: 8),
+                  Image.file(File(_pickedThumb!.path), height: 120),
+                ],
+                const SizedBox(height: 8),
+                TextField(controller: _trailerCtrl, decoration: const InputDecoration(labelText: 'Trailer URL (optional)')),
+                const SizedBox(height: 8),
+                TextField(controller: _dateCtrl, readOnly: true, decoration: const InputDecoration(labelText: 'Show date'), onTap: _pickDate),
+                const SizedBox(height: 8),
+                TextField(controller: _timeCtrl, readOnly: true, decoration: const InputDecoration(labelText: 'Show time'), onTap: _pickTime),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String>(
+                  initialValue: _theatreId,
+                  decoration: const InputDecoration(labelText: 'Theatre'),
+                  items: _theatres.map((t) => DropdownMenuItem(value: t['id'] as String, child: Text(t['name']))).toList(),
+                  onChanged: (v) async {
+                    setD(() { _theatreId = v; _auditoriumId = null; _auditoriums = []; });
+                    await _loadAuditoriums();
+                    setD(() {});
+                  },
+                ),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String>(
+                  initialValue: _auditoriumId,
+                  decoration: const InputDecoration(labelText: 'Auditorium'),
+                  items: _auditoriums.map((a) => DropdownMenuItem(value: a['id'] as String, child: Text(a['name']))).toList(),
+                  onChanged: (v) {
+                    setD(() => _auditoriumId = v);
+                    _loadSeats();
+                  },
+                ),
+                const SizedBox(height: 8),
+                const Text('Seat categories & prices', style: TextStyle(fontWeight: FontWeight.bold)),
+                ..._categories.map((c) {
+                  final count = _seatCount(c['name']);
+                  final total = _seats.length;
+                  final pct = total > 0 ? (count / total * 100).round() : 0;
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      children: [
+                        Expanded(child: Text('${c['name']} — $count seats • $pct%')),
+                        SizedBox(width: 120, child: TextField(controller: _priceCtrls[c['name']], decoration: const InputDecoration(labelText: 'Price'), keyboardType: TextInputType.number, onChanged: (_) => setD(() {}))),
+                      ],
+                    ),
+                  );
+                }),
+                const SizedBox(height: 8),
+                Text('Max gross: ${_gross.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
+                SizedBox(width: double.infinity, child: ElevatedButton(onPressed: () async { await _createShow(); if (mounted) Navigator.pop(context); }, child: const Text('Create'))),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   Future<void> _pickDate() async {
     final now = DateTime.now();
@@ -347,7 +438,7 @@ class _HomeScreenState extends State<HomeScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             ElevatedButton.icon(
-              onPressed: _openAddShow,
+              onPressed: _openAddShowSheet,
               icon: const Icon(Icons.add),
               label: const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Text('Add Show')),
             ),

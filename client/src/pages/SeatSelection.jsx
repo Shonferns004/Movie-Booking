@@ -1,6 +1,19 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { gsap } from 'gsap';
 import api, { assetUrl } from '../services/api.js';
+
+const COLORS = {
+  ink: '#0A2A31',
+  tide: '#123E47',
+  shell: '#EFEBE0',
+  kokum: '#C2305E',
+  mango: '#F4B63F',
+  deep: '#071E23',
+};
+
+const money = (minor = 0) =>
+  `₹${(Number(minor || 0) / 100).toFixed(2)}`;
 
 export default function SeatSelection() {
   const { showId } = useParams();
@@ -8,265 +21,359 @@ export default function SeatSelection() {
   const [data, setData] = useState(null);
   const [selected, setSelected] = useState([]);
   const [movie, setMovie] = useState(null);
+  const [loadingError, setLoadingError] = useState('');
+  const pageRef = useRef(null);
 
   async function load() {
-    const r = await api.get(`/shows/${showId}/seats`);
-    setData(r.data);
-    if (r.data.show) {
-      try { const m = await api.get(`/movies/${r.data.show.movie_id || r.data.show.movieId}`); setMovie(m.data); } catch (e) {}
+    setLoadingError('');
+    try {
+      const r = await api.get(`/shows/${showId}/seats`);
+      setData(r.data);
+      if (r.data.show) {
+        try {
+          const movieId = r.data.show.movie_id || r.data.show.movieId;
+          if (movieId) {
+            const m = await api.get(`/movies/${movieId}`);
+            setMovie(m.data);
+          }
+        } catch (e) {
+          // Seat selection remains usable if movie metadata is unavailable.
+        }
+      }
+    } catch (e) {
+      setLoadingError(e?.response?.data?.error || e.message || 'Could not load seats.');
     }
   }
+
   useEffect(() => { load(); }, [showId]);
 
-  if (!data) return <div className="min-h-screen bg-background flex items-center justify-center text-on-surface">Loading...</div>;
+  useEffect(() => {
+    if (pageRef.current && data) {
+      gsap.fromTo(
+        pageRef.current,
+        { opacity: 0, y: 16 },
+        { opacity: 1, y: 0, duration: 0.55, ease: 'power2.out' }
+      );
+    }
+  }, [data]);
 
-  const seats = data.seats || [];
-  const show = data.show || {};
+  const seats = data?.seats || [];
+  const show = data?.show || {};
+  const selectedSeats = useMemo(
+    () => seats.filter((seat) => selected.includes(seat.seat_id)),
+    [seats, selected]
+  );
+  const totalMinor = selectedSeats.reduce((sum, seat) => sum + (seat.price_minor || 0), 0);
+  const rowLabels = [...new Set(seats.map((seat) => seat.row_label))].sort();
+  const xs = seats.map((seat) => Number(seat.x)).filter(Number.isFinite);
+  const minX = xs.length ? Math.min(...xs) : 0;
+  const maxX = xs.length ? Math.max(...xs) : 0;
+
+  const categoryColor = (name, row) => {
+    const n = (name || '').toLowerCase();
+    if (n.includes('recliner')) return '#C2305E';
+    if (n.includes('handicap')) return '#F4B63F';
+    if (n.includes('prime')) return '#E1A5B6';
+    if (row === 'N') return '#D88AA2';
+    if (row === 'A' || row === 'B') return '#E8C9CF';
+    return '#7BA6A7';
+  };
 
   function toggle(seat) {
-    if (seat.status !== 'available' && !selected.includes(seat.seat_id)) return;
-    if (selected.includes(seat.seat_id)) setSelected(selected.filter((x) => x !== seat.seat_id));
-    else setSelected([...selected, seat.seat_id]);
+    const isSelected = selected.includes(seat.seat_id);
+    if (seat.status !== 'available' && !isSelected) return;
+    setSelected((current) =>
+      isSelected
+        ? current.filter((id) => id !== seat.seat_id)
+        : [...current, seat.seat_id]
+    );
   }
 
   async function hold() {
+    if (!selected.length) return;
     try {
-      const r = await api.post('/seat-holds', { showId, seatIds: selected, sessionRef: localStorage.getItem('sessionRef') || (localStorage.setItem('sessionRef', crypto.randomUUID()), localStorage.getItem('sessionRef')) });
+      let sessionRef = localStorage.getItem('sessionRef');
+      if (!sessionRef) {
+        sessionRef = crypto.randomUUID();
+        localStorage.setItem('sessionRef', sessionRef);
+      }
+      const r = await api.post('/seat-holds', {
+        showId,
+        seatIds: selected,
+        sessionRef,
+      });
       const holdData = { ...r.data, holdId: r.data.holdId || r.data.id, showId };
       localStorage.setItem('currentHold', JSON.stringify(holdData));
       navigate('/checkout', { state: holdData });
-    } catch (e) { alert(e?.response?.data?.error || e.message); }
+    } catch (e) {
+      alert(e?.response?.data?.error || e.message);
+    }
   }
 
-  const selectedSeats = seats.filter((s) => selected.includes(s.seat_id));
-  const totalMinor = selectedSeats.reduce((a, s) => a + (s.price_minor || 0), 0);
-  const catColor = (name, row) => {
-    const n = (name || '').toLowerCase();
-    if (n.includes('recliner')) return '#6366F1';
-    if (n.includes('handicap')) return '#7bd0ff';
-    if (row === 'N') return '#818CF8';
-    if (n.includes('prime')) return '#A5B4FC';
-    if (row === 'A' || row === 'B') return '#C7D2FE';
-    return '#272a33';
-  };
+  const categories = Object.entries(
+    seats.reduce((acc, seat) => {
+      const category = seat.category_name || 'Standard';
+      if (!acc[category]) acc[category] = { count: 0, color: categoryColor(category, seat.row_label) };
+      acc[category].count += 1;
+      return acc;
+    }, {})
+  );
+  const selectedByCategory = Object.entries(
+    selectedSeats.reduce((acc, seat) => {
+      const category = seat.category_name || 'Standard';
+      if (!acc[category]) acc[category] = { count: 0, amount: 0 };
+      acc[category].count += 1;
+      acc[category].amount += seat.price_minor || 0;
+      return acc;
+    }, {})
+  );
+  const handicapSeat = seats.find((seat) =>
+    (seat.category_name || '').toLowerCase().includes('handicap')
+  );
 
-  // group rows
-  const rowLabels = [...new Set(seats.map((s) => s.row_label))].sort();
-  const xs = seats.map((s) => Number(s.x));
-  const minX = seats.length ? Math.min(...xs) : 0;
-  const maxX = seats.length ? Math.max(...xs) : 0;
+  if (!data) {
+    return (
+      <div className="kk-seat-body min-h-screen flex items-center justify-center px-5 text-center" style={{ background: COLORS.ink, color: COLORS.shell }}>
+        <style>{`@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,900&family=Public+Sans:wght@400;500;600;700&display=swap'); .kk-seat-body{font-family:'Public Sans',sans-serif}.kk-seat-display{font-family:'Fraunces',Georgia,serif}`}</style>
+        <div className="max-w-sm">
+          <div className="mx-auto mb-4 h-12 w-12 rounded-full border-2 border-dashed animate-spin" style={{ borderColor: COLORS.mango, borderTopColor: 'transparent' }} />
+          <h1 className="kk-seat-display text-2xl font-bold">Preparing your seat map</h1>
+          <p className="mt-2 text-sm opacity-70">{loadingError || 'Finding the best seats for your screening…'}</p>
+          {loadingError && <button onClick={load} className="mt-5 rounded-xl px-5 py-2.5 font-semibold text-white" style={{ background: COLORS.kokum }}>Try again</button>}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-background text-on-surface pt-20">
-      {/* HUD Strip */}
-      <div className="w-full max-w-[1440px] mx-auto px-4 md:px-8 py-4">
-        <div className="w-full bg-surface-container rounded-xl shadow-lg p-4 lg:p-6 mb-6 relative overflow-hidden">
-          <div className="absolute -top-12 -right-12 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none"></div>
-          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-20 rounded-lg bg-surface-container-high overflow-hidden shrink-0 shadow-md">
-                {movie?.thumbnail_url && <img className="w-full h-full object-cover" src={assetUrl(movie.thumbnail_url)} alt={movie.title} />}
-              </div>
-              <div className="flex flex-col min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="px-1 py-0.5 rounded bg-surface-container-highest text-secondary-fixed-dim font-label-sm text-label-sm">UA</span>
-                  <span className="px-1 py-0.5 rounded bg-surface-container-highest text-tertiary font-label-sm text-label-sm">DOLBY ATMOS</span>
-                </div>
-                <h1 className="font-headline-md text-headline-md text-on-surface tracking-tight mt-1 truncate">
-                  {movie?.title || 'Show'} — Live Screening
-                </h1>
-                <p className="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1 mt-0.5">
-                  <span className="material-symbols-outlined text-primary text-[16px]">location_on</span>
-                  {show.auditorium_name || 'Auditorium'} • {new Date(show.starts_at).toLocaleString()}
-                </p>
-              </div>
-            </div>
+    <div ref={pageRef} className="kk-seat-body min-h-screen pb-32 pt-20 md:pb-12" style={{ background: COLORS.ink, color: COLORS.shell }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,900&family=Public+Sans:wght@400;500;600;700&display=swap');
+        .kk-seat-body{font-family:'Public Sans',system-ui,sans-serif}
+        .kk-seat-display{font-family:'Fraunces',Georgia,serif}
+        .kk-seat-btn{transition:transform .18s ease,box-shadow .18s ease,filter .18s ease}
+        .kk-seat-btn:not(:disabled):hover{transform:translateY(-2px);filter:brightness(1.06)}
+        .kk-seat-cta{position:relative;overflow:hidden;transition:transform .2s ease,background .2s ease}
+        .kk-seat-cta:not(:disabled):hover{transform:translateY(-2px);background:#a82651}
+        .kk-seat-cta:disabled{opacity:.42;cursor:not-allowed}
+        .kk-seat-card{box-shadow:0 24px 70px rgba(0,0,0,.18)}
+        .kk-seat-screen{filter:drop-shadow(0 0 10px rgba(244,182,63,.35))}
+        @keyframes kk-seat-shimmer{from{transform:translateX(-130%)}to{transform:translateX(130%)}}
+        .kk-seat-cta::after{content:'';position:absolute;inset:0;background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.3) 50%,transparent 65%);transform:translateX(-130%)}
+        .kk-seat-cta:not(:disabled):hover::after{animation:kk-seat-shimmer .75s ease}
+        @media(prefers-reduced-motion:reduce){.kk-seat-btn,.kk-seat-cta{transition:none}.kk-seat-cta::after{display:none}}
+      `}</style>
+
+      <main className="mx-auto max-w-[1440px] px-4 py-5 sm:px-6 lg:px-8">
+        <div className="mb-7 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="mb-2 text-xs font-bold uppercase tracking-[.24em]" style={{ color: COLORS.mango }}>Your cinema experience</p>
+            <h1 className="kk-seat-display text-3xl font-bold tracking-tight sm:text-4xl">Choose your seats<span style={{ color: COLORS.kokum }}>.</span></h1>
+            <p className="mt-2 text-sm" style={{ color: `${COLORS.shell}B8` }}>Pick your favourite spot. We’ll hold your seats while you check out.</p>
           </div>
+          <button onClick={() => navigate(-1)} className="rounded-full border px-4 py-2 text-sm font-semibold kk-seat-btn" style={{ borderColor: `${COLORS.shell}40`, color: COLORS.shell }}>
+            ← Back to shows
+          </button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Seat blueprint */}
-          <div className="lg:col-span-8 flex flex-col bg-surface-container-low rounded-xl p-4 lg:p-6 shadow-xl relative overflow-hidden">
-            {/* Legend */}
-            <div className="flex flex-wrap items-center justify-between gap-3 pb-4 mb-4">
-              <div className="flex items-center gap-4 flex-wrap">
-                <div className="flex items-center gap-1.5"><span className="w-4 h-4 rounded-sm bg-surface-container-high"></span><span className="font-label-sm text-label-sm text-on-surface-variant">Available</span></div>
-                <div className="flex items-center gap-1.5"><span className="w-4 h-4 rounded-sm bg-primary-container shadow-[0_0_8px_rgba(129,140,248,0.7)] flex items-center justify-center"><span className="material-symbols-outlined text-[12px] text-on-primary font-bold">check</span></span><span className="font-label-sm text-label-sm text-primary font-medium">Selected ({selected.length})</span></div>
-                <div className="flex items-center gap-1.5"><span className="w-4 h-4 rounded-sm bg-surface-container-lowest opacity-40"></span><span className="font-label-sm text-label-sm text-on-surface-variant/70">Sold / Reserved</span></div>
+        <section className="kk-seat-card relative mb-6 overflow-hidden rounded-3xl p-4 sm:p-6 lg:p-7" style={{ background: COLORS.shell, color: COLORS.ink }}>
+          <div className="pointer-events-none absolute -right-20 -top-28 h-72 w-72 rounded-full blur-3xl" style={{ background: `${COLORS.mango}35` }} />
+          <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center">
+            <div className="h-28 w-20 shrink-0 overflow-hidden rounded-xl shadow-lg sm:h-32 sm:w-24" style={{ background: COLORS.tide }}>
+              {movie?.thumbnail_url ? (
+                <img src={assetUrl(movie.thumbnail_url)} alt={movie.title || 'Movie poster'} className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full items-center justify-center p-2 text-center text-xs font-bold" style={{ color: COLORS.shell }}>KONKANI CINEMA</div>
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="mb-2 flex flex-wrap gap-2">
+                <span className="rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider" style={{ background: COLORS.mango, color: COLORS.ink }}>{movie?.certification || 'UA'}</span>
+                <span className="rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-wider" style={{ borderColor: `${COLORS.ink}30` }}>Cinema screening</span>
               </div>
+              <h2 className="kk-seat-display text-2xl font-bold leading-tight sm:text-3xl">{movie?.title || 'Movie screening'}</h2>
+              <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm" style={{ color: `${COLORS.ink}B8` }}>
+                <span className="inline-flex items-center gap-2"><span style={{ color: COLORS.kokum }}>⌖</span>{show.auditorium_name || 'Auditorium'}</span>
+                {show.starts_at && <span className="inline-flex items-center gap-2"><span style={{ color: COLORS.kokum }}>◷</span>{new Date(show.starts_at).toLocaleString()}</span>}
+              </div>
+            </div>
+            <div className="hidden min-w-28 border-l pl-6 text-right sm:block" style={{ borderColor: `${COLORS.ink}20` }}>
+              <p className="text-xs uppercase tracking-widest" style={{ color: `${COLORS.ink}8A` }}>Seat map</p>
+              <p className="kk-seat-display mt-1 text-3xl font-bold">{seats.length}</p>
+              <p className="text-xs" style={{ color: `${COLORS.ink}A0` }}>{rowLabels.length} rows</p>
+            </div>
+          </div>
+        </section>
+
+        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(310px,.8fr)]">
+          <section className="min-w-0 overflow-hidden rounded-3xl border p-4 sm:p-6 lg:p-7" style={{ background: COLORS.tide, borderColor: `${COLORS.shell}12` }}>
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[.2em]" style={{ color: COLORS.mango }}>The auditorium</p>
+                <h2 className="kk-seat-display mt-1 text-2xl font-bold">Select your spot</h2>
+              </div>
+              <span className="rounded-full px-3 py-1.5 text-xs font-semibold" style={{ background: `${COLORS.ink}80`, color: COLORS.shell }}>{selected.length} selected</span>
             </div>
 
-            {/* Seat grid (screen + seats scroll together) */}
-            <div className="w-full overflow-x-auto pb-4">
-              <p className="text-center text-on-surface-variant/70 text-xs mb-1">Seats: {seats.length} · Rows: {rowLabels.length}</p>
-              {seats.length === 0 && <p className="text-center text-on-surface-variant">No seats available.</p>}
-              <div className="min-w-[620px]">
-              {/* Projection horizon */}
-              <div className="relative w-full flex flex-col items-center justify-center pt-2 pb-6">
-                <div className="absolute -top-16 w-3/4 h-40 bg-[radial-gradient(ellipse_at_top,rgba(129,140,248,0.18),rgba(129,140,248,0.05)_45%,transparent_75%)] blur-3xl pointer-events-none rounded-full"></div>
-                <div className="relative w-full max-w-xl h-10 flex items-center justify-center">
-                  <svg className="w-full h-8 overflow-visible" fill="none" preserveAspectRatio="none" viewBox="0 0 500 40">
-                    <path className="drop-shadow-[0_0_12px_#818CF8]" d="M 20 32 Q 250 2 480 32" stroke="#818CF8" strokeLinecap="round" strokeWidth="3"></path>
-                  </svg>
-                  <div className="absolute inset-0 flex items-center justify-center -translate-y-1">
-                    <span className="font-label-sm text-label-sm tracking-[0.25em] text-primary uppercase drop-shadow-[0_0_8px_rgba(129,140,248,0.9)] bg-surface-container-low px-2 rounded-full">SCREEN</span>
-                  </div>
-                </div>
-              </div>
-              <div className="flex flex-col items-center gap-2">
-                {rowLabels.map((row) => {
-                  const cells = Array(maxX - minX + 1).fill(null);
-                  seats.forEach((s) => { if (s.row_label === row) cells[Number(s.x) - minX] = s; });
-                  return (
-                    <div key={row} className="flex items-center justify-between w-full">
-                      <span className="w-6 text-center font-label-md text-label-md text-on-surface-variant font-bold">{row}</span>
-                      <div className="flex items-center justify-center gap-1 flex-1 px-3">
-                        {cells.map((s, i) => {
-                          if (s === null) return <div key={i} className="w-7 h-7" />;
-                          const isSel = selected.includes(s.seat_id);
-                          const isSold = s.status !== 'available' && !isSel;
-                          const catColor = (name, row) => {
-                            const n = (name || '').toLowerCase();
-                            if (n.includes('recliner')) return '#6366F1';
-                            if (n.includes('handicap')) return '#7bd0ff';
-                            if (row === 'N') return '#818CF8';
-                            if (n.includes('prime')) return '#A5B4FC';
-                            if (row === 'A' || row === 'B') return '#C7D2FE';
-                            return '#272a33';
-                          };
-                          let bg = '';
-                          if (isSel) bg = 'bg-primary-container text-on-primary-container shadow-[0_0_12px_rgba(129,140,248,0.9)] ring-2 ring-primary';
-                          if (isSold) bg = 'cursor-not-allowed';
-                          return (
-                            <button
-                              key={s.seat_id}
-                              disabled={isSold}
-                              onClick={() => toggle(s)}
-                              aria-label={`Seat ${row}-${s.seat_number}`}
-                              className={`w-7 h-7 rounded-sm flex items-center justify-center transition-all ${bg}`}
-                              style={isSold ? { backgroundColor: '#3D4869' } : (!isSel ? { backgroundColor: catColor(s.category_name, row) } : undefined)}
-                            >
-                              {isSel ? <span className="material-symbols-outlined text-[12px] font-bold">check</span> : <span className="text-[9px] leading-none text-white/90">{s.seat_number}</span>}
-                            </button>
-                          );
-                        })}
-                      </div>
-                      <span className="w-6 text-center font-label-md text-label-md text-on-surface-variant font-bold">{row}</span>
-                    </div>
-                  );
-                })}
-              </div>
-              </div>
+            <div className="mb-5 flex flex-wrap gap-x-5 gap-y-3 border-b pb-5 text-xs" style={{ borderColor: `${COLORS.shell}20` }}>
+              <span className="flex items-center gap-2"><i className="h-3.5 w-3.5 rounded-sm" style={{ background: '#7BA6A7' }} />Available</span>
+              <span className="flex items-center gap-2"><i className="h-3.5 w-3.5 rounded-sm" style={{ background: COLORS.kokum }} />Selected</span>
+              <span className="flex items-center gap-2"><i className="h-3.5 w-3.5 rounded-sm" style={{ background: '#52676A' }} />Sold / reserved</span>
+              <span className="flex items-center gap-2"><i className="h-3.5 w-3.5 rounded-sm" style={{ background: COLORS.mango }} />Accessible</span>
             </div>
-            {/* Category breakdown (mobile only) */}
-            <div className="lg:hidden mt-4 bg-surface-container-low rounded-xl p-3">
-              <div className="flex flex-col gap-1 text-sm">
-                {Object.entries(seats.reduce((acc, s) => { const c = s.category_name || 'Unknown'; acc[c] = (acc[c]||0)+1; return acc; }, {})).map(([cat, cnt]) => (
-                  <div key={cat} className="flex items-center justify-between">
-                    <span className="flex items-center gap-2 text-on-surface-variant"><span className="w-3 h-3 rounded-sm" style={{ backgroundColor: catColor(cat) }}></span>{cat}</span>
-                    <span className="text-on-surface font-medium">{cnt} <span className="text-on-surface-variant/70 text-xs">({Math.round(cnt/seats.length*100)}%)</span></span>
-                  </div>
-                ))}
-                <div className="flex items-center justify-between border-t border-surface-container-highest pt-1 mt-1">
-                  <span className="text-on-surface font-semibold">Total</span>
-                  <span className="text-on-surface font-bold">{seats.length} <span className="text-on-surface-variant/70 text-xs">(100%)</span></span>
+
+            <div className="overflow-x-auto pb-3">
+              <div className="min-w-[560px] px-1">
+                <div className="relative mx-auto mb-9 mt-2 max-w-xl pt-2 text-center">
+                  <div className="absolute -inset-x-8 -top-7 h-20 rounded-[50%] blur-2xl" style={{ background: `${COLORS.mango}12` }} />
+                  <svg className="kk-seat-screen relative mx-auto h-10 w-full" viewBox="0 0 500 40" fill="none" preserveAspectRatio="none" aria-hidden="true">
+                    <path d="M 18 32 Q 250 -4 482 32" stroke={COLORS.mango} strokeWidth="2.5" strokeLinecap="round" />
+                  </svg>
+                  <span className="relative -mt-1 inline-flex rounded-full px-5 py-1 text-[10px] font-bold uppercase tracking-[.35em]" style={{ background: COLORS.ink, color: COLORS.mango }}>Screen</span>
                 </div>
-                {seats.find((s) => (s.category_name||'').toLowerCase().includes('handicap')) && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-on-surface-variant">Handicapped Seat</span>
-                    <span className="text-on-surface font-medium">1 <span className="text-on-surface-variant/70 text-xs">(A-{seats.find((s) => (s.category_name||'').toLowerCase().includes('handicap')).seat_number})</span></span>
+
+                {seats.length === 0 ? (
+                  <p className="py-12 text-center text-sm" style={{ color: `${COLORS.shell}A0` }}>No seats are configured for this show yet.</p>
+                ) : (
+                  <div className="flex flex-col gap-2.5">
+                    {rowLabels.map((row) => {
+                      const cells = Array(maxX - minX + 1).fill(null);
+                      seats.forEach((seat) => {
+                        if (seat.row_label === row) cells[Number(seat.x) - minX] = seat;
+                      });
+                      return (
+                        <div key={row} className="flex items-center gap-2">
+                          <span className="w-5 shrink-0 text-center text-xs font-bold" style={{ color: COLORS.mango }}>{row}</span>
+                          <div className="flex min-w-0 flex-1 items-center justify-center gap-1 sm:gap-1.5">
+                            {cells.map((seat, i) => {
+                              if (!seat) return <span key={`gap-${row}-${i}`} className="h-7 w-5 shrink-0 sm:w-7" />;
+                              const isSelected = selected.includes(seat.seat_id);
+                              const unavailable = seat.status !== 'available' && !isSelected;
+                              const baseColor = categoryColor(seat.category_name, row);
+                              return (
+                                <button
+                                  key={seat.seat_id}
+                                  type="button"
+                                  disabled={unavailable}
+                                  onClick={() => toggle(seat)}
+                                  aria-pressed={isSelected}
+                                  aria-label={`Seat ${row}-${seat.seat_number}, ${seat.category_name || 'Standard'}, ${unavailable ? 'unavailable' : isSelected ? 'selected' : money(seat.price_minor)}`}
+                                  title={`${row}-${seat.seat_number} · ${seat.category_name || 'Standard'} · ${money(seat.price_minor)}`}
+                                  className="kk-seat-btn flex h-7 w-5 shrink-0 items-center justify-center rounded-t-md rounded-b-sm text-[9px] font-bold sm:h-8 sm:w-7 sm:text-[10px]"
+                                  style={{
+                                    background: unavailable ? '#52676A' : isSelected ? COLORS.kokum : baseColor,
+                                    color: unavailable ? '#A3B5B5' : isSelected ? '#FFFFFF' : COLORS.ink,
+                                    opacity: unavailable ? .48 : 1,
+                                    cursor: unavailable ? 'not-allowed' : 'pointer',
+                                    boxShadow: isSelected ? `0 0 0 2px ${COLORS.shell}, 0 0 15px ${COLORS.kokum}70` : '0 2px 0 rgba(0,0,0,.18)',
+                                  }}
+                                >
+                                  {isSelected ? '✓' : seat.seat_number}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          <span className="w-5 shrink-0 text-center text-xs font-bold" style={{ color: COLORS.mango }}>{row}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
             </div>
-          </div>
 
-          {/* Booking summary panel (desktop only) */}
-          <div className="hidden lg:flex lg:col-span-4 flex-col gap-4 sticky top-24">
-            <div className="w-full bg-surface-container rounded-xl shadow-2xl p-4 lg:p-6 flex flex-col gap-4 relative overflow-hidden">
-              <div className="flex items-center justify-between pb-3 border-b border-surface-container-highest">
-                <div className="flex flex-col">
-                  <span className="font-label-sm text-label-sm text-secondary uppercase tracking-widest">Booking Ledger</span>
-                  <h2 className="font-headline-sm text-headline-sm text-on-surface font-semibold">Seat Allocation</h2>
-                </div>
-                <span className="px-2 py-1 rounded-full bg-primary/10 text-primary font-label-sm text-label-sm font-semibold">{selected.length} SEATS HELD</span>
-              </div>
-              {selectedSeats.length > 0 && (
-                <div className="grid grid-cols-2 gap-2">
-                  {selectedSeats.map((s) => (
-                    <div key={s.seat_id} className="bg-surface-container-high p-2 rounded-lg flex flex-col gap-0.5">
-                      <div className="flex items-center justify-between">
-                        <span className="font-label-sm text-label-sm text-primary font-semibold">{s.category_name || 'SEAT'} • {s.row_label}-{s.seat_number}</span>
-                      </div>
-                      <span className="font-headline-sm text-headline-sm text-on-surface font-bold">₹{((s.price_minor || 0) / 100).toFixed(2)}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {/* Category breakdown */}
-              <div className="bg-surface-container-low rounded-xl p-3">
-                <div className="flex flex-col gap-1 text-sm">
-                  {Object.entries(seats.reduce((acc, s) => { const c = s.category_name || 'Unknown'; acc[c] = (acc[c]||0)+1; return acc; }, {})).map(([cat, cnt]) => (
-                    <div key={cat} className="flex items-center justify-between">
-                      <span className="flex items-center gap-2 text-on-surface-variant"><span className="w-3 h-3 rounded-sm" style={{ backgroundColor: catColor(cat, (seats.find((s) => (s.category_name || 'Unknown') === cat) || {}).row_label) }}></span>{cat}</span>
-                      <span className="text-on-surface font-medium">{cnt} <span className="text-on-surface-variant/70 text-xs">({Math.round(cnt/seats.length*100)}%)</span></span>
-                    </div>
-                  ))}
-                  <div className="flex items-center justify-between border-t border-surface-container-highest pt-1 mt-1">
-                    <span className="text-on-surface font-semibold">Total</span>
-                    <span className="text-on-surface font-bold">{seats.length} <span className="text-on-surface-variant/70 text-xs">(100%)</span></span>
-                  </div>
-                  {seats.find((s) => (s.category_name||'').toLowerCase().includes('handicap')) && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-on-surface-variant">Handicapped Seat</span>
-                      <span className="text-on-surface font-medium">1 <span className="text-on-surface-variant/70 text-xs">(A-{seats.find((s) => (s.category_name||'').toLowerCase().includes('handicap')).seat_number})</span></span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <button
-                disabled={selected.length === 0}
-                onClick={hold}
-                className="w-full py-3.5 px-6 rounded-xl bg-primary-container hover:bg-primary text-on-primary-container font-label-lg text-label-lg font-bold flex items-center justify-center gap-2 shadow-[0_0_24px_rgba(129,140,248,0.45)] hover:shadow-[0_0_32px_rgba(129,140,248,0.6)] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                type="button"
-              >
-                <span>Proceed to Payment (₹{(totalMinor / 100).toFixed(2)})</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-      {selected.length > 0 && (
-        <>
-          <div className="fixed inset-0 z-40 bg-transparent pointer-events-none lg:hidden"></div>
-          <div className="fixed bottom-0 left-0 right-0 z-50 bg-surface-container rounded-t-3xl shadow-2xl p-6 pb-8 animate-[slideUp_0.3s_ease-out] pointer-events-auto lg:hidden">
-            <div className="w-12 h-1.5 bg-surface-container-highest rounded-full mx-auto mb-4"></div>
-            <h2 className="font-headline-sm text-headline-sm text-on-surface font-semibold mb-2 text-center">Total Payable Amount</h2>
-            <div className="text-center mb-2">
-              <span className="font-display-mobile text-display-mobile text-primary font-bold tracking-tight">Rs.{(totalMinor / 100).toFixed(2)}</span>
-            </div>
-            <p className="text-sm text-on-surface-variant text-center mb-3">{selected.length} seat(s) selected</p>
-            <div className="mb-3 text-xs space-y-1">
-              {Object.entries(selectedSeats.reduce((acc, s) => {
-                const c = s.category_name || 'Unknown';
-                if (!acc[c]) acc[c] = { count: 0, amount: 0 };
-                acc[c].count += 1;
-                acc[c].amount += (s.price_minor || 0);
-                return acc;
-              }, {})).map(([cat, info]) => (
-                <div key={cat} className="flex items-center justify-between text-sm">
-                  <span className="text-on-surface">{cat} <span className="text-on-surface-variant/70">x {info.count}</span></span>
-                  <span className="text-on-surface font-medium">Rs.{(info.amount / 100).toFixed(2)}</span>
+            <div className="mt-6 grid gap-3 border-t pt-5 sm:grid-cols-2" style={{ borderColor: `${COLORS.shell}20` }}>
+              {categories.map(([category, info]) => (
+                <div key={category} className="flex items-center justify-between gap-3 rounded-xl px-3 py-2.5" style={{ background: `${COLORS.ink}60` }}>
+                  <span className="flex min-w-0 items-center gap-2 text-xs"><i className="h-3 w-3 shrink-0 rounded-sm" style={{ background: info.color }} /><span className="truncate">{category}</span></span>
+                  <span className="shrink-0 text-xs font-semibold" style={{ color: `${COLORS.shell}B8` }}>{info.count} seats</span>
                 </div>
               ))}
             </div>
-            <div className="flex gap-3">
-              <button onClick={() => setSelected([])} className="flex-1 py-2.5 rounded-xl bg-surface-container-high text-on-surface font-label-lg text-label-lg font-bold hover:bg-surface-bright transition-all">Cancel</button>
-              <button onClick={hold} className="flex-1 py-2.5 rounded-xl bg-primary-container hover:bg-primary text-on-primary-container font-label-lg text-label-lg font-bold shadow-[0_0_24px_rgba(129,140,248,0.45)] transition-all">Proceed</button>
+            {handicapSeat && (
+              <p className="mt-3 text-xs" style={{ color: `${COLORS.shell}A8` }}>Accessible seating is available at {handicapSeat.row_label}-{handicapSeat.seat_number}.</p>
+            )}
+          </section>
+
+          <aside className="hidden lg:block lg:sticky lg:top-24">
+            <div className="kk-seat-card overflow-hidden rounded-3xl" style={{ background: COLORS.shell, color: COLORS.ink }}>
+              <div className="p-6" style={{ background: COLORS.mango }}>
+                <p className="text-xs font-bold uppercase tracking-[.22em]">Your ticket</p>
+                <h2 className="kk-seat-display mt-1 text-2xl font-bold">Booking summary</h2>
+                <p className="mt-1 text-sm" style={{ color: `${COLORS.ink}B8` }}>Review your seats before checkout.</p>
+              </div>
+              <div className="p-5 sm:p-6">
+                <div className="mb-4 flex items-center justify-between border-b border-dashed pb-4" style={{ borderColor: `${COLORS.ink}35` }}>
+                  <span className="text-sm" style={{ color: `${COLORS.ink}A0` }}>Selected seats</span>
+                  <span className="rounded-full px-3 py-1 text-xs font-bold text-white" style={{ background: COLORS.kokum }}>{selected.length}</span>
+                </div>
+
+                {selectedSeats.length ? (
+                  <div className="mb-5 flex flex-col gap-2">
+                    {selectedSeats.map((seat) => (
+                      <div key={seat.seat_id} className="flex items-center justify-between gap-3 rounded-xl p-3" style={{ background: '#E4DFD3' }}>
+                        <div className="min-w-0">
+                          <p className="truncate text-xs font-bold">{seat.category_name || 'Standard'}</p>
+                          <p className="mt-1 text-xs" style={{ color: `${COLORS.ink}9C` }}>Row {seat.row_label} · Seat {seat.seat_number}</p>
+                        </div>
+                        <span className="shrink-0 text-sm font-bold">{money(seat.price_minor)}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="mb-5 rounded-2xl border border-dashed px-4 py-7 text-center" style={{ borderColor: `${COLORS.ink}35` }}>
+                    <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full text-xl" style={{ background: '#E4DFD3' }}>⌑</div>
+                    <p className="text-sm font-semibold">Your seats go here</p>
+                    <p className="mt-1 text-xs" style={{ color: `${COLORS.ink}9C` }}>Select seats from the map to begin.</p>
+                  </div>
+                )}
+
+                {selectedByCategory.length > 0 && (
+                  <div className="mb-5 space-y-2">
+                    {selectedByCategory.map(([category, info]) => (
+                      <div key={category} className="flex justify-between gap-3 text-xs">
+                        <span style={{ color: `${COLORS.ink}A0` }}>{category} × {info.count}</span>
+                        <span className="font-semibold">{money(info.amount)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="border-t border-dashed pt-4" style={{ borderColor: `${COLORS.ink}35` }}>
+                  <div className="flex items-end justify-between gap-3">
+                    <div>
+                      <p className="text-xs" style={{ color: `${COLORS.ink}A0` }}>Total payable</p>
+                      <p className="kk-seat-display mt-1 text-3xl font-bold">{money(totalMinor)}</p>
+                    </div>
+                    <span className="pb-1 text-[10px] font-bold uppercase tracking-wider" style={{ color: COLORS.kokum }}>Incl. selected seats</span>
+                  </div>
+                  <button type="button" disabled={!selected.length} onClick={hold} className="kk-seat-cta mt-5 w-full rounded-xl px-5 py-4 text-sm font-bold text-white" style={{ background: COLORS.kokum }}>
+                    Continue to checkout <span className="ml-1">→</span>
+                  </button>
+                  <p className="mt-3 text-center text-[10px]" style={{ color: `${COLORS.ink}8A` }}>Seats are held when you continue to checkout.</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-between border-t-2 border-dashed px-6 py-3 text-[10px] font-bold uppercase tracking-[.18em]" style={{ borderColor: `${COLORS.ink}30`, background: '#E4DFD3', color: `${COLORS.ink}8A` }}>
+                <span>Konkani Samudai</span><span>Enjoy the show ✦</span>
+              </div>
             </div>
+          </aside>
+        </div>
+      </main>
+
+      {selected.length > 0 && (
+        <div className="fixed inset-x-0 bottom-0 z-50 border-t p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl lg:hidden" style={{ background: COLORS.shell, color: COLORS.ink, borderColor: `${COLORS.ink}20` }}>
+          <div className="mx-auto flex max-w-3xl items-center justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-xs" style={{ color: `${COLORS.ink}9C` }}>{selected.length} seat{selected.length === 1 ? '' : 's'} selected</p>
+              <p className="kk-seat-display truncate text-2xl font-bold">{money(totalMinor)}</p>
+              <p className="truncate text-[10px]" style={{ color: `${COLORS.ink}8A` }}>{selectedSeats.map((seat) => `${seat.row_label}-${seat.seat_number}`).join(', ')}</p>
+            </div>
+            <button type="button" onClick={hold} className="kk-seat-cta shrink-0 rounded-xl px-5 py-3.5 text-sm font-bold text-white" style={{ background: COLORS.kokum }}>
+              Continue <span className="ml-1">→</span>
+            </button>
           </div>
-        </>
+        </div>
       )}
     </div>
   );

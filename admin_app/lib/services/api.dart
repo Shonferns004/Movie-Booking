@@ -3,7 +3,8 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:convert';
 
 class Api {
-  static const baseUrl = 'http://192.168.0.150:4000/api/v1';
+  // static const baseUrl = 'http://192.168.0.150:4000/api/v1';
+  static const baseUrl = 'https://movie-booking-roan-nine.vercel.app/api/v1';
 
   static Future<Map<String, dynamic>> login(String email, String password) async {
     final res = await http.post(Uri.parse('$baseUrl/auth/login'),
