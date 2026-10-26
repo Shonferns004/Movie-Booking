@@ -125,6 +125,9 @@ class _HomeScreenState extends State<HomeScreen> {
     List<dynamic> shows = [];
     try {
       shows = await Api.getShows(_token!);
+      if (shows.isNotEmpty) {
+        shows = await _withSeatCounts(_token!, shows);
+      }
     } catch (_) {}
     List<dynamic> movies = [];
     try {
@@ -140,6 +143,47 @@ class _HomeScreenState extends State<HomeScreen> {
         _heroIndex = 0;
     });
     _startHeroTimer();
+  }
+
+  Future<List<dynamic>> _withSeatCounts(
+    String token,
+    List<dynamic> shows,
+  ) async {
+    return Future.wait(
+      shows.map((show) async {
+        final showMap = Map<String, dynamic>.from(show as Map);
+        if (_asInt(showMap['seat_count']) > 0) return showMap;
+        final showId = showMap['id']?.toString();
+        if (showId == null || showId.isEmpty) return showMap;
+        try {
+          final seatData = await Api.getShowSeats(token, showId);
+          final seats = (seatData['seats'] as List?) ?? const [];
+          var booked = 0;
+          var held = 0;
+          var minPrice = 0;
+          var maxPrice = 0;
+          for (final raw in seats) {
+            if (raw is! Map) continue;
+            final status = raw['status']?.toString();
+            if (status == 'booked') booked++;
+            if (status == 'held') held++;
+            final price = _asInt(raw['price_minor']);
+            if (price > 0) {
+              if (minPrice == 0 || price < minPrice) minPrice = price;
+              if (price > maxPrice) maxPrice = price;
+            }
+          }
+          showMap['seat_count'] = seats.length;
+          showMap['booked_count'] = booked;
+          showMap['held_count'] = held;
+          if (minPrice > 0) {
+            showMap['price_min_minor'] = minPrice;
+            showMap['price_max_minor'] = maxPrice;
+          }
+        } catch (_) {}
+        return showMap;
+      }),
+    );
   }
 
   Future<void> _createShow() async {
