@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../services/api.dart';
 
 class SeatBuilderScreen extends StatefulWidget {
   final String token;
-  const SeatBuilderScreen({super.key, required this.token});
+  final String? initialTheatreId;
+  const SeatBuilderScreen({super.key, required this.token, this.initialTheatreId});
 
   @override
   State<SeatBuilderScreen> createState() => _SeatBuilderScreenState();
@@ -39,7 +41,13 @@ class _SeatBuilderScreenState extends State<SeatBuilderScreen> {
   @override
   void initState() {
     super.initState();
-    _loadTheatres();
+    if (widget.initialTheatreId != null) {
+      _theatreId = widget.initialTheatreId;
+      _view = 'auditoriums';
+    }
+    _loadTheatres().then((_) {
+      if (widget.initialTheatreId != null) _loadAuditoriums();
+    });
   }
 
   Future<void> _loadTheatres() async {
@@ -63,6 +71,84 @@ class _SeatBuilderScreenState extends State<SeatBuilderScreen> {
         await _loadLayout();
       }
     } catch (_) {}
+  }
+
+  Future<void> _openTheaterModal(dynamic t) async {
+    setState(() { _theatreId = t['id']; _auditoriumId = null; _auditoriums = []; _grid = []; });
+    await _loadAuditoriums();
+    if (!mounted) return;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        height: MediaQuery.of(context).size.height * 0.7,
+        decoration: const BoxDecoration(
+          color: Color(0xFF131315),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border(top: BorderSide(color: Color(0xFF2a2a2e))),
+        ),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 8, bottom: 4),
+              child: Container(width: 36, height: 4, decoration: BoxDecoration(color: const Color(0xFF333338), borderRadius: BorderRadius.circular(2))),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(t['name'] ?? 'Theater', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFFF4F4F5))),
+                  InkWell(
+                    onTap: () => Navigator.pop(ctx),
+                    child: Container(width: 28, height: 28, decoration: BoxDecoration(color: const Color(0xFF1b1b1d), borderRadius: BorderRadius.circular(8), border: Border.all(color: const Color(0xFF2a2a2e))), child: const Icon(Icons.close, size: 14, color: Color(0xFF8e8e96))),
+                  ),
+                ],
+              ),
+            ),
+            Container(height: 1, color: const Color(0xFF2a2a2e)),
+            Expanded(
+              child: _auditoriums.isEmpty
+                  ? const Center(child: Text('No auditoriums yet', style: TextStyle(color: Color(0xFFA1A1AA))))
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: _auditoriums.length,
+                      itemBuilder: (_, i) {
+                        final a = _auditoriums[i];
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(color: const Color(0xFF222226), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFF2C2C32))),
+                          child: ListTile(
+                            title: Text(a['name'] ?? '', style: const TextStyle(color: Color(0xFFF4F4F5), fontWeight: FontWeight.w600)),
+                            subtitle: Text(a['active_version'] != null ? 'Layout v${a['active_version']} - ${a['seat_count']} seats' : 'No layout yet', style: const TextStyle(color: Color(0xFFA1A1AA), fontSize: 11)),
+                            onTap: () async {
+                              Navigator.pop(ctx);
+                              setState(() { _auditoriumId = a['id']; _view = 'builder'; });
+                              await _loadLayout();
+                            },
+                          ),
+                        );
+                      },
+                    ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: SizedBox(width: double.infinity, child: ElevatedButton(
+                onPressed: () async {
+                  Navigator.pop(ctx);
+                  await _addAuditorium();
+                  if (mounted) _openTheaterModal(t);
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD96B43), foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                child: const Text('Add Auditorium', style: TextStyle(fontWeight: FontWeight.bold)),
+              )),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _addTheatre() async {
@@ -402,17 +488,17 @@ class _SeatBuilderScreenState extends State<SeatBuilderScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_view == 'theaters' ? 'Theaters' : _view == 'auditoriums' ? 'Auditoriums' : 'Seat Builder'),
-        leading: _view != 'theaters' ? IconButton(icon: const Icon(Icons.arrow_back), onPressed: () {
-          setState(() {
-            if (_view == 'builder') _view = 'auditoriums';
-            else if (_view == 'auditoriums') _view = 'theaters';
-          });
-        }) : null,
-      ),
-      body: SingleChildScrollView(
+    return PopScope(
+      canPop: _view != 'builder',
+      onPopInvoked: (didPop) {
+        if (didPop) return;
+        setState(() {
+          if (_view == 'builder') _view = 'auditoriums';
+        });
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFF121214),
+        body: SafeArea(child: SingleChildScrollView(
         padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -423,40 +509,68 @@ class _SeatBuilderScreenState extends State<SeatBuilderScreen> {
                   : _builderWidgets(),
         ),
       ),
+      ),
+      ),
     );
   }
 
   List<Widget> _theaterListWidgets() {
     return [
-      Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          const Text('Theaters', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          ElevatedButton.icon(onPressed: _addTheatre, icon: const Icon(Icons.add), label: const Text('Add')),
-        ],
-      ),
-      const SizedBox(height: 8),
-      if (_theatres.isEmpty) const Text('No theaters yet'),
+      // Search + Add
+      Row(children: [
+        Expanded(child: TextField(
+          style: const TextStyle(fontSize: 12, color: Color(0xFFF4F4F5)),
+          decoration: InputDecoration(
+            hintText: 'Search by theater or location...',
+            hintStyle: const TextStyle(color: Color(0xFF71717A), fontSize: 12),
+            prefixIcon: const Icon(Icons.search, size: 16, color: Color(0xFF71717A)),
+            filled: true,
+            fillColor: const Color(0xFF1A1A1E),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF2C2C32))),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF2C2C32))),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFD96B43))),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          ),
+        )),
+        const SizedBox(width: 10),
+        ElevatedButton.icon(
+          onPressed: _addTheatre,
+          icon: const Icon(Icons.add, size: 16),
+          label: const Text('Add', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD96B43), foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10)),
+        ),
+      ]),
+      const SizedBox(height: 12),
+      if (_theatres.isEmpty) const Text('No theaters yet', style: TextStyle(color: Color(0xFFA1A1AA))),
       ..._theatres.map((t) {
         final selected = t['id'] == _theatreId;
-        return Card(
-          color: selected ? Colors.blueGrey : null,
-          child: ListTile(
-            title: Text(t['name'] ?? ''),
-            subtitle: Text(t['address'] ?? ''),
-            onTap: () async {
-              setState(() { _theatreId = t['id']; _auditoriumId = null; _auditoriums = []; _grid = []; _view = 'auditoriums'; });
-              await _loadAuditoriums();
-            },
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(icon: const Icon(Icons.edit), onPressed: () => _editTheatre(t)),
-                IconButton(icon: const Icon(Icons.delete), onPressed: () => _deleteTheatre(t)),
-              ],
-            ),
+        return InkWell(
+          onTap: () {
+            Navigator.of(context).pop();
+            Navigator.of(context).push(MaterialPageRoute(builder: (_) => SeatBuilderScreen(token: widget.token, initialTheatreId: t['id'])));
+          },
+          child: Container(
+          margin: const EdgeInsets.only(bottom: 10),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFF222226),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFF2C2C32)),
           ),
-        );
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(t['name'] ?? '', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFFF4F4F5))),
+                const SizedBox(height: 2),
+                Text(t['address'] ?? '', style: const TextStyle(fontSize: 11, color: Color(0xFFA1A1AA))),
+              ])),
+              IconButton(icon: const Icon(Icons.edit, size: 16, color: Color(0xFFA1A1AA)), onPressed: () => _editTheatre(t)),
+              IconButton(icon: const Icon(Icons.delete, size: 16, color: Color(0xFFA1A1AA)), onPressed: () => _deleteTheatre(t)),
+            ],
+          ),
+        ),
+      );
       }),
     ];
   }
@@ -476,7 +590,7 @@ class _SeatBuilderScreenState extends State<SeatBuilderScreen> {
         return Card(
           child: ListTile(
             title: Text(a['name'] ?? ''),
-            subtitle: Text(a['active_version'] != null ? 'Layout v${a['active_version']} • ${a['seat_count']} seats' : 'No layout yet'),
+            subtitle: Text(a['active_version'] != null ? 'Layout v${a['active_version']} - ${a['seat_count']} seats' : 'No layout yet'),
             onTap: () async {
               setState(() { _auditoriumId = a['id']; _grid = []; _view = 'builder'; });
               await _loadLayout();

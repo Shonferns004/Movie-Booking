@@ -32,14 +32,56 @@ export async function login({ email, password }) {
   const ok = await bcrypt.compare(password, user.password_hash);
   if (!ok) throw unauthorized('invalid credentials');
   const roles = await getUserRoles(user.id);
-  const token = jwt.sign({ sub: user.id, roles }, env.JWT_SECRET, { expiresIn: '7d' });
-  return { token, user: { id: user.id, email: user.email, displayName: user.display_name, roles } };
+  return issueSession(user, roles);
+}
+
+function issueSession(user, roles) {
+  const accessToken = jwt.sign(
+    { sub: user.id, roles, type: 'access' },
+    env.JWT_SECRET,
+    { expiresIn: env.JWT_ACCESS_TTL }
+  );
+  const refreshToken = jwt.sign(
+    { sub: user.id, type: 'refresh' },
+    env.JWT_REFRESH_SECRET,
+    { expiresIn: env.JWT_REFRESH_TTL }
+  );
+  return {
+    // `token` is kept for older clients; new clients use accessToken/refreshToken.
+    token: accessToken,
+    accessToken,
+    refreshToken,
+    user: { id: user.id, email: user.email, displayName: user.display_name, roles },
+  };
+}
+
+export async function refreshSession(refreshToken) {
+  if (!refreshToken) throw unauthorized('refresh token required');
+  let payload;
+  try {
+    payload = jwt.verify(refreshToken, env.JWT_REFRESH_SECRET);
+  } catch {
+    throw unauthorized('invalid or expired refresh token');
+  }
+  if (payload.type !== 'refresh') throw unauthorized('invalid refresh token');
+  const { rows } = await pool.query(
+    'SELECT id,email,display_name,status FROM users WHERE id=$1',
+    [payload.sub]
+  );
+  if (!rows.length) throw unauthorized('user not found');
+  const user = rows[0];
+  if (user.status !== 'active') throw unauthorized('account inactive');
+  const roles = await getUserRoles(user.id);
+  return issueSession(user, roles);
 }
 
 export function verifyToken(token) {
   try {
-    return jwt.verify(token, env.JWT_SECRET);
-  } catch {
+    const payload = jwt.verify(token, env.JWT_SECRET);
+    if (payload.type === 'refresh') throw unauthorized('invalid access token');
+    return payload;
+  } catch (e) {
+    if (e?.status === 401) throw e;
     throw unauthorized('invalid token');
   }
 }

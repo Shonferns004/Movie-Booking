@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api.dart';
 
@@ -38,22 +39,36 @@ class _CollectionScreenState extends State<CollectionScreen> {
   Widget build(BuildContext context) {
     if (_loading) return const Center(child: CircularProgressIndicator());
     return Scaffold(
-      appBar: AppBar(title: const Text('Collection')),
+      backgroundColor: const Color(0xFF121214),
+      appBar: AppBar(title: const Text('BOX OFFICE', style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFFF5EFEB)))),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text('Total collection: ₹${_total.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            color: const Color(0xFF1A1A1E),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('TOTAL COLLECTION', style: TextStyle(fontSize: 10, color: Color(0xFF9E9890), fontWeight: FontWeight.w600, letterSpacing: 1.2)),
+              const SizedBox(height: 4),
+              Text('₹${_total.toStringAsFixed(2)}', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: Color(0xFFF5EFEB))),
+            ]),
           ),
           Expanded(
             child: ListView.builder(
+              padding: const EdgeInsets.all(16),
               itemCount: _bookings.length,
               itemBuilder: (ctx, i) {
                 final b = _bookings[i];
-                return Card(
-                  child: ListTile(
-                    title: Text('Booking ${b['id']?.toString().substring(0, 8) ?? ''}'),
-                    subtitle: Text('Status: ${b['status']} • ₹${((b['total_minor'] ?? 0) as num) / 100.0}'),
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(color: const Color(0xFF1A1A1E), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFF2F2F37))),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Booking ${b['id']?.toString().substring(0, 8) ?? ''}', style: const TextStyle(fontFamily: 'monospace', fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFF5EFEB))),
+                      Text('₹${((b['total_minor'] ?? 0) as num) / 100.0}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFFD96B43))),
+                    ],
                   ),
                 );
               },

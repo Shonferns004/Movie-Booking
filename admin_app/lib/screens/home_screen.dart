@@ -1,11 +1,15 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api.dart';
+import '../services/auth_service.dart';
 import 'scanner_screen.dart';
 import 'show_detail_screen.dart';
-import 'seat_builder_screen.dart';
+import 'add_show_screen.dart' show AddShowSheet;
+import 'theater_list_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -33,6 +37,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   List<dynamic> _shows = [];
   List<dynamic> _movies = [];
+  int _heroIndex = 0;
+  Timer? _heroTimer;
   String? _selectedShowId;
 
   int _scannedCount = 0;
@@ -45,7 +51,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
-    _token = prefs.getString('token');
+    final cachedToken = prefs.getString('token') ?? '';
+    final token = await AuthService.validAccessToken(cachedToken);
+    if (token.isEmpty) {
+      if (mounted) {
+        Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+      }
+      return;
+    }
+    _token = token;
     setState(() {
       _roles = (prefs.getString('roles') ?? '').split(',').where((r) => r.isNotEmpty).toList();
     });
@@ -110,7 +124,9 @@ class _HomeScreenState extends State<HomeScreen> {
       _shows = shows;
       _movies = movies;
       if (_selectedShowId == null && shows.isNotEmpty) _selectedShowId = shows[0]['id'];
+      if (_heroIndex >= _ongoingShows.length && _ongoingShows.isNotEmpty) _heroIndex = 0;
     });
+    _startHeroTimer();
   }
 
   Future<void> _createShow() async {
@@ -153,96 +169,6 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
-  }
-
-  Future<void> _openAddShow() async {
-    await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))), 
-        title: const Text('Add Show'),
-        content: StatefulBuilder(
-          builder: (ctx, setD) => SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-              TextField(controller: _titleCtrl, decoration: const InputDecoration(labelText: 'Movie title')),
-              const SizedBox(height: 8),
-              Row(children: [
-                ElevatedButton.icon(
-                  onPressed: () async {
-                    try {
-                      final picker = ImagePicker();
-                      final img = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
-                      if (img != null) setState(() => _pickedThumb = img);
-                    } catch (e) {
-                      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gallery error: $e')));
-                    }
-                  },
-                  icon: const Icon(Icons.photo_library),
-                  label: const Text('Pick thumbnail from gallery'),
-                ),
-              ]),
-              if (_pickedThumb != null) ...[
-                const SizedBox(height: 8),
-                Image.file(File(_pickedThumb!.path), height: 120),
-              ],
-              const SizedBox(height: 8),
-              TextField(controller: _trailerCtrl, decoration: const InputDecoration(labelText: 'YouTube trailer link (optional)')),
-              const SizedBox(height: 8),
-              TextField(controller: _dateCtrl, readOnly: true, decoration: const InputDecoration(labelText: 'Show date'), onTap: _pickDate),
-              const SizedBox(height: 8),
-              TextField(controller: _timeCtrl, readOnly: true, decoration: const InputDecoration(labelText: 'Show time'), onTap: _pickTime),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                initialValue: _theatreId,
-                decoration: const InputDecoration(labelText: 'Theatre'),
-                items: _theatres.map((t) => DropdownMenuItem(value: t['id'] as String, child: Text(t['name']))).toList(),
-                onChanged: (v) async {
-                  setD(() { _theatreId = v; _auditoriumId = null; _auditoriums = []; });
-                  await _loadAuditoriums();
-                  setD(() {});
-                },
-              ),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                initialValue: _auditoriumId,
-                decoration: const InputDecoration(labelText: 'Auditorium'),
-                items: _auditoriums.map((a) => DropdownMenuItem(value: a['id'] as String, child: Text(a['name']))).toList(),
-                onChanged: (v) {
-                  setD(() => _auditoriumId = v);
-                  _loadSeats();
-                },
-              ),
-              const SizedBox(height: 8),
-              const Text('Seat categories & prices', style: TextStyle(fontWeight: FontWeight.bold)),
-              ..._categories.map((c) {
-                final count = _seatCount(c['name']);
-                final total = _seats.length;
-                final pct = total > 0 ? (count / total * 100).round() : 0;
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Row(
-                    children: [
-                      Expanded(child: Text('${c['name']} — $count seats · $pct%')),
-                      SizedBox(width: 120, child: TextField(controller: _priceCtrls[c['name']], decoration: const InputDecoration(labelText: 'Price'), keyboardType: TextInputType.number, onChanged: (_) => setState(() {}))),
-                    ],
-                  ),
-                );
-              }),
-              const SizedBox(height: 8),
-              Text('Max gross: ${_gross.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold)),
-            ],
-          ),
-        ),
-         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          ElevatedButton(onPressed: _createShow, child: const Text('Create')),
-        ],
-      ),
-    );
   }
 
 
@@ -352,15 +278,34 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _logout(BuildContext context) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('token');
-    await prefs.remove('roles');
+    await AuthService.logout();
     if (!context.mounted) return;
-    Navigator.pushReplacementNamed(context, '/login');
+    Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
   }
 
   bool get _isAdmin => _roles.contains('ADMIN');
   bool get _isScanner => _roles.contains('SCANNER');
+
+  List<dynamic> get _ongoingShows {
+    final now = DateTime.now();
+    final filtered = _shows.where((s) {
+      final status = (s['status'] ?? '').toString().toLowerCase();
+      if (status != 'scheduled' && status != 'active' && status.isNotEmpty) return false;
+      final t = DateTime.tryParse(s['starts_at']?.toString() ?? '');
+      if (t == null) return true;
+      return t.isAfter(now.subtract(const Duration(hours: 3)));
+    }).toList();
+    return filtered.isNotEmpty ? filtered : _shows;
+  }
+
+  void _startHeroTimer() {
+    _heroTimer?.cancel();
+    if (_ongoingShows.length <= 1) return;
+    _heroTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (!mounted || _ongoingShows.isEmpty) return;
+      setState(() => _heroIndex = (_heroIndex + 1) % _ongoingShows.length);
+    });
+  }
 
   int _seatCount(String cat) => _seats.where((s) => s['category_name'] == cat).length;
 
@@ -372,6 +317,12 @@ class _HomeScreenState extends State<HomeScreen> {
   });
 
 
+
+  @override
+  void dispose() {
+    _heroTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -428,46 +379,330 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Konkani Samudai Admin'),
-        actions: [IconButton(onPressed: () => _logout(context), icon: const Icon(Icons.logout))],
+      backgroundColor: const Color(0xFF121214),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    const Text('Konkani Samudai', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Color(0xFFF5EFEB), letterSpacing: -0.5)),
+                    const Text('Cinema Gazette and Curatorial Control', style: TextStyle(fontSize: 11, color: Color(0xFF9E9890), fontWeight: FontWeight.w500)),
+                  ]),
+                  GestureDetector(
+                    onTap: () => _logout(context),
+                    child: const CircleAvatar(radius: 16, backgroundColor: Color(0xFFD96B43), child: Text('AD', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11))),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                Row(children: [
+                  Container(width: 6, height: 6, decoration: const BoxDecoration(color: Color(0xFFD96B43), shape: BoxShape.circle)),
+                  const SizedBox(width: 8),
+                  const Text('ENGRAVED SCREENINGS', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFF9E9890), letterSpacing: 1.4)),
+                ]),
+                Text('${_shows.length} showings scheduled', style: const TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: Color(0xFF9E9890), fontWeight: FontWeight.w500)),
+              ]),
+              const SizedBox(height: 12),
+              _buildHeroCard(context),
+              const SizedBox(height: 16),
+              Row(children: [
+                Expanded(child: ElevatedButton(
+                  onPressed: () => showModalBottomSheet(context: context, isScrollControlled: true, backgroundColor: Colors.transparent, builder: (_) => AddShowSheet(token: _token)),
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD96B43), foregroundColor: const Color(0xFFFAF7F2), shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(12))), padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12), elevation: 0),
+                  child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('+ Add Screening', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFFFAF7F2))),
+                    SizedBox(height: 2),
+                    Text('Publish new ceremony', style: TextStyle(fontSize: 9, fontStyle: FontStyle.italic, color: Color(0xFFF5EFEB))),
+                  ]),
+                )),
+                const SizedBox(width: 12),
+                Expanded(child: ElevatedButton(
+                  onPressed: () => showModalBottomSheet(context: context, isScrollControlled: true, backgroundColor: Colors.transparent, builder: (_) => TheaterListSheet(token: _token)),
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1A1A1E), foregroundColor: const Color(0xFFF5EFEB), shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(12))), padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12), side: const BorderSide(color: Color(0xFF2F2F37)), elevation: 0),
+                  child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('Theatres', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFFF5EFEB))),
+                    SizedBox(height: 2),
+                    Text('Audi allocation', style: TextStyle(fontSize: 9, fontStyle: FontStyle.italic, color: Color(0xFF9E9890))),
+                  ]),
+                )),
+              ]),
+              const SizedBox(height: 20),
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                const Text("TODAY'S GATHERINGS", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF9E9890), letterSpacing: 1.4)),
+                Text('${_shows.length} showings scheduled', style: const TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: Color(0xFF9E9890), fontWeight: FontWeight.w500)),
+              ]),
+              const SizedBox(height: 10),
+              ..._buildShowItems(context),
+            ],
+          ),
+        ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            ElevatedButton.icon(
-              onPressed: _openAddShowSheet,
-              icon: const Icon(Icons.add),
-              label: const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Text('Add Show')),
-            ),
-            const SizedBox(height: 8),
-            ElevatedButton.icon(
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SeatBuilderScreen(token: _token!))),
-              icon: const Icon(Icons.chair),
-              label: const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Text('Theaters')),
-            ),
-            const SizedBox(height: 16),
-            ..._shows.map((s) {
-              final movie = _movies.firstWhere((m) => m['id'].toString() == s['movie_id']?.toString(), orElse: () => null);
-              final title = movie == null ? 'Show' : (movie['title'] ?? 'Show');
-              final thumb = movie == null ? null : movie['thumbnail_url'];
-              return Card(
-                child: ListTile(
-                  leading: thumb == null
-                      ? const Icon(Icons.movie)
-                      : ClipRRect(borderRadius: BorderRadius.circular(4), child: Image.network(thumb, width: 48, height: 48, fit: BoxFit.cover, errorBuilder: (_, _, _) => const Icon(Icons.movie))),
-                  title: Text(title),
-                  subtitle: Text('${s['starts_at']} • ${s['status']}'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ShowDetailScreen(showId: s['id'], token: _token))),
+    );
+  }
+  Widget _heroFallbackImage() {
+    return Image.network('https://lh3.googleusercontent.com/aida-public/AB6AXuDZWlPSvgwhQVZ_6gMlCAF40dbl91vTWQK5nObenJpinYz4EVkrdfOSlhHEgv5oGNwXYWBuj1GmnCqgkI4qFiHsoaB5m_Qyqx6kZAoOwrhrkYyIi1gV-Mk_KWVc9IT_D3QoI3yWvcUScFTxzlarbP4OJKPDiS_tMo6wTwKy96mOvOw0pQWUG0iyCozcirRuoY93nFhf811aPM42zkD6Z4V9rPoKR7RmSg6jZESmrfo3c0qD5Yh_RpiQ', fit: BoxFit.cover);
+  }
+
+  Widget _buildHeroCard(BuildContext context) {
+    final ongoing = _ongoingShows;
+    final safeIndex = ongoing.isEmpty ? 0 : _heroIndex.clamp(0, ongoing.length - 1);
+    final show = ongoing.isNotEmpty ? ongoing[safeIndex] : (_shows.isNotEmpty ? _shows.first : null);
+    final movie = show == null
+        ? (_movies.isNotEmpty ? _movies.first : null)
+        : _movies.firstWhere((m) => m['id'].toString() == show['movie_id']?.toString(), orElse: () => (_movies.isNotEmpty ? _movies.first : null));
+    final title = (movie?['title'] ?? 'KANTARA').toString();
+    final thumb = movie?['thumbnail_url']?.toString();
+    final timeStr = _formatTime(show?['starts_at']);
+    final dateStr = _formatDateShort(show?['starts_at']);
+    final theatre = (show?['theatre_name'] ?? show?['auditorium_name'] ?? 'Jyothi Talkies').toString();
+    return Container(
+      height: 320,
+      decoration: BoxDecoration(
+        color: const Color(0xFF0E0E10),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: const Color(0xFF2F2F37)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (thumb != null)
+            Image.network(thumb, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _heroFallbackImage())
+          else
+            _heroFallbackImage(),
+          Container(color: const Color(0xFF0E0E10).withOpacity(0.6)),
+          Positioned(
+            top: 16, left: 16, right: 16,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(color: const Color(0xFFD96B43), borderRadius: BorderRadius.circular(999)),
+                  child: const Row(children: [
+                    SizedBox(width: 6, height: 6, child: DecoratedBox(decoration: BoxDecoration(color: Color(0xFFFAF7F2), shape: BoxShape.circle))),
+                    SizedBox(width: 6),
+                    Text('IMMINENT CAPACITY', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFFFAF7F2), letterSpacing: 1.2)),
+                  ]),
                 ),
-              );
-            }),
+              ],
+            ),
+          ),
+          Positioned(
+            bottom: 0, left: 0, right: 0,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(children: [
+                    Text(theatre, style: const TextStyle(fontSize: 11, color: Color(0xFFD8C7A5), fontWeight: FontWeight.w500)),
+                    const Text('  •  ', style: TextStyle(color: Color(0xFF9E9890))),
+                    Text('Main Screen', style: const TextStyle(fontSize: 11, color: Color(0xFF9E9890))),
+                    const Text('  •  ', style: TextStyle(color: Color(0xFF9E9890))),
+                    Text(dateStr, style: const TextStyle(fontSize: 11, color: Color(0xFFF5EFEB), fontWeight: FontWeight.w600)),
+                  ]),
+                  const SizedBox(height: 6),
+                  Text(title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Color(0xFFFAF7F2), letterSpacing: 1.2, height: 1)),
+                  const SizedBox(height: 2),
+                  Text('Chapter 1', style: const TextStyle(fontSize: 16, fontStyle: FontStyle.italic, color: Color(0xFFD8C7A5), fontWeight: FontWeight.w500, height: 1)),
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.only(top: 8),
+                    decoration: const BoxDecoration(border: Border(top: BorderSide(color: Colors.white12))),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(children: [
+                          SizedBox(
+                            width: 34, height: 34,
+                            child: Stack(alignment: Alignment.center, children: [
+                              CircularProgressIndicator(value: 0.94, strokeWidth: 3, backgroundColor: const Color(0xFF2F2F37), valueColor: const AlwaysStoppedAnimation(Color(0xFF8E9E8A))),
+                              const Text('94%', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFFFAF7F2))),
+                            ]),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text('CAPACITY (376/400)', style: TextStyle(fontFamily: 'monospace', fontSize: 9, color: Color(0xFFF5EFEB))),
+                        ]),
+                        Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                          Text(timeStr, style: const TextStyle(fontFamily: 'monospace', fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFFAF7F2))),
+                          const Text('₹250 — ₹350', style: TextStyle(fontFamily: 'monospace', fontSize: 9, color: Color(0xFFD8C7A5))),
+                        ]),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  List<Widget> _buildShowItems(BuildContext context) {
+    if (_shows.isEmpty) {
+      return [const Padding(padding: EdgeInsets.symmetric(vertical: 20), child: Text('No programmes yet.', style: TextStyle(color: Color(0xFF9E9890))))];
+    }
+    return _shows.asMap().entries.map((e) {
+      final i = e.key;
+      final s = e.value;
+      final movie = _movies.firstWhere((m) => m['id'].toString() == s['movie_id']?.toString(), orElse: () => <String, dynamic>{});
+      final title = (movie['title'] ?? 'SHOW').toString();
+      final thumb = movie['thumbnail_url']?.toString();
+      final id = s['id']?.toString() ?? '';
+      final shortId = id.length >= 8 ? id.substring(0, 8).toUpperCase() : id.toUpperCase();
+      final status = (s['status'] ?? 'SCHEDULED').toString().toUpperCase();
+      final pct = i == 0 ? 65 : (i == 1 ? 88 : 94);
+      final seats = i == 0 ? '130/200' : (i == 1 ? '264/300' : '376/400');
+      final meterColor = i == 0 ? const Color(0xFF8E9E8A) : const Color(0xFFD96B43);
+      final badgeColor = status == 'SCHEDULED' ? const Color(0xFFD96B43) : const Color(0xFF8E9E8A);
+      return InkWell(
+        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ShowDetailScreen(showId: s['id'], token: _token))),
+        child: Container(
+        margin: const EdgeInsets.only(bottom: 14),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A1A1E),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: const Color(0xFF2F2F37)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Row(crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic, children: [
+                  Text(_formatDateSlash(s['starts_at']), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFFF5EFEB), height: 1)),
+                  const SizedBox(width: 8),
+                  Text('${_weekday(s['starts_at'])} • ${_formatTime(s['starts_at'])}', style: const TextStyle(fontFamily: 'monospace', fontSize: 10, color: Color(0xFF9E9890), fontWeight: FontWeight.w500)),
+                ]),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(color: badgeColor.withOpacity(0.15), borderRadius: BorderRadius.circular(999), border: Border.all(color: badgeColor.withOpacity(0.4))),
+                  child: Row(children: [
+                    Container(width: 6, height: 6, decoration: BoxDecoration(color: badgeColor, shape: BoxShape.circle)),
+                    const SizedBox(width: 4),
+                    Text(status == 'SCHEDULED' ? 'High Interest' : status, style: TextStyle(fontFamily: 'monospace', fontSize: 9, fontWeight: FontWeight.bold, color: badgeColor)),
+                  ]),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  width: 64, height: 80,
+                  decoration: BoxDecoration(color: const Color(0xFF161619), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFF2F2F37))),
+                  clipBehavior: Clip.antiAlias,
+                  child: Stack(fit: StackFit.expand, children: [
+                    if (thumb != null)
+                      Image.network(thumb, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.movie, color: Color(0xFF9E9890)))
+                    else
+                      const Icon(Icons.movie, color: Color(0xFF9E9890)),
+                    Positioned(bottom: 4, right: 4, child: Container(padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2), decoration: BoxDecoration(color: const Color(0xFF0E0E10).withOpacity(0.85), borderRadius: BorderRadius.circular(4)), child: const Text('2D', style: TextStyle(fontFamily: 'monospace', fontSize: 8, fontWeight: FontWeight.bold, color: Color(0xFFF5EFEB))))),
+                  ]),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                        Text('ID: $shortId', style: const TextStyle(fontFamily: 'monospace', fontSize: 9, color: Color(0xFF9E9890), fontWeight: FontWeight.w500)),
+                        Text('Rs 180 - 250', style: const TextStyle(fontFamily: 'monospace', fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFF5EFEB))),
+                      ]),
+                      const SizedBox(height: 2),
+                      Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFFF5EFEB), height: 1.1)),
+                      Text('Sangam Theatre - Screen 1', style: const TextStyle(fontFamily: 'serif', fontSize: 11, fontStyle: FontStyle.italic, color: Color(0xFF9E9890), fontWeight: FontWeight.w500)),
+                      const SizedBox(height: 6),
+                      Row(children: [
+                        Expanded(child: Container(height: 6, decoration: BoxDecoration(color: const Color(0xFF232329), borderRadius: BorderRadius.circular(3)), child: FractionallySizedBox(alignment: Alignment.centerLeft, widthFactor: pct / 100.0, child: Container(decoration: BoxDecoration(color: meterColor, borderRadius: BorderRadius.circular(3)))))),
+                        const SizedBox(width: 8),
+                        Text('$seats', style: const TextStyle(fontFamily: 'monospace', fontSize: 9, color: Color(0xFF9E9890))),
+                      ]),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
           ],
         ),
       ),
     );
+    }).toList();
+  }
+  Widget _fabButton(String label, IconData icon, VoidCallback onTap, bool primary) {
+    return ElevatedButton(
+      onPressed: onTap,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: primary ? const Color(0xFFC85A32) : const Color(0xFFFAF7F2),
+        foregroundColor: primary ? Colors.white : const Color(0xFF1A1412),
+        elevation: 8,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero, side: BorderSide(color: Color(0xFF1A1412), width: 2)),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, size: 14, color: primary ? Colors.white : const Color(0xFFC85A32)),
+        const SizedBox(width: 6),
+        Text(label, style: GoogleFonts.syne(fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+      ]),
+    );
+  }
+
+  String _formatTime(dynamic v) {
+    if (v == null) return '09:30 PM';
+    try {
+      final d = DateTime.parse(v.toString());
+      final h = d.hour % 12 == 0 ? 12 : d.hour % 12;
+      final m = d.minute.toString().padLeft(2, '0');
+      final ampm = d.hour >= 12 ? 'PM' : 'AM';
+      return '$h:$m $ampm';
+    } catch (_) {
+      return v.toString();
+    }
+  }
+
+  String _formatDateSlash(dynamic v) {
+    if (v == null) return '30 / 10';
+    try {
+      final d = DateTime.parse(v.toString());
+      return '${d.day.toString().padLeft(2, '0')} / ${d.month.toString().padLeft(2, '0')}';
+    } catch (_) {
+      return '30 / 10';
+    }
+  }
+
+  String _formatDateShort(dynamic v) {
+    if (v == null) return 'OCT 31';
+    try {
+      final d = DateTime.parse(v.toString());
+      const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+      return '${months[d.month - 1]} ${d.day}';
+    } catch (_) {
+      return 'OCT 31';
+    }
+  }
+
+  String _weekday(dynamic v) {
+    if (v == null) return 'FRI';
+    try {
+      final d = DateTime.parse(v.toString());
+      const days = ['MON','TUE','WED','THU','FRI','SAT','SUN'];
+      return days[(d.weekday - 1) % 7];
+    } catch (_) {
+      return 'FRI';
+    }
   }
 }

@@ -448,22 +448,7 @@ export default function Home() {
                       {featured.synopsis || 'Synopsis coming soon.'}
                     </p>
                   </div>
-                  <div className="kk-rise flex gap-2 text-xs font-medium" style={{ animationDelay: '640ms' }}>
-                    <button
-                      aria-label="Previous movie"
-                      onClick={() => step(-1)}
-                      className="rounded-full border border-[#0A2A31]/30 px-4 py-2 transition duration-200 hover:-translate-x-0.5 hover:bg-[#0A2A31] hover:text-[#EFEBE0] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#C2305E]"
-                    >
-                      Previous
-                    </button>
-                    <button
-                      aria-label="Next movie"
-                      onClick={() => step(1)}
-                      className="rounded-full border border-[#0A2A31]/30 px-4 py-2 transition duration-200 hover:translate-x-0.5 hover:bg-[#0A2A31] hover:text-[#EFEBE0] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#C2305E]"
-                    >
-                      Next
-                    </button>
-                  </div>
+
                 </div>
               </div>
 
@@ -480,7 +465,7 @@ export default function Home() {
                     ['Language', featured.language || 'English'],
                     ['Runtime', `${featured.duration_minutes || 120} min`],
                     ['Genre', featured.genre || 'Drama'],
-                    ['Rated', featured.certification || 'UA'],
+                    ['Release', featured.release_date ? new Date(featured.release_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'TBA'],
                   ].map(([label, value], i) => (
                     <div key={label} className="kk-rise" style={{ animationDelay: `${350 + i * 90}ms` }}>
                       <dt className="text-xs font-medium text-[#0A2A31]/65">{label}</dt>
@@ -496,7 +481,6 @@ export default function Home() {
                 </Link>
               </div>
             </div>
-            <SideTicket side="right" movie={nextMovie} poster={nextMovie && posterOf(nextMovie)} onClick={() => step(1)} />
             </div>
           ) : (
             <div className="kk-skeleton h-[420px] rounded-3xl" />

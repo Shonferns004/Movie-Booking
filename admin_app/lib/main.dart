@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/collection_screen.dart';
+import 'screens/auth_gate.dart';
+import 'services/auth_service.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -28,7 +31,9 @@ class _MainShellState extends State<MainShell> {
   }
 }
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await AuthService.init();
   runApp(const KonkaniAdminApp());
 }
 
@@ -41,20 +46,23 @@ class KonkaniAdminApp extends StatelessWidget {
       title: 'Konkani Samudai Admin',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF6366F1), brightness: Brightness.dark),
         useMaterial3: true,
+        scaffoldBackgroundColor: const Color(0xFF121214),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFD96B43), brightness: Brightness.dark).copyWith(surface: const Color(0xFF1A1A1E), primary: const Color(0xFFD96B43), onSurface: const Color(0xFFF5EFEB)),
+        fontFamily: GoogleFonts.poppins().fontFamily,
         splashFactory: NoSplash.splashFactory,
         highlightColor: Colors.transparent,
-        cardTheme: const CardThemeData(elevation: 2, margin: EdgeInsets.symmetric(vertical: 6)),
-        inputDecorationTheme: const InputDecorationTheme(border: OutlineInputBorder()),
+        appBarTheme: const AppBarTheme(backgroundColor: Color(0xFF121214), foregroundColor: Color(0xFFF5EFEB), elevation: 0, centerTitle: false),
+        cardTheme: const CardThemeData(elevation: 0, margin: EdgeInsets.symmetric(vertical: 6), color: Color(0xFF1A1A1E)),
+        inputDecorationTheme: const InputDecorationTheme(border: OutlineInputBorder(), filled: true, fillColor: Color(0xFF1A1A1E)),
         elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+          style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), backgroundColor: const Color(0xFFD96B43), foregroundColor: Colors.white),
         ),
       ),
-      initialRoute: '/login',
+      home: const AuthGate(),
       routes: {
         '/login': (_) => const LoginScreen(),
-        '/home': (_) => const MainShell(),
+        '/home': (_) => const HomeScreen(),
       },
     );
   }

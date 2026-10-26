@@ -12,6 +12,9 @@ export const env = {
   API_PORT: Number(process.env.PORT || process.env.API_PORT || 4000),
   NODE_ENV: process.env.NODE_ENV || 'development',
   JWT_SECRET: process.env.JWT_SECRET || 'dev-secret-change-me',
+  JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET || 'dev-refresh-secret-change-me',
+  JWT_ACCESS_TTL: process.env.JWT_ACCESS_TTL || '7d',
+  JWT_REFRESH_TTL: process.env.JWT_REFRESH_TTL || '30d',
   APP_BASE_URL: process.env.APP_BASE_URL || 'http://localhost:5173',
   PAYMENT_PROVIDER: process.env.PAYMENT_PROVIDER || 'mock',
   // --- Embedded YouPI PG gateway (single-port mode) ---
