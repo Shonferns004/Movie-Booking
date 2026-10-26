@@ -248,7 +248,7 @@ class _AddShowSheetState extends State<AddShowSheet> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Add Screening',
+                      'Add New Movie',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -256,7 +256,7 @@ class _AddShowSheetState extends State<AddShowSheet> {
                       ),
                     ),
                     const Text(
-                      'Publish ceremony & allocate auditorium',
+                      'Publish a new movie',
                       style: TextStyle(
                         fontSize: 11,
                         color: sumi300,
@@ -525,7 +525,7 @@ class _AddShowSheetState extends State<AddShowSheet> {
                       padding: const EdgeInsets.symmetric(vertical: 10),
                     ),
                     child: Text(
-                      _submitting ? 'Creating...' : 'Create Show',
+                      _submitting ? 'Adding...' : 'Add Movie',
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,

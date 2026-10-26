@@ -216,7 +216,7 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Add Show',
+                  'Add Movie',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 12),
@@ -558,7 +558,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(width: 8),
                       const Text(
-                        'ENGRAVED SCREENINGS',
+                        'SCREENINGS',
                         style: TextStyle(
                           fontSize: 9,
                           fontWeight: FontWeight.bold,
@@ -689,7 +689,7 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '+ Add Screening',
+                  '+ Add Movie',
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
@@ -698,7 +698,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 SizedBox(height: 2),
                 Text(
-                  'Publish new ceremony',
+                  'Publish a new movie',
                   style: TextStyle(
                     fontSize: 9,
                     fontStyle: FontStyle.italic,
@@ -783,7 +783,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(width: 8),
                       const Text(
-                        'ENGRAVED SCREENINGS',
+                        'SCREENINGS',
                         style: TextStyle(
                           fontSize: 9,
                           fontWeight: FontWeight.bold,
@@ -889,9 +889,17 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _heroFallbackImage() {
-    return Image.network(
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuDZWlPSvgwhQVZ_6gMlCAF40dbl91vTWQK5nObenJpinYz4EVkrdfOSlhHEgv5oGNwXYWBuj1GmnCqgkI4qFiHsoaB5m_Qyqx6kZAoOwrhrkYyIi1gV-Mk_KWVc9IT_D3QoI3yWvcUScFTxzlarbP4OJKPDiS_tMo6wTwKy96mOvOw0pQWUG0iyCozcirRuoY93nFhf811aPM42zkD6Z4V9rPoKR7RmSg6jZESmrfo3c0qD5Yh_RpiQ',
-      fit: BoxFit.cover,
+    return const DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF1A1A1E), Color(0xFF0E0E10)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Center(
+        child: Icon(Icons.movie_outlined, size: 48, color: Color(0xFF3A3A44)),
+      ),
     );
   }
 
@@ -903,19 +911,84 @@ class _HomeScreenState extends State<HomeScreen> {
     final show = ongoing.isNotEmpty
         ? ongoing[safeIndex]
         : (_shows.isNotEmpty ? _shows.first : null);
-    final movie = show == null
-        ? (_movies.isNotEmpty ? _movies.first : null)
-        : _movies.firstWhere(
-            (m) => m['id'].toString() == show['movie_id']?.toString(),
-            orElse: () => (_movies.isNotEmpty ? _movies.first : null),
-          );
-    final title = (movie?['title'] ?? 'KANTARA').toString();
-    final thumb = movie?['thumbnail_url']?.toString();
-    final timeStr = _formatTime(show?['starts_at']);
-    final dateStr = _formatDateShort(show?['starts_at']);
-    final theatre =
-        (show?['theatre_name'] ?? show?['auditorium_name'] ?? 'Jyothi Talkies')
-            .toString();
+
+    if (show == null) {
+      return Container(
+        height: 320,
+        decoration: BoxDecoration(
+          color: const Color(0xFF0E0E10),
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: const Color(0xFF2F2F37)),
+        ),
+        alignment: Alignment.center,
+        child: const Text(
+          'No shows scheduled',
+          style: TextStyle(
+            fontSize: 13,
+            color: Color(0xFF9E9890),
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      );
+    }
+
+    final movie = _movies.firstWhere(
+      (m) => m['id'].toString() == show['movie_id']?.toString(),
+      orElse: () => <String, dynamic>{},
+    );
+    final title = _firstNonEmpty([
+      show['movie_title'],
+      movie['title'],
+    ], fallback: 'Untitled show');
+    final thumb = _firstNonEmpty([
+      show['movie_thumbnail_url'],
+      movie['thumbnail_url'],
+    ]);
+    final theatre = _asText(show['theatre_name']);
+    final screen = _asText(show['auditorium_name']);
+    final dateStr = _formatDateShort(show['starts_at']);
+    final timeStr = _formatTime(show['starts_at']);
+    final totalSeats = _asInt(show['seat_count']);
+    final occupiedSeats =
+        (_asInt(show['booked_count']) + _asInt(show['held_count']))
+            .clamp(0, totalSeats)
+            .toInt();
+    final capacityText = totalSeats > 0
+        ? 'CAPACITY ($occupiedSeats/$totalSeats)'
+        : '';
+    final priceText = _formatPriceRange(
+      show['price_min_minor'],
+      show['price_max_minor'],
+    );
+    final pct = totalSeats > 0 ? occupiedSeats / totalSeats : 0.0;
+    final meterColor = pct >= 0.8
+        ? const Color(0xFFD96B43)
+        : const Color(0xFF8E9E8A);
+    final venue = [
+      if (theatre.isNotEmpty) 'Theatre: $theatre',
+      if (screen.isNotEmpty) 'Screen: $screen',
+    ].join(' • ');
+    final meta = <Widget>[
+      if (venue.isNotEmpty)
+        Text(
+          venue,
+          style: const TextStyle(
+            fontSize: 11,
+            color: Color(0xFFD8C7A5),
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      if (dateStr.isNotEmpty)
+        Text(
+          dateStr,
+          style: const TextStyle(
+            fontSize: 11,
+            color: Color(0xFFF5EFEB),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+    ];
+
     return Container(
       height: 320,
       decoration: BoxDecoration(
@@ -927,7 +1000,7 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          if (thumb != null)
+          if (thumb.isNotEmpty)
             Image.network(
               thumb,
               fit: BoxFit.cover,
@@ -935,7 +1008,7 @@ class _HomeScreenState extends State<HomeScreen> {
             )
           else
             _heroFallbackImage(),
-          Container(color: const Color(0xFF0E0E10).withOpacity(0.6)),
+          Container(color: const Color(0xFF0E0E10).withValues(alpha: 0.6)),
           Positioned(
             top: 16,
             left: 16,
@@ -966,7 +1039,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       SizedBox(width: 6),
                       Text(
-                        'IMMINENT CAPACITY',
+                        'NEW MOVIE',
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
@@ -989,41 +1062,13 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Text(
-                        theatre,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: Color(0xFFD8C7A5),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const Text(
-                        '  •  ',
-                        style: TextStyle(color: Color(0xFF9E9890)),
-                      ),
-                      Text(
-                        'Main Screen',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: Color(0xFF9E9890),
-                        ),
-                      ),
-                      const Text(
-                        '  •  ',
-                        style: TextStyle(color: Color(0xFF9E9890)),
-                      ),
-                      Text(
-                        dateStr,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: Color(0xFFF5EFEB),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
+                  if (meta.isNotEmpty)
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 2,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: meta,
+                    ),
                   const SizedBox(height: 6),
                   Text(
                     title,
@@ -1035,89 +1080,76 @@ class _HomeScreenState extends State<HomeScreen> {
                       height: 1,
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Chapter 1',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontStyle: FontStyle.italic,
-                      color: Color(0xFFD8C7A5),
-                      fontWeight: FontWeight.w500,
-                      height: 1,
-                    ),
-                  ),
                   const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.only(top: 8),
-                    decoration: const BoxDecoration(
-                      border: Border(top: BorderSide(color: Colors.white12)),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            SizedBox(
-                              width: 34,
-                              height: 34,
-                              child: Stack(
-                                alignment: Alignment.center,
+                  if (capacityText.isNotEmpty ||
+                      timeStr.isNotEmpty ||
+                      priceText.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.only(top: 8),
+                      decoration: const BoxDecoration(
+                        border: Border(top: BorderSide(color: Colors.white12)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          if (totalSeats > 0)
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  CircularProgressIndicator(
-                                    value: 0.94,
-                                    strokeWidth: 3,
-                                    backgroundColor: const Color(0xFF2F2F37),
-                                    valueColor: const AlwaysStoppedAnimation(
-                                      Color(0xFF8E9E8A),
+                                  Text(
+                                    capacityText,
+                                    style: const TextStyle(
+                                      fontFamily: 'monospace',
+                                      fontSize: 9,
+                                      color: Color(0xFFF5EFEB),
                                     ),
                                   ),
-                                  const Text(
-                                    '94%',
-                                    style: TextStyle(
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFFFAF7F2),
+                                  const SizedBox(height: 5),
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(99),
+                                    child: LinearProgressIndicator(
+                                      value: pct.clamp(0.0, 1.0).toDouble(),
+                                      minHeight: 6,
+                                      backgroundColor: const Color(0xFF2F2F37),
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        meterColor,
+                                      ),
                                     ),
                                   ),
                                 ],
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'CAPACITY (376/400)',
-                              style: TextStyle(
-                                fontFamily: 'monospace',
-                                fontSize: 9,
-                                color: Color(0xFFF5EFEB),
-                              ),
-                            ),
-                          ],
-                        ),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              timeStr,
-                              style: const TextStyle(
-                                fontFamily: 'monospace',
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFFFAF7F2),
-                              ),
-                            ),
-                            const Text(
-                              '₹250 — ₹350',
-                              style: TextStyle(
-                                fontFamily: 'monospace',
-                                fontSize: 9,
-                                color: Color(0xFFD8C7A5),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+                            )
+                          else
+                            const SizedBox.shrink(),
+                          const SizedBox(width: 16),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              if (timeStr.isNotEmpty)
+                                Text(
+                                  timeStr,
+                                  style: const TextStyle(
+                                    fontFamily: 'monospace',
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFFFAF7F2),
+                                  ),
+                                ),
+                              if (priceText.isNotEmpty)
+                                Text(
+                                  priceText,
+                                  style: const TextStyle(
+                                    fontFamily: 'monospace',
+                                    fontSize: 9,
+                                    color: Color(0xFFD8C7A5),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),
@@ -1139,28 +1171,50 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ];
     }
-    return _shows.asMap().entries.map((e) {
-      final i = e.key;
-      final s = e.value;
+    return _shows.map((s) {
       final movie = _movies.firstWhere(
         (m) => m['id'].toString() == s['movie_id']?.toString(),
         orElse: () => <String, dynamic>{},
       );
-      final title = (movie['title'] ?? 'SHOW').toString();
-      final thumb = movie['thumbnail_url']?.toString();
-      final id = s['id']?.toString() ?? '';
-      final shortId = id.length >= 8
-          ? id.substring(0, 8).toUpperCase()
-          : id.toUpperCase();
-      final status = (s['status'] ?? 'SCHEDULED').toString().toUpperCase();
-      final pct = i == 0 ? 65 : (i == 1 ? 88 : 94);
-      final seats = i == 0 ? '130/200' : (i == 1 ? '264/300' : '376/400');
-      final meterColor = i == 0
-          ? const Color(0xFF8E9E8A)
-          : const Color(0xFFD96B43);
-      final badgeColor = status == 'SCHEDULED'
+      final title = _firstNonEmpty([
+        s['movie_title'],
+        movie['title'],
+      ], fallback: 'Untitled show');
+      final thumb = _firstNonEmpty([
+        s['movie_thumbnail_url'],
+        movie['thumbnail_url'],
+      ]);
+      final totalSeats = _asInt(s['seat_count']);
+      final occupiedSeats =
+          (_asInt(s['booked_count']) + _asInt(s['held_count']))
+              .clamp(0, totalSeats)
+              .toInt();
+      final pct = totalSeats > 0
+          ? (occupiedSeats / totalSeats * 100).round()
+          : 0;
+      final seats = totalSeats > 0 ? '$occupiedSeats/$totalSeats' : '';
+      final meterColor = pct >= 80
           ? const Color(0xFFD96B43)
           : const Color(0xFF8E9E8A);
+      final statusLabel = _showStatusLabel(s, occupiedSeats, totalSeats);
+      final badgeColor = _showStatusColor(s, occupiedSeats, totalSeats);
+      final theatre = _asText(s['theatre_name']);
+      final screen = _asText(s['auditorium_name']);
+      final venue = [
+        if (theatre.isNotEmpty) 'Theatre: $theatre',
+        if (screen.isNotEmpty) 'Screen: $screen',
+      ].join(' • ');
+      final dateSlash = _formatDateSlash(s['starts_at']);
+      final weekday = _weekday(s['starts_at']);
+      final time = _formatTime(s['starts_at']);
+      final timeMeta = [
+        weekday,
+        time,
+      ].where((value) => value.isNotEmpty).join(' • ');
+      final priceText = _formatPriceRange(
+        s['price_min_minor'],
+        s['price_max_minor'],
+      );
       return InkWell(
         onTap: () async {
           await Navigator.push(
@@ -1191,60 +1245,66 @@ class _HomeScreenState extends State<HomeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.baseline,
                     textBaseline: TextBaseline.alphabetic,
                     children: [
-                      Text(
-                        _formatDateSlash(s['starts_at']),
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFFF5EFEB),
-                          height: 1,
+                      if (dateSlash.isNotEmpty)
+                        Text(
+                          dateSlash,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFFF5EFEB),
+                            height: 1,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '${_weekday(s['starts_at'])} • ${_formatTime(s['starts_at'])}',
-                        style: const TextStyle(
-                          fontFamily: 'monospace',
-                          fontSize: 10,
-                          color: Color(0xFF9E9890),
-                          fontWeight: FontWeight.w500,
+                      if (dateSlash.isNotEmpty && timeMeta.isNotEmpty)
+                        const SizedBox(width: 8),
+                      if (timeMeta.isNotEmpty)
+                        Text(
+                          timeMeta,
+                          style: const TextStyle(
+                            fontFamily: 'monospace',
+                            fontSize: 10,
+                            color: Color(0xFF9E9890),
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                      ),
                     ],
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: badgeColor.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: badgeColor.withOpacity(0.4)),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 6,
-                          height: 6,
-                          decoration: BoxDecoration(
-                            color: badgeColor,
-                            shape: BoxShape.circle,
-                          ),
+                  if (statusLabel.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: badgeColor.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: badgeColor.withValues(alpha: 0.4),
                         ),
-                        const SizedBox(width: 4),
-                        Text(
-                          status == 'SCHEDULED' ? 'High Interest' : status,
-                          style: TextStyle(
-                            fontFamily: 'monospace',
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
-                            color: badgeColor,
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              color: badgeColor,
+                              shape: BoxShape.circle,
+                            ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 4),
+                          Text(
+                            statusLabel,
+                            style: TextStyle(
+                              fontFamily: 'monospace',
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              color: badgeColor,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
                 ],
               ),
               const SizedBox(height: 10),
@@ -1260,11 +1320,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       border: Border.all(color: const Color(0xFF2F2F37)),
                     ),
                     clipBehavior: Clip.antiAlias,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        if (thumb != null)
-                          Image.network(
+                    child: thumb.isNotEmpty
+                        ? Image.network(
                             thumb,
                             fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) => const Icon(
@@ -1272,53 +1329,18 @@ class _HomeScreenState extends State<HomeScreen> {
                               color: Color(0xFF9E9890),
                             ),
                           )
-                        else
-                          const Icon(Icons.movie, color: Color(0xFF9E9890)),
-                        Positioned(
-                          bottom: 4,
-                          right: 4,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 4,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF0E0E10).withOpacity(0.85),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: const Text(
-                              '2D',
-                              style: TextStyle(
-                                fontFamily: 'monospace',
-                                fontSize: 8,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFFF5EFEB),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                        : const Icon(Icons.movie, color: Color(0xFF9E9890)),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'ID: $shortId',
-                              style: const TextStyle(
-                                fontFamily: 'monospace',
-                                fontSize: 9,
-                                color: Color(0xFF9E9890),
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            Text(
-                              'Rs 180 - 250',
+                        if (priceText.isNotEmpty)
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: Text(
+                              priceText,
                               style: const TextStyle(
                                 fontFamily: 'monospace',
                                 fontSize: 11,
@@ -1326,8 +1348,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 color: Color(0xFFF5EFEB),
                               ),
                             ),
-                          ],
-                        ),
+                          ),
                         const SizedBox(height: 2),
                         Text(
                           title,
@@ -1338,49 +1359,54 @@ class _HomeScreenState extends State<HomeScreen> {
                             height: 1.1,
                           ),
                         ),
-                        Text(
-                          'Sangam Theatre - Screen 1',
-                          style: const TextStyle(
-                            fontFamily: 'serif',
-                            fontSize: 11,
-                            fontStyle: FontStyle.italic,
-                            color: Color(0xFF9E9890),
-                            fontWeight: FontWeight.w500,
+                        if (venue.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            venue,
+                            style: const TextStyle(
+                              fontFamily: 'serif',
+                              fontSize: 11,
+                              fontStyle: FontStyle.italic,
+                              color: Color(0xFF9E9890),
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Container(
-                                height: 6,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF232329),
-                                  borderRadius: BorderRadius.circular(3),
-                                ),
-                                child: FractionallySizedBox(
-                                  alignment: Alignment.centerLeft,
-                                  widthFactor: pct / 100.0,
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: meterColor,
-                                      borderRadius: BorderRadius.circular(3),
+                        ],
+                        if (totalSeats > 0) ...[
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Container(
+                                  height: 6,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF232329),
+                                    borderRadius: BorderRadius.circular(3),
+                                  ),
+                                  child: FractionallySizedBox(
+                                    alignment: Alignment.centerLeft,
+                                    widthFactor: pct / 100.0,
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: meterColor,
+                                        borderRadius: BorderRadius.circular(3),
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              '$seats',
-                              style: const TextStyle(
-                                fontFamily: 'monospace',
-                                fontSize: 9,
-                                color: Color(0xFF9E9890),
+                              const SizedBox(width: 8),
+                              Text(
+                                seats,
+                                style: const TextStyle(
+                                  fontFamily: 'monospace',
+                                  fontSize: 9,
+                                  color: Color(0xFF9E9890),
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
+                            ],
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -1435,8 +1461,58 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  int _asInt(dynamic value) {
+    if (value is int) return value;
+    return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  String _asText(dynamic value) {
+    final text = value?.toString().trim() ?? '';
+    return text.toLowerCase() == 'null' ? '' : text;
+  }
+
+  String _firstNonEmpty(List<dynamic> values, {String fallback = ''}) {
+    for (final value in values) {
+      final text = _asText(value);
+      if (text.isNotEmpty) return text;
+    }
+    return fallback;
+  }
+
+  String _formatRupees(int minor) {
+    if (minor <= 0) return '';
+    final value = minor / 100;
+    return value == value.roundToDouble()
+        ? '₹${value.toStringAsFixed(0)}'
+        : '₹${value.toStringAsFixed(2)}';
+  }
+
+  String _formatPriceRange(dynamic minValue, dynamic maxValue) {
+    final min = _asInt(minValue);
+    final max = _asInt(maxValue);
+    if (min <= 0 && max <= 0) return '';
+    if (min <= 0) return _formatRupees(max);
+    if (max <= 0 || max == min) return _formatRupees(min);
+    return '${_formatRupees(min)} — ${_formatRupees(max)}';
+  }
+
+  String _showStatusLabel(dynamic show, int occupied, int total) {
+    final status = _asText(show?['status']).toUpperCase();
+    if (total > 0 && occupied >= total) return 'SOLD OUT';
+    if (status == 'ACTIVE') return 'NOW SHOWING';
+    if (status == 'SCHEDULED') return 'UPCOMING';
+    if (status == 'CANCELLED') return 'CANCELLED';
+    return status;
+  }
+
+  Color _showStatusColor(dynamic show, int occupied, int total) {
+    return _showStatusLabel(show, occupied, total) == 'NOW SHOWING'
+        ? const Color(0xFF8E9E8A)
+        : const Color(0xFFD96B43);
+  }
+
   String _formatTime(dynamic v) {
-    if (v == null) return '09:30 PM';
+    if (v == null) return '';
     try {
       final d = DateTime.parse(v.toString());
       final h = d.hour % 12 == 0 ? 12 : d.hour % 12;
@@ -1444,22 +1520,22 @@ class _HomeScreenState extends State<HomeScreen> {
       final ampm = d.hour >= 12 ? 'PM' : 'AM';
       return '$h:$m $ampm';
     } catch (_) {
-      return v.toString();
+      return '';
     }
   }
 
   String _formatDateSlash(dynamic v) {
-    if (v == null) return '30 / 10';
+    if (v == null) return '';
     try {
       final d = DateTime.parse(v.toString());
       return '${d.day.toString().padLeft(2, '0')} / ${d.month.toString().padLeft(2, '0')}';
     } catch (_) {
-      return '30 / 10';
+      return '';
     }
   }
 
   String _formatDateShort(dynamic v) {
-    if (v == null) return 'OCT 31';
+    if (v == null) return '';
     try {
       final d = DateTime.parse(v.toString());
       const months = [
@@ -1478,18 +1554,18 @@ class _HomeScreenState extends State<HomeScreen> {
       ];
       return '${months[d.month - 1]} ${d.day}';
     } catch (_) {
-      return 'OCT 31';
+      return '';
     }
   }
 
   String _weekday(dynamic v) {
-    if (v == null) return 'FRI';
+    if (v == null) return '';
     try {
       final d = DateTime.parse(v.toString());
       const days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
       return days[(d.weekday - 1) % 7];
     } catch (_) {
-      return 'FRI';
+      return '';
     }
   }
 }

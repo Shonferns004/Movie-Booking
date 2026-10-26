@@ -4,10 +4,46 @@ import { notFound, badRequest, conflict } from '../../utils/errors.js';
 export async function listShows({ movieId, from, to } = {}) {
   const params = [];
   let where = 'WHERE 1=1';
-  if (movieId) { params.push(movieId); where += ` AND movie_id=$${params.length}`; }
-  if (from) { params.push(from); where += ` AND starts_at >= $${params.length}`; }
-  if (to) { params.push(to); where += ` AND starts_at <= $${params.length}`; }
-  const { rows } = await pool.query(`SELECT * FROM shows ${where} ORDER BY starts_at`, params);
+  if (movieId) { params.push(movieId); where += ` AND s.movie_id=$${params.length}`; }
+  if (from) { params.push(from); where += ` AND s.starts_at >= $${params.length}`; }
+  if (to) { params.push(to); where += ` AND s.starts_at <= $${params.length}`; }
+  const { rows } = await pool.query(
+    `SELECT s.*,
+            t.name AS theatre_name,
+            a.name AS auditorium_name,
+            m.title AS movie_title,
+            m.language AS movie_language,
+            m.certification AS movie_certification,
+            m.genre AS movie_genre,
+            (
+              SELECT mm.url
+                FROM movie_media mm
+               WHERE mm.movie_id = m.id AND mm.media_type = 'poster'
+               ORDER BY mm.display_order, mm.created_at DESC
+               LIMIT 1
+            ) AS movie_thumbnail_url,
+            COALESCE(sc.seat_count, 0)::int AS seat_count,
+            COALESCE(sc.booked_count, 0)::int AS booked_count,
+            COALESCE(sc.held_count, 0)::int AS held_count,
+            sc.price_min_minor,
+            sc.price_max_minor
+       FROM shows s
+       JOIN auditoriums a ON a.id = s.auditorium_id
+       JOIN theatres t ON t.id = a.theatre_id
+       JOIN movies m ON m.id = s.movie_id
+       LEFT JOIN LATERAL (
+         SELECT COUNT(*)::int AS seat_count,
+                COUNT(*) FILTER (WHERE ss.status = 'booked')::int AS booked_count,
+                COUNT(*) FILTER (WHERE ss.status = 'held')::int AS held_count,
+                MIN(ss.price_minor) AS price_min_minor,
+                MAX(ss.price_minor) AS price_max_minor
+           FROM show_seats ss
+          WHERE ss.show_id = s.id
+       ) sc ON TRUE
+       ${where}
+       ORDER BY s.starts_at`,
+    params,
+  );
   return rows;
 }
 
