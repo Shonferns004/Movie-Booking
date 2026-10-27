@@ -130,8 +130,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _buildIdentityCard(),
               const SizedBox(height: 24),
               _buildStats(),
-              const SizedBox(height: 16),
-              _buildOperationsCard(),
+
               const SizedBox(height: 16),
               _buildRecentScans(),
               const SizedBox(height: 16),
@@ -142,77 +141,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // Embedded inside the scanner shell: the shell provides the bounded area,
     // so the profile renders its own header and scroll view.
     if (widget.embedded) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _buildHeader(context),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-              child: body,
-            ),
-          ),
-        ],
+      return SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        child: body,
       );
     }
 
     return Scaffold(
       backgroundColor: KkSurface.bg,
-      body: Column(
-        children: [
-          _buildHeader(context),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-              child: body,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeader(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-      decoration: const BoxDecoration(
-        color: KkSurface.bg,
-        border: Border(bottom: BorderSide(color: KkSurface.border)),
-      ),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: () {
-              if (widget.onBack != null) {
-                widget.onBack!();
-              } else {
-                Navigator.maybePop(context);
-              }
-            },
-            icon: const Icon(LucideIcons.arrowLeft, size: 20),
-            color: KkSurface.onSurfaceVariant,
-          ),
-          Expanded(
-            child: Text(
-              'Profile',
-              style: GoogleFonts.notoSerif(
-                fontSize: 22,
-                fontWeight: FontWeight.w500,
-                color: KkSurface.onSurface,
-              ),
-            ),
-          ),
-          Container(
-            width: 32,
-            height: 32,
-            decoration: const BoxDecoration(
-              color: KkSurface.primary,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(LucideIcons.user, size: 18, color: Color(0xFF5C1900)),
-          ),
-        ],
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        child: body,
       ),
     );
   }
@@ -280,7 +219,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           child: Text(
                             _displayName,
                             overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.notoSerif(
+                            style: GoogleFonts.poppins(
                               fontSize: 22,
                               fontWeight: FontWeight.w500,
                               color: KkSurface.onSurface,
@@ -297,7 +236,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                           child: Text(
                             _roleLabel.toUpperCase(),
-                            style: GoogleFonts.manrope(
+                            style: GoogleFonts.poppins(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 0.8,
@@ -311,7 +250,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Text(
                       _roleSubtitle,
                       overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.manrope(
+                      style: GoogleFonts.poppins(
                         fontSize: 13,
                         color: KkSurface.onSurfaceVariant,
                       ),
@@ -326,7 +265,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           child: Text(
                             'Sangam Cinema • Box Office Staff',
                             overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.manrope(
+                            style: GoogleFonts.poppins(
                               fontSize: 11,
                               color: KkSurface.onSurfaceVariant,
                             ),
@@ -339,58 +278,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: KkSurface.container,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _telemetryCell('Terminal', 'Gate 01'),
-                ),
-                Container(
-                  width: 1,
-                  height: 28,
-                  color: KkSurface.border,
-                ),
-                Expanded(
-                  child: _telemetryCell('Status', 'On duty'),
-                ),
-              ],
-            ),
-          ),
+
         ],
       ),
-    );
-  }
-
-  Widget _telemetryCell(String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label.toUpperCase(),
-          style: GoogleFonts.manrope(
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.8,
-            color: KkSurface.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          value,
-          overflow: TextOverflow.ellipsis,
-          style: GoogleFonts.manrope(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-            color: KkSurface.onSurface,
-          ),
-        ),
-      ],
     );
   }
 
@@ -407,7 +297,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   Text(
                     'Scan statistics',
-                    style: GoogleFonts.manrope(
+                    style: GoogleFonts.poppins(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.6,
@@ -416,7 +306,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   Text(
                     'Real-time gate telemetry',
-                    style: GoogleFonts.manrope(
+                    style: GoogleFonts.poppins(
                       fontSize: 11,
                       color: KkSurface.onSurfaceVariant,
                     ),
@@ -442,7 +332,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const SizedBox(width: 4),
                     Text(
                       'Sync',
-                      style: GoogleFonts.manrope(
+                      style: GoogleFonts.poppins(
                         fontSize: 11,
                         color: KkSurface.onSurfaceVariant,
                       ),
@@ -518,7 +408,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               Text(
                 label.toUpperCase(),
-                style: GoogleFonts.manrope(
+                style: GoogleFonts.poppins(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.8,
@@ -531,7 +421,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 8),
           Text(
             value,
-            style: GoogleFonts.notoSerif(
+            style: GoogleFonts.poppins(
               fontSize: 28,
               fontWeight: FontWeight.w500,
               height: 1,
@@ -541,7 +431,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 4),
           Text(
             caption,
-            style: GoogleFonts.manrope(
+            style: GoogleFonts.poppins(
               fontSize: 11,
               color: KkSurface.onSurfaceVariant,
             ),
@@ -566,7 +456,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: Text(
               'TERMINAL OPERATIONS',
-              style: GoogleFonts.manrope(
+              style: GoogleFonts.poppins(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.8,
@@ -600,7 +490,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     children: [
                       Text(
                         'Assigned Show',
-                        style: GoogleFonts.manrope(
+                        style: GoogleFonts.poppins(
                           fontSize: 11,
                           color: KkSurface.onSurfaceVariant,
                         ),
@@ -608,7 +498,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Text(
                         _assignedShow,
                         overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.manrope(
+                        style: GoogleFonts.poppins(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
                           color: KkSurface.onSurface,
@@ -627,7 +517,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   child: Text(
                     _assignedAudi,
-                    style: GoogleFonts.manrope(
+                    style: GoogleFonts.poppins(
                       fontSize: 11,
                       color: KkSurface.onSurface,
                     ),
@@ -649,7 +539,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             Text(
               'Recent scans',
-              style: GoogleFonts.manrope(
+              style: GoogleFonts.poppins(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.6,
@@ -668,7 +558,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(width: 4),
             Text(
               'Standby',
-              style: GoogleFonts.manrope(
+              style: GoogleFonts.poppins(
                 fontSize: 11,
                 color: KkSurface.onSurfaceVariant,
               ),
@@ -699,7 +589,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 12),
                 Text(
                   'No scans yet.',
-                  style: GoogleFonts.notoSerif(
+                  style: GoogleFonts.poppins(
                     fontSize: 22,
                     fontWeight: FontWeight.w500,
                     color: KkSurface.onSurface,
@@ -710,7 +600,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   'Verified patron QR codes and barcodes for the current show '
                   'will appear here in real time.',
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.manrope(
+                  style: GoogleFonts.poppins(
                     fontSize: 13,
                     height: 1.5,
                     color: KkSurface.onSurfaceVariant,
@@ -731,7 +621,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const SizedBox(width: 8),
                     Text(
                       'Optical engine idle and listening',
-                      style: GoogleFonts.manrope(
+                      style: GoogleFonts.poppins(
                         fontSize: 11,
                         color: KkSurface.outline,
                       ),
@@ -779,7 +669,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           '${s['result'] ?? 'UNKNOWN'}'
                               '${s['rejection_reason'] != null && s['rejection_reason'].toString().isNotEmpty ? ' • ${s['rejection_reason']}' : ''}',
                           overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.manrope(
+                          style: GoogleFonts.poppins(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
                             color: KkSurface.onSurface,
@@ -787,7 +677,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         Text(
                           '${s['scanned_at'] ?? ''}',
-                          style: GoogleFonts.manrope(
+                          style: GoogleFonts.poppins(
                             fontSize: 11,
                             color: KkSurface.onSurfaceVariant,
                           ),
@@ -806,7 +696,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     child: Text(
                       valid ? 'Valid' : 'Rejected',
-                      style: GoogleFonts.manrope(
+                      style: GoogleFonts.poppins(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
                         color: valid
@@ -866,7 +756,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           icon: const Icon(LucideIcons.logOut, size: 20),
           label: Text(
             'SIGN OUT TERMINAL',
-            style: GoogleFonts.manrope(
+            style: GoogleFonts.poppins(
               fontSize: 14,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.8,
