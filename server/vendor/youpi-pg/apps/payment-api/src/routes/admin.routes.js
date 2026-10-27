@@ -151,7 +151,7 @@ export function registerAdminRoutes(server, ctx) {
       if (currentActive && currentActive.receivingAccountId !== account.id) {
         try {
           ctx.db.execute('UPDATE payment_sessions SET receiving_account_id = ? WHERE id = ?', [account.id, currentActive.id]);
-          ctx.db.execute('UPDATE payment_receiving_accounts SET is_slot_busy = 1, current_active_session_id = ? WHERE id = ?', [currentActive.id, account.id]);
+          ctx.db.execute('UPDATE payment_receiving_accounts SET is_slot_busy = TRUE, current_active_session_id = ? WHERE id = ?', [currentActive.id, account.id]);
           currentActive.receivingAccountId = account.id;
         } catch {}
       }

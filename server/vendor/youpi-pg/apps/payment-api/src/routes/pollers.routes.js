@@ -233,7 +233,7 @@ export function registerPollerRoutes(server, ctx) {
     try {
       ctx.db.execute(`
         INSERT INTO android_devices (id, merchant_id, device_name, device_model, signing_key_hash, is_active, last_heartbeat_at, created_at)
-        VALUES (?, ?, ?, ?, ?, 1, ?, ?)
+        VALUES (?, ?, ?, ?, ?, TRUE, ?, ?)
       `, [deviceId, merchantId, deviceName, deviceModel, signingKey, nowIso, nowIso]);
 
       if (ctx.auditRepo) {

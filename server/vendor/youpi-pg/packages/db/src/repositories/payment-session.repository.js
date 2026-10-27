@@ -146,7 +146,7 @@ export class PaymentSessionRepository {
         // Mark receiving account as busy
         this.db.execute(`
           UPDATE payment_receiving_accounts
-          SET is_slot_busy = 1, current_active_session_id = ?, updated_at = ?
+          SET is_slot_busy = TRUE, current_active_session_id = ?, updated_at = ?
           WHERE id = ?
         `, [sessionId, nowIso, receivingAccountId]);
 

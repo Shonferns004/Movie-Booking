@@ -42,9 +42,9 @@ export class ReceivingAccountRepository {
         data.merchantId,
         data.upiId.trim(),
         data.payeeName.trim(),
-        isMerchantEnabled ? 1 : 0,
-        isActive ? 1 : 0,
-        0,
+        isMerchantEnabled,
+        isActive,
+        false,
         null,
         now,
         now
@@ -146,19 +146,19 @@ export class ReceivingAccountRepository {
           UPDATE payment_receiving_accounts
           SET upi_id = ?, payee_name = ?, is_merchant_enabled = ?, is_active = TRUE, updated_at = ?
           WHERE id = ?
-        `, [upiId, payeeName, isMerchantEnabled ? 1 : 0, now, id]);
+        `, [upiId, payeeName, isMerchantEnabled, now, id]);
       } else if (data.isActive === false) {
         this.db.execute(`
           UPDATE payment_receiving_accounts
           SET upi_id = ?, payee_name = ?, is_merchant_enabled = ?, is_active = FALSE, updated_at = ?
           WHERE id = ?
-        `, [upiId, payeeName, isMerchantEnabled ? 1 : 0, now, id]);
+        `, [upiId, payeeName, isMerchantEnabled, now, id]);
       } else {
         this.db.execute(`
           UPDATE payment_receiving_accounts
           SET upi_id = ?, payee_name = ?, is_merchant_enabled = ?, updated_at = ?
           WHERE id = ?
-        `, [upiId, payeeName, isMerchantEnabled ? 1 : 0, now, id]);
+        `, [upiId, payeeName, isMerchantEnabled, now, id]);
       }
 
       return this.findById(id);
@@ -214,7 +214,7 @@ export class ReceivingAccountRepository {
         UPDATE payment_receiving_accounts
         SET upi_id = ?, payee_name = COALESCE(?, payee_name), is_merchant_enabled = ?, updated_at = ?
         WHERE id = ?
-      `, [cleanUpi, payeeName?.trim() || null, isMerchantEnabled ? 1 : 0, now, existing.id]);
+      `, [cleanUpi, payeeName?.trim() || null, isMerchantEnabled, now, existing.id]);
       return this.findById(existing.id);
     } else {
       return this.create({

@@ -55,7 +55,7 @@ export class CustomerRepository {
 
     const otpCode = data.otpCode || null;
     const otpExpiresAt = data.otpExpiresAt || null;
-    const isPhoneVerified = data.isPhoneVerified ? 1 : 0;
+    const isPhoneVerified = Boolean(data.isPhoneVerified);
     const now = new Date().toISOString();
 
     const sql = `
@@ -239,7 +239,7 @@ export class CustomerRepository {
 
     const now = new Date().toISOString();
     this.db.execute(
-      'UPDATE customers SET otp_code = NULL, otp_expires_at = NULL, otp_attempts = 0, is_phone_verified = 1, last_login_at = ?, updated_at = ? WHERE id = ?',
+      'UPDATE customers SET otp_code = NULL, otp_expires_at = NULL, otp_attempts = 0, is_phone_verified = TRUE, last_login_at = ?, updated_at = ? WHERE id = ?',
       [now, now, customer.id]
     );
     return this.findById(customer.id);

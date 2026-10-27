@@ -182,7 +182,7 @@ export class WebhookEngine {
       const pending = this.db.query(`
         SELECT id, merchant_id, payment_id, event_type, payload, endpoint_url, attempt_count
         FROM webhook_deliveries
-        WHERE is_successful = 0 AND attempt_count < ? AND next_retry_at <= ?
+        WHERE is_successful = FALSE AND attempt_count < ? AND next_retry_at <= ?
         LIMIT 20
       `, [this.maxRetries, nowIso]);
 
@@ -211,7 +211,7 @@ export class WebhookEngine {
       if (!merchant || !merchant.webhookSecret || !item.endpoint_url) {
         this.db.execute(`
           UPDATE webhook_deliveries
-          SET is_successful = 0, next_retry_at = NULL, response_body = 'Missing merchant or webhookSecret'
+          SET is_successful = FALSE, next_retry_at = NULL, response_body = 'Missing merchant or webhookSecret'
           WHERE id = ?
         `, [item.id]);
         continue;
@@ -222,7 +222,7 @@ export class WebhookEngine {
       if (!retryEndpoint.valid) {
         this.db.execute(`
           UPDATE webhook_deliveries
-          SET is_successful = 0, next_retry_at = NULL, response_body = ?
+          SET is_successful = FALSE, next_retry_at = NULL, response_body = ?
           WHERE id = ?
         `, [`SSRF blocked: ${retryEndpoint.error}`, item.id]);
         continue;
@@ -270,7 +270,7 @@ export class WebhookEngine {
         UPDATE webhook_deliveries
         SET is_successful = ?, response_status = ?, response_body = ?, next_retry_at = ?
         WHERE id = ?
-      `, [isSuccess ? 1 : 0, respStatus, respBody, nextRetryAt, item.id]);
+      `, [isSuccess, respStatus, respBody, nextRetryAt, item.id]);
 
       results.push({ id: item.id, success: isSuccess, attempt: nextAttempt });
     }
