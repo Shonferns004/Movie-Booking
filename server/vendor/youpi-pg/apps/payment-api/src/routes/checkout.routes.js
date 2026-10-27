@@ -265,10 +265,13 @@ async function checkUpiServerHealth(ctx, enabledMethods = [], sellingMode = 'OFF
   // 1. Check SMS Gateway (Android app or Google Messages)
   try {
     if (ctx.db) {
+      const cutoff = ctx.db.dialect === 'postgres'
+        ? "NOW() - INTERVAL '5 minutes'"
+        : "datetime('now', '-5 minutes')";
       const activeAndroid = ctx.db.queryOne(`
         SELECT id, device_name, last_heartbeat_at
         FROM android_devices
-        WHERE is_active = 1 AND last_heartbeat_at >= datetime('now', '-5 minutes')
+        WHERE is_active = TRUE AND last_heartbeat_at >= ${cutoff}
         LIMIT 1
       `);
       if (activeAndroid) {
@@ -1312,7 +1315,7 @@ export function registerCheckoutRoutes(server, ctx) {
     if (oldReceivingAccountId) {
       ctx.db.execute(`
         UPDATE payment_receiving_accounts
-        SET is_slot_busy = 0, current_active_session_id = NULL, updated_at = ?
+        SET is_slot_busy = FALSE, current_active_session_id = NULL, updated_at = ?
         WHERE id = ? AND (current_active_session_id = ? OR current_active_session_id IS NULL)
       `, [nowIso, oldReceivingAccountId, session.id]);
 
@@ -1465,7 +1468,7 @@ export function registerCheckoutRoutes(server, ctx) {
       if (oldReceivingAccountId) {
         ctx.sessionRepo.db.execute(`
           UPDATE payment_receiving_accounts
-          SET is_slot_busy = 0, current_active_session_id = NULL, updated_at = ?
+          SET is_slot_busy = FALSE, current_active_session_id = NULL, updated_at = ?
           WHERE id = ? AND (current_active_session_id = ? OR current_active_session_id IS NULL)
         `, [nowIso, oldReceivingAccountId, session.id]);
       }
@@ -1906,7 +1909,7 @@ export function registerCheckoutRoutes(server, ctx) {
       if (termIds.length > 0) {
         ctx.db.execute(`
           UPDATE payment_receiving_accounts
-          SET is_slot_busy = 0, current_active_session_id = NULL, updated_at = ?
+          SET is_slot_busy = FALSE, current_active_session_id = NULL, updated_at = ?
           WHERE id = ? AND (current_active_session_id IN (${termIds.map(() => '?').join(',')}) OR current_active_session_id IS NULL)
         `, [nowIso, accId, ...termIds]);
       }

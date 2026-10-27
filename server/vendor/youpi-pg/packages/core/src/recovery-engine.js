@@ -140,7 +140,7 @@ export class RecoveryEngine {
     }
 
     // 5. Scan all receiving accounts: promote waiting queue if slot is now vacant
-    const accounts = this.db.query(`SELECT id FROM payment_receiving_accounts WHERE is_active = 1`);
+    const accounts = this.db.query(`SELECT id FROM payment_receiving_accounts WHERE is_active = TRUE`);
     for (const acc of accounts) {
       const promoted = this.queueEngine.promoteNext(acc.id);
       if (promoted) {

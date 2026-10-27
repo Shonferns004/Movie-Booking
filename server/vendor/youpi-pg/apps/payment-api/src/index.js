@@ -290,7 +290,7 @@ export function createPaymentApp(customDb = null, options = {}) {
       // Scan for vacant receiving accounts that have waiting queued sessions
       const vacantAccounts = db.query(`
         SELECT id FROM payment_receiving_accounts
-        WHERE is_active = 1 AND (is_slot_busy = 0 OR current_active_session_id IS NULL)
+        WHERE is_active = TRUE AND (is_slot_busy = FALSE OR current_active_session_id IS NULL)
       `);
 
       for (const acc of vacantAccounts) {

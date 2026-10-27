@@ -285,7 +285,7 @@ export function registerPollerRoutes(server, ctx) {
     }
 
     // Verify registered device
-    const device = ctx.db.queryOne('SELECT * FROM android_devices WHERE id = ? AND is_active = 1', [deviceId]);
+    const device = ctx.db.queryOne('SELECT * FROM android_devices WHERE id = ? AND is_active = TRUE', [deviceId]);
     if (!device) {
       HttpServer.json(res, 403, { error: 'Device not authorized or inactive.' });
       return;
@@ -322,7 +322,7 @@ export function registerPollerRoutes(server, ctx) {
     if (!receivingAccountId) {
       const activeAccount = ctx.accountRepo
         ? ctx.accountRepo.findActiveForMerchant(device.merchant_id)
-        : ctx.db.queryOne('SELECT id FROM payment_receiving_accounts WHERE merchant_id = ? AND is_active = 1 LIMIT 1', [device.merchant_id]);
+        : ctx.db.queryOne('SELECT id FROM payment_receiving_accounts WHERE merchant_id = ? AND is_active = TRUE LIMIT 1', [device.merchant_id]);
       receivingAccountId = activeAccount?.id || '00000000-0000-0000-0000-000000000002';
     }
 
@@ -424,7 +424,7 @@ export function registerPollerRoutes(server, ctx) {
     }
 
     if (pipeResult.status === 'VERIFIED') {
-      ctx.db.execute("UPDATE android_devices SET last_observation_at = datetime('now') WHERE id = ?", [deviceId]);
+      ctx.db.execute("UPDATE android_devices SET last_observation_at = CURRENT_TIMESTAMP WHERE id = ?", [deviceId]);
       HttpServer.json(res, 200, {
         accepted: true,
         observationId: pipeResult.messageId || pipeResult.stages?.stage6?.details?.observationId,
@@ -435,7 +435,7 @@ export function registerPollerRoutes(server, ctx) {
     }
 
     if (pipeResult.status === 'REJECTED') {
-      ctx.db.execute("UPDATE android_devices SET last_observation_at = datetime('now') WHERE id = ?", [deviceId]);
+      ctx.db.execute("UPDATE android_devices SET last_observation_at = CURRENT_TIMESTAMP WHERE id = ?", [deviceId]);
       HttpServer.json(res, 400, {
         accepted: false,
         status: 'REJECTED',
@@ -450,7 +450,7 @@ export function registerPollerRoutes(server, ctx) {
     // If no monetary amount is extracted (e.g. personal, promotional, non-bank SMS),
     // update observation timestamp on device and return 200 PROCESSED_NON_BANK.
     if (!amountPaise && pipeResult.status === 'UNRESOLVED') {
-      ctx.db.execute("UPDATE android_devices SET last_observation_at = datetime('now') WHERE id = ?", [deviceId]);
+      ctx.db.execute("UPDATE android_devices SET last_observation_at = CURRENT_TIMESTAMP WHERE id = ?", [deviceId]);
       HttpServer.json(res, 200, {
         accepted: true,
         status: 'PROCESSED_NON_BANK',
@@ -461,7 +461,7 @@ export function registerPollerRoutes(server, ctx) {
     }
 
     // Invert check: if status is not VERIFIED, return 4xx and NEVER fall through to direct attribution
-    ctx.db.execute("UPDATE android_devices SET last_observation_at = datetime('now') WHERE id = ?", [deviceId]);
+    ctx.db.execute("UPDATE android_devices SET last_observation_at = CURRENT_TIMESTAMP WHERE id = ?", [deviceId]);
     HttpServer.json(res, 400, {
       accepted: false,
       status: pipeResult.status || 'UNRESOLVED',
@@ -482,7 +482,7 @@ export function registerPollerRoutes(server, ctx) {
     const deviceId = req.headers['x-device-id'] || body.deviceId;
 
     if (deviceId) {
-      ctx.db.execute('UPDATE android_devices SET last_heartbeat_at = datetime(\'now\') WHERE id = ?', [deviceId]);
+      ctx.db.execute('UPDATE android_devices SET last_heartbeat_at = CURRENT_TIMESTAMP WHERE id = ?', [deviceId]);
     }
 
     HttpServer.json(res, 200, {

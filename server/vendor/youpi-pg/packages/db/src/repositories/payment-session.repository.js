@@ -277,7 +277,7 @@ export class PaymentSessionRepository {
       if (session.receivingAccountId) {
         this.db.execute(`
           UPDATE payment_receiving_accounts
-          SET is_slot_busy = 0, current_active_session_id = NULL, updated_at = ?
+          SET is_slot_busy = FALSE, current_active_session_id = NULL, updated_at = ?
           WHERE id = ? AND (current_active_session_id = ? OR current_active_session_id IS NULL)
         `, [now, session.receivingAccountId, sessionId]);
       }
@@ -559,7 +559,7 @@ export class PaymentSessionRepository {
       if (targetStatus === PaymentStatus.SUCCESS && session.receivingAccountId) {
         this.db.execute(`
           UPDATE payment_receiving_accounts
-          SET is_slot_busy = 0, current_active_session_id = NULL, updated_at = ?
+          SET is_slot_busy = FALSE, current_active_session_id = NULL, updated_at = ?
           WHERE id = ? AND current_active_session_id = ?
         `, [now, session.receivingAccountId, sessionId]);
       }

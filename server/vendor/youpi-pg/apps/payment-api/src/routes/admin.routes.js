@@ -1384,7 +1384,7 @@ export function registerAdminRoutes(server, ctx) {
       // Free all receiving account slots
       ctx.db.execute(`
         UPDATE payment_receiving_accounts
-        SET is_slot_busy = 0, current_active_session_id = NULL
+        SET is_slot_busy = FALSE, current_active_session_id = NULL
         WHERE merchant_id = ? OR ? = '00000000-0000-0000-0000-000000000001'
       `, [merchantId, merchantId]);
 

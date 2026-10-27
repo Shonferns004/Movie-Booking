@@ -24,7 +24,7 @@ export class ReceivingAccountRepository {
       if (isActive) {
         this.db.execute(`
           UPDATE payment_receiving_accounts
-          SET is_active = 0, updated_at = ?
+          SET is_active = FALSE, updated_at = ?
           WHERE merchant_id = ?
         `, [now, data.merchantId]);
       }
@@ -70,7 +70,7 @@ export class ReceivingAccountRepository {
 
   findActiveForMerchant(merchantId) {
     const row = this.db.queryOne(
-      'SELECT * FROM payment_receiving_accounts WHERE merchant_id = ? AND is_active = 1 LIMIT 1',
+      'SELECT * FROM payment_receiving_accounts WHERE merchant_id = ? AND is_active = TRUE LIMIT 1',
       [merchantId]
     );
     if (!row) return null;
@@ -88,14 +88,14 @@ export class ReceivingAccountRepository {
       // Deactivate all existing accounts for this merchant
       this.db.execute(`
         UPDATE payment_receiving_accounts
-        SET is_active = 0, updated_at = ?
+        SET is_active = FALSE, updated_at = ?
         WHERE merchant_id = ?
       `, [now, merchantId]);
 
       // Activate the targeted account
       this.db.execute(`
         UPDATE payment_receiving_accounts
-        SET is_active = 1, updated_at = ?
+        SET is_active = TRUE, updated_at = ?
         WHERE id = ? AND merchant_id = ?
       `, [now, accountId, merchantId]);
 
@@ -110,7 +110,7 @@ export class ReceivingAccountRepository {
     const now = new Date().toISOString();
     this.db.execute(`
       UPDATE payment_receiving_accounts
-      SET is_active = 0, updated_at = ?
+      SET is_active = FALSE, updated_at = ?
       WHERE id = ? AND merchant_id = ?
     `, [now, accountId, merchantId]);
 
@@ -138,19 +138,19 @@ export class ReceivingAccountRepository {
       if (data.isActive === true) {
         this.db.execute(`
           UPDATE payment_receiving_accounts
-          SET is_active = 0, updated_at = ?
+          SET is_active = FALSE, updated_at = ?
           WHERE merchant_id = ?
         `, [now, existing.merchantId]);
 
         this.db.execute(`
           UPDATE payment_receiving_accounts
-          SET upi_id = ?, payee_name = ?, is_merchant_enabled = ?, is_active = 1, updated_at = ?
+          SET upi_id = ?, payee_name = ?, is_merchant_enabled = ?, is_active = TRUE, updated_at = ?
           WHERE id = ?
         `, [upiId, payeeName, isMerchantEnabled ? 1 : 0, now, id]);
       } else if (data.isActive === false) {
         this.db.execute(`
           UPDATE payment_receiving_accounts
-          SET upi_id = ?, payee_name = ?, is_merchant_enabled = ?, is_active = 0, updated_at = ?
+          SET upi_id = ?, payee_name = ?, is_merchant_enabled = ?, is_active = FALSE, updated_at = ?
           WHERE id = ?
         `, [upiId, payeeName, isMerchantEnabled ? 1 : 0, now, id]);
       } else {

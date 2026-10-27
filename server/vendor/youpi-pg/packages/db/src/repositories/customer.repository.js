@@ -299,7 +299,7 @@ export class CustomerRepository {
         for (const s of activeSessions) {
           if (s.receiving_account_id) {
             this.db.execute(
-              "UPDATE payment_receiving_accounts SET is_slot_busy = 0, current_active_session_id = NULL, updated_at = ? WHERE id = ? AND current_active_session_id = ?",
+              "UPDATE payment_receiving_accounts SET is_slot_busy = FALSE, current_active_session_id = NULL, updated_at = ? WHERE id = ? AND current_active_session_id = ?",
               [now, s.receiving_account_id, s.id]
             );
             releasedAccounts.push(s.receiving_account_id);

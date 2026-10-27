@@ -40,7 +40,7 @@ export const env = {
   // SQLite-flavored (integer booleans, datetime('now')), so it persists to SQLite on
   // the mounted disk by default. The movie API keeps using DATABASE_URL (Postgres).
   // Set this to a postgres:// URL only if you have audited the gateway's PG queries.
-  YOUPI_DATABASE_URL: process.env.YOUPI_DATABASE_URL || 'sqlite',
+  YOUPI_DATABASE_URL: process.env.YOUPI_DATABASE_URL || process.env.DATABASE_URL || 'sqlite',
   // Optional absolute path for the gateway SQLite file (defaults to
   // vendor/youpi-pg/data/youpi_pg.sqlite, which is on the Render disk).
   YOUPI_SQLITE_PATH: process.env.YOUPI_SQLITE_PATH || '',

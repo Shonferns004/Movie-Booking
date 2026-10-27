@@ -76,8 +76,10 @@ services:
         value: true
       # The vendored gateway is SQLite-native. Its database file and .secrets live on
       # the disk; the movie API keeps using DATABASE_URL (Postgres).
+      # The vendored gateway can use SQLite (default) or Postgres (Supabase). Leave empty
+      # to reuse DATABASE_URL (Supabase), or paste a separate Postgres URL.
       - key: YOUPI_DATABASE_URL
-        value: sqlite
+        sync: false
       - key: YOUPI_ALLOW_ADMIN
         value: true
       - key: YOUPI_ADMIN_ENABLED

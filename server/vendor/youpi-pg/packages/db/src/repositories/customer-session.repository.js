@@ -32,7 +32,7 @@ export class CustomerSessionRepository {
 
     const sql = `
       INSERT INTO customer_sessions (id, customer_id, token, expires_at, is_active, ip_address, user_agent, created_at, updated_at)
-      VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, TRUE, ?, ?, ?, ?)
     `;
 
     // The bearer token is returned to the client once and never read back from the database,
@@ -68,14 +68,14 @@ export class CustomerSessionRepository {
     if (!token || typeof token !== 'string') return null;
 
     const row = this.db.queryOne(
-      'SELECT * FROM customer_sessions WHERE token = ? AND is_active = 1',
+      'SELECT * FROM customer_sessions WHERE token = ? AND is_active = TRUE',
       [blindIndex(token, INDEX_NS)]
     );
 
     // Rows written before index-only storage held the raw token.
     if (!row && typeof token === 'string' && token.startsWith('csess_') && token.length < 100) {
       const legacy = this.db.queryOne(
-        'SELECT * FROM customer_sessions WHERE token = ? AND is_active = 1',
+        'SELECT * FROM customer_sessions WHERE token = ? AND is_active = TRUE',
         [token]
       );
       if (legacy) {
@@ -93,7 +93,7 @@ export class CustomerSessionRepository {
     if (expiresAt.getTime() <= Date.now()) {
       // Mark expired
       try {
-        this.db.execute('UPDATE customer_sessions SET is_active = 0, updated_at = ? WHERE id = ?', [
+        this.db.execute('UPDATE customer_sessions SET is_active = FALSE, updated_at = ? WHERE id = ?', [
           new Date().toISOString(),
           row.id
         ]);
@@ -143,12 +143,12 @@ export class CustomerSessionRepository {
     if (!token) return false;
     const now = new Date().toISOString();
     this.db.execute(
-      'UPDATE customer_sessions SET is_active = 0, updated_at = ? WHERE token = ?',
+      'UPDATE customer_sessions SET is_active = FALSE, updated_at = ? WHERE token = ?',
       [now, blindIndex(token, INDEX_NS)]
     );
     // Also clear any legacy plaintext row so logout always revokes.
     this.db.execute(
-      'UPDATE customer_sessions SET is_active = 0, updated_at = ? WHERE token = ?',
+      'UPDATE customer_sessions SET is_active = FALSE, updated_at = ? WHERE token = ?',
       [now, token]
     );
     return true;
@@ -162,7 +162,7 @@ export class CustomerSessionRepository {
     if (!customerId) return;
     const now = new Date().toISOString();
     this.db.execute(
-      'UPDATE customer_sessions SET is_active = 0, updated_at = ? WHERE customer_id = ?',
+      'UPDATE customer_sessions SET is_active = FALSE, updated_at = ? WHERE customer_id = ?',
       [now, customerId]
     );
   }
@@ -173,7 +173,7 @@ export class CustomerSessionRepository {
    */
   countActive() {
     const row = this.db.queryOne(
-      'SELECT COUNT(*) as c FROM customer_sessions WHERE is_active = 1 AND expires_at > ?',
+      'SELECT COUNT(*) as c FROM customer_sessions WHERE is_active = TRUE AND expires_at > ?',
       [new Date().toISOString()]
     );
     return row?.c || 0;
