@@ -11,6 +11,7 @@ import '../services/auth_service.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/skeleton.dart';
 import 'scanner_screen.dart';
+import 'scanner_shell.dart';
 import 'profile_screen.dart';
 import 'show_detail_screen.dart';
 import 'add_show_screen.dart' show AddShowSheet;
@@ -497,147 +498,25 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) return _buildHomeSkeleton();
-    if (_isScanner && !_isAdmin) {
-      return Scaffold(
-        appBar: AppBar(
-          title: const Text('Ticket Scanner'),
-          actions: [
-            IconButton(
-              onPressed: () => _logout(context),
-              icon: const Icon(Icons.logout),
-            ),
-          ],
-        ),
-        body: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Scan for show',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      DropdownButtonFormField<String>(
-                        initialValue: _selectedShowId,
-                        decoration: const InputDecoration(
-                          labelText: 'Select show',
-                        ),
-                        items: _shows
-                            .map(
-                              (s) => DropdownMenuItem(
-                                value: s['id'] as String,
-                                child: Text('${s['movie_title'] ?? s['title'] ?? 'Show'}'),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (v) => setState(() => _selectedShowId = v),
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          const Icon(Icons.confirmation_number),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Scanned tickets: $_scannedCount',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton.icon(
-                onPressed: () {
-                  if (_selectedShowId == null) {
-                    AppToast.show(
-                      context,
-                      'Select a show before opening the scanner.',
-                      type: AppToastType.error,
-                    );
-                    return;
-                  }
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ScannerScreen(
-                        showId: _selectedShowId,
-                        token: _token,
-                        onValidated: (_) => setState(() => _scannedCount++),
-                      ),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.qr_code_scanner),
-                label: const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 14),
-                  child: Text('Start Scanning', style: TextStyle(fontSize: 16)),
-                ),
-              ),
-            ],
+    if (_loading) {
+      if (_roles.contains('SCANNER') && !_roles.contains('ADMIN')) {
+        return const Scaffold(
+          backgroundColor: KkSurface.bg,
+          body: Center(
+            child: CircularProgressIndicator(color: KkSurface.accent),
           ),
-        ),
-        bottomNavigationBar: BottomNavigationBar(
-          currentIndex: 0,
-          onTap: (i) {
-            if (i == 1) {
-              if (_selectedShowId == null) {
-                AppToast.show(
-                  context,
-                  'Select a show first.',
-                  type: AppToastType.error,
-                );
-                return;
-              }
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ScannerScreen(
-                    showId: _selectedShowId,
-                    token: _token,
-                    onValidated: (_) => setState(() => _scannedCount++),
-                  ),
-                ),
-              );
-            } else if (i == 2) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ProfileScreen(token: _token!),
-                ),
-              );
-            }
-          },
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home),
-              label: 'Home',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.qr_code_scanner),
-              label: 'Scanner',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person),
-              label: 'Profile',
-            ),
-          ],
-        ),
+        );
+      }
+      return _buildHomeSkeleton();
+    }
+    if (_isScanner && !_isAdmin) {
+      return ScannerShell(
+        token: _token,
+        shows: _shows,
+        selectedShowId: _selectedShowId,
+        onSelectShow: (v) => setState(() => _selectedShowId = v),
+        onScanned: (_) => setState(() => _scannedCount++),
+        scannedCount: _scannedCount,
       );
     }
 

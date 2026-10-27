@@ -1,0 +1,698 @@
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+import '../services/api.dart';
+import '../widgets/app_toast.dart';
+import 'profile_screen.dart';
+import 'scanner_screen.dart';
+
+/// Material 3 surface palette (matches the design tokens used by the web UI).
+class KkSurface {
+  static const bg = Color(0xFF131315);
+  static const containerLow = Color(0xFF1B1B1D);
+  static const container = Color(0xFF201F21);
+  static const containerHigh = Color(0xFF2A2A2C);
+  static const containerHighest = Color(0xFF353437);
+  static const onSurface = Color(0xFFE5E1E4);
+  static const onSurfaceVariant = Color(0xFFDDC0B7);
+  static const primary = Color(0xFFFFB59C);
+  static const accent = Color(0xFFD96B43);
+  static const accentBorder = Color(0xFFE07148);
+  static const border = Color(0xFF26262A);
+  static const secondaryContainer = Color(0xFF3C4B3A);
+  static const onSecondaryContainer = Color(0xFFA9BAA5);
+}
+
+/// Scanner shell with a bottom tab bar (Home / Scanner / Profile).
+class ScannerShell extends StatefulWidget {
+  const ScannerShell({
+    super.key,
+    required this.token,
+    required this.shows,
+    required this.selectedShowId,
+    required this.onSelectShow,
+    required this.onScanned,
+    required this.scannedCount,
+  });
+
+  final String? token;
+  final List<dynamic> shows;
+  final String? selectedShowId;
+  final ValueChanged<String?> onSelectShow;
+  final ValueChanged<int> onScanned;
+  final int scannedCount;
+
+  @override
+  State<ScannerShell> createState() => _ScannerShellState();
+}
+
+class _ScannerShellState extends State<ScannerShell> {
+  int _tab = 1;
+  List<dynamic> _activity = [];
+  bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadActivity();
+  }
+
+  Future<void> _loadActivity() async {
+    final token = widget.token;
+    if (token == null || token.isEmpty) return;
+    try {
+      final list = await Api.getScanHistory(token);
+      if (mounted) setState(() => _activity = list);
+    } catch (_) {}
+  }
+
+  dynamic get _selectedShow {
+    if (widget.shows.isEmpty) return null;
+    for (final s in widget.shows) {
+      if (s['id'] == widget.selectedShowId) return s;
+    }
+    return widget.shows.first;
+  }
+
+  String _showTitle(dynamic s) {
+    if (s == null) return 'No show selected';
+    final t = s['movie_title'] ?? s['title'];
+    return (t == null || t.toString().isEmpty) ? 'Show' : t.toString();
+  }
+
+  String _showSubtitle(dynamic s) {
+    if (s == null) return 'Pick a show to begin scanning';
+    final parts = <String>[];
+    final starts = DateTime.tryParse(s['starts_at']?.toString() ?? '');
+    if (starts != null) {
+      parts.add('Today, ${_formatTime(starts)}');
+    }
+    final venue = [s['theatre_name'], s['auditorium_name']]
+        .map((v) => v?.toString() ?? '')
+        .where((v) => v.isNotEmpty)
+        .join(', ');
+    if (venue.isNotEmpty) parts.add(venue);
+    return parts.isEmpty ? 'Pick a show to begin scanning' : parts.join(' • ');
+  }
+
+  String _formatTime(DateTime dt) {
+    final h = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
+    final m = dt.minute.toString().padLeft(2, '0');
+    return '$h:$m ${dt.hour < 12 ? 'AM' : 'PM'}';
+  }
+
+  Future<void> _pickShow() async {
+    if (widget.shows.isEmpty) {
+      AppToast.show(context, 'No shows scheduled yet.', type: AppToastType.error);
+      return;
+    }
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: KkSurface.container,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 4, 20, 12),
+              child: Text(
+                'Select show',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: KkSurface.onSurface,
+                ),
+              ),
+            ),
+            ...widget.shows.map((s) {
+              return ListTile(
+                title: Text(
+                  _showTitle(s),
+                  style: const TextStyle(
+                    color: KkSurface.onSurface,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                subtitle: Text(
+                  _showSubtitle(s),
+                  style: const TextStyle(
+                    color: KkSurface.onSurfaceVariant,
+                    fontSize: 12,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  widget.onSelectShow(s['id'] as String);
+                },
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openScanner() async {
+    final token = widget.token;
+    final showId = widget.selectedShowId;
+    if (token == null || token.isEmpty) {
+      AppToast.show(context, 'Session expired. Please log in again.',
+          type: AppToastType.error);
+      return;
+    }
+    if (showId == null) {
+      AppToast.show(context, 'Select a show before opening the scanner.',
+          type: AppToastType.error);
+      return;
+    }
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ScannerScreen(
+          showId: showId,
+          token: token,
+          onValidated: (_) {
+            widget.onScanned(1);
+            setState(() {});
+          },
+        ),
+      ),
+    );
+    await _loadActivity();
+  }
+
+  Future<void> _manualEntry() async {
+    final token = widget.token;
+    if (token == null || token.isEmpty) return;
+    final controller = TextEditingController();
+    final code = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: KkSurface.container,
+        title: const Text('Enter ticket code'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: TextInputType.text,
+          style: const TextStyle(color: KkSurface.onSurface),
+          decoration: const InputDecoration(
+            hintText: 'TKT-XXXXXXXX',
+            hintStyle: TextStyle(color: KkSurface.onSurfaceVariant),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            child: const Text('Verify'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (code == null || code.isEmpty) return;
+
+    setState(() => _busy = true);
+    try {
+      final res = await Api.validateTicket(token, code,
+          showId: widget.selectedShowId);
+      final result = res['result'] ?? 'UNKNOWN';
+      if (result == 'VALID') widget.onScanned(1);
+      AppToast.show(
+        context,
+        '$result ${res['reason'] ?? ''}'.trim(),
+        type: result == 'VALID'
+            ? AppToastType.success
+            : AppToastType.error,
+      );
+    } catch (e) {
+      AppToast.show(context, 'Could not verify ticket.', type: AppToastType.error);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+      await _loadActivity();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.token == null) {
+      return const Scaffold(
+        backgroundColor: KkSurface.bg,
+        body: Center(child: CircularProgressIndicator(color: KkSurface.accent)),
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: KkSurface.bg,
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (_tab == 0) _buildHomeTab(),
+                    if (_tab == 1) _buildScannerTab(),
+                    if (_tab == 2)
+                      ProfileScreen(token: widget.token!, embedded: true),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: _buildNav(),
+    );
+  }
+
+  Widget _buildShowSelectorCard() {
+    final s = _selectedShow;
+    return Container(
+      margin: const EdgeInsets.only(top: 4),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: KkSurface.containerLow,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: InkWell(
+        onTap: _pickShow,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: KkSurface.container,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _showTitle(s),
+                      style: GoogleFonts.notoSerif(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w600,
+                        color: KkSurface.onSurface,
+                        height: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _showSubtitle(s),
+                      style: GoogleFonts.poppins(
+                        fontSize: 13,
+                        color: KkSurface.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: KkSurface.containerHigh,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.expand_more,
+                    size: 20, color: KkSurface.onSurface),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHomeTab() {
+    final s = _selectedShow;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildShowSelectorCard(),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: KkSurface.containerLow,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: KkSurface.secondaryContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.confirmation_number_rounded,
+                    size: 18, color: KkSurface.onSecondaryContainer),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Scanned tickets: ${widget.scannedCount}',
+                style: GoogleFonts.poppins(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: KkSurface.onSurface,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+        _buildActivityList(),
+      ],
+    );
+  }
+
+  Widget _buildScannerTab() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildShowSelectorCard(),
+        const SizedBox(height: 16),
+        Container(
+          margin: const EdgeInsets.only(top: 16),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: KkSurface.containerLow,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            children: [
+              Container(
+                height: 120,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: KkSurface.container,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Center(
+                  child: Icon(Icons.center_focus_strong,
+                      size: 44, color: KkSurface.onSurfaceVariant),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  const Icon(Icons.keyboard_rounded,
+                      size: 18, color: KkSurface.onSurfaceVariant),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Manual entry fallback',
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      color: KkSurface.onSurfaceVariant,
+                    ),
+                  ),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: _busy ? null : _manualEntry,
+                    child: Text(
+                      'Enter ticket code',
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: KkSurface.primary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+        Container(
+          constraints: const BoxConstraints(minHeight: 300),
+          padding: const EdgeInsets.symmetric(vertical: 48),
+          alignment: Alignment.center,
+          child: GestureDetector(
+            onTap: _openScanner,
+            child: Container(
+              width: 160,
+              height: 160,
+              decoration: BoxDecoration(
+                color: KkSurface.accent,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: KkSurface.accentBorder.withValues(alpha: 0.3),
+                  width: 4,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: KkSurface.accent.withValues(alpha: 0.2),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.center_focus_strong,
+                      size: 36, color: Color(0xFF1A1A1A)),
+                  const SizedBox(height: 6),
+                  Text(
+                    'START SCANNING',
+                    style: GoogleFonts.poppins(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.8,
+                      color: const Color(0xFF1A1A1A),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActivityList() {
+    if (_activity.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: KkSurface.containerLow,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: KkSurface.containerHigh,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.history_toggle_off,
+                  size: 18, color: KkSurface.onSurfaceVariant),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'No tickets scanned yet',
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: KkSurface.onSurface,
+                    ),
+                  ),
+                  Text(
+                    'Awaiting first patron admission',
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      color: KkSurface.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: KkSurface.containerHighest,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                'Ready',
+                style: GoogleFonts.poppins(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: KkSurface.onSurfaceVariant,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Recent gate activity',
+          style: GoogleFonts.poppins(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: KkSurface.onSurface,
+          ),
+        ),
+        const SizedBox(height: 8),
+        ..._activity.take(10).map((s) {
+          final valid = s['result'] == 'VALID';
+          return Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: KkSurface.container,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: valid
+                        ? KkSurface.secondaryContainer
+                        : KkSurface.containerHigh,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    valid ? Icons.check : Icons.close,
+                    size: 18,
+                    color: valid
+                        ? KkSurface.onSecondaryContainer
+                        : KkSurface.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${s['result'] ?? 'UNKNOWN'}'
+                            '${s['rejection_reason'] != null && s['rejection_reason'].toString().isNotEmpty ? ' • ${s['rejection_reason']}' : ''}',
+                        style: GoogleFonts.poppins(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: KkSurface.onSurface,
+                        ),
+                      ),
+                      Text(
+                        '${s['scanned_at'] ?? ''}',
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          color: KkSurface.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: valid
+                        ? KkSurface.secondaryContainer
+                        : KkSurface.containerHighest,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    valid ? 'Valid' : 'Rejected',
+                    style: GoogleFonts.poppins(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: valid
+                          ? KkSurface.onSecondaryContainer
+                          : KkSurface.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  Widget _buildNav() {
+    Widget item(IconData icon, String label, int index) {
+      final active = _tab == index;
+      return Expanded(
+        child: InkWell(
+          onTap: () => setState(() => _tab = index),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon,
+                    size: 22,
+                    color: active
+                        ? KkSurface.onSurface
+                        : KkSurface.onSurfaceVariant),
+                const SizedBox(height: 2),
+                Text(
+                  label,
+                  style: GoogleFonts.poppins(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: active
+                        ? KkSurface.onSurface
+                        : KkSurface.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: KkSurface.bg,
+        border: Border(top: BorderSide(color: KkSurface.border)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              item(Icons.home_outlined, 'Home', 0),
+              item(Icons.qr_code_scanner, 'Scanner', 1),
+              item(Icons.person_outline, 'Profile', 2),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
