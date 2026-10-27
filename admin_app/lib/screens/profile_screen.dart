@@ -246,33 +246,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      _roleSubtitle,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.poppins(
-                        fontSize: 13,
-                        color: KkSurface.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        const Icon(LucideIcons.theater,
-                            size: 14, color: KkSurface.onSurfaceVariant),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            'Sangam Cinema • Box Office Staff',
-                            overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.poppins(
-                              fontSize: 11,
-                              color: KkSurface.onSurfaceVariant,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+
+
                   ],
                 ),
               ),
@@ -314,33 +289,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
               ),
             ),
-            InkWell(
-              onTap: _load,
-              borderRadius: BorderRadius.circular(6),
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: KkSurface.container,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(LucideIcons.refreshCw,
-                        size: 16, color: KkSurface.onSurfaceVariant),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Sync',
-                      style: GoogleFonts.poppins(
-                        fontSize: 11,
-                        color: KkSurface.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+
           ],
         ),
         const SizedBox(height: 8),

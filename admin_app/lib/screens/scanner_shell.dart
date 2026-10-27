@@ -463,67 +463,7 @@ class _ScannerShellState extends State<ScannerShell> {
   }
 
   Widget _buildActivityList() {
-    if (_activity.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: KkSurface.containerLow,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: KkSurface.containerHigh,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.history_toggle_off,
-                  size: 18, color: KkSurface.onSurfaceVariant),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'No tickets scanned yet',
-                    style: GoogleFonts.poppins(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: KkSurface.onSurface,
-                    ),
-                  ),
-                  Text(
-                    'Awaiting first patron admission',
-                    style: GoogleFonts.poppins(
-                      fontSize: 11,
-                      color: KkSurface.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: KkSurface.containerHighest,
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                'Ready',
-                style: GoogleFonts.poppins(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: KkSurface.onSurfaceVariant,
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
+    if (_activity.isEmpty) return const SizedBox.shrink();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -618,7 +558,8 @@ class _ScannerShellState extends State<ScannerShell> {
   Widget _buildNav() {
     Widget item(IconData icon, String label, int index) {
       final active = _tab == index;
-      final color = active ? KkSurface.onSurface : KkSurface.onSurfaceVariant;
+      final iconColor = active ? KkSurface.accent : KkSurface.onSurfaceVariant;
+      final labelColor = active ? KkSurface.onSurface : KkSurface.onSurfaceVariant;
       return Expanded(
         child: InkWell(
           onTap: () => setState(() => _tab = index),
@@ -627,23 +568,14 @@ class _ScannerShellState extends State<ScannerShell> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(icon, size: 24, color: color),
+                Icon(icon, size: 24, color: iconColor),
                 const SizedBox(height: 2),
                 Text(
                   label,
                   style: GoogleFonts.poppins(
                     fontSize: 11,
                     fontWeight: active ? FontWeight.w600 : FontWeight.w500,
-                    color: color,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Container(
-                  width: 4,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: active ? KkSurface.accent : Colors.transparent,
-                    shape: BoxShape.circle,
+                    color: labelColor,
                   ),
                 ),
               ],
