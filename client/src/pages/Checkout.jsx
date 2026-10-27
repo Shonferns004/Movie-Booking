@@ -111,6 +111,7 @@ export default function Checkout() {
       });
       const order = orderResponse.data;
       setCurrentOrder(order);
+      if (order.upiId) {
         const params = new URLSearchParams({
           pa: order.upiId,
           pn: order.payeeName || 'Konkani Samudai',
@@ -419,6 +420,7 @@ export default function Checkout() {
                   </button>
                 </div>
               )}
+              <p className="mt-4 flex items-center justify-center gap-1.5 text-center text-[11px] text-[#EFEBE0]/40">
                 <span className="material-symbols-outlined text-sm">shield_lock</span>
                 Secure payment · Your ticket is confirmed after payment verification
               </p>
