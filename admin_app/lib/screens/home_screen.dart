@@ -534,7 +534,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             .map(
                               (s) => DropdownMenuItem(
                                 value: s['id'] as String,
-                                child: Text('${s['id']}'.substring(0, 8)),
+                                child: Text('${s['movie_title'] ?? s['title'] ?? 'Show'}'),
                               ),
                             )
                             .toList(),
