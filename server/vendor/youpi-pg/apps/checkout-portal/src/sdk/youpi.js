@@ -623,10 +623,8 @@
           top: 0;
           left: 0;
           width: 100vw;
-          width: 100%;
           height: 100vh;
           height: 100dvh;
-          height: 100%;
           background: rgba(12, 35, 64, 0.76);
           backdrop-filter: blur(6px);
           -webkit-backdrop-filter: blur(6px);
@@ -736,7 +734,7 @@
             max-width: 100vw !important;
             height: 90vh !important;
             height: 90dvh !important;
-            max-height: 94vh !important;
+            max-height: 94dvh !important;
             border-bottom-left-radius: 0 !important;
             border-bottom-right-radius: 0 !important;
             border-top-left-radius: 20px !important;
