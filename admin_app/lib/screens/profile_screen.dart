@@ -5,7 +5,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/api.dart';
 import '../services/auth_service.dart';
-import '../widgets/skeleton.dart';
 import 'scanner_shell.dart';
 
 /// Profile tab — identity, total scans, recent activity.
@@ -97,7 +96,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final body = _loading ? _buildSkeleton() : _buildContent(context);
+    final body = _buildContent(context);
 
     if (widget.embedded) {
       return SingleChildScrollView(
@@ -486,70 +485,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           );
         }),
       ],
-    );
-  }
-
-  Widget _buildSkeleton() {
-    return SkeletonPulse(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: KkSurface.containerLow,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                const SkeletonCircle(size: 54),
-                const SizedBox(width: 16),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    SkeletonBox(width: 120, height: 16),
-                    SizedBox(height: 8),
-                    SkeletonBox(width: 60, height: 12),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: KkSurface.containerLow,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SkeletonBox(width: 140, height: 11),
-                SizedBox(height: 14),
-                SkeletonBox(width: 90, height: 36),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          for (var i = 0; i < 3; i++)
-            Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: KkSurface.containerLow,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Row(
-                children: [
-                  SkeletonCircle(size: 32),
-                  SizedBox(width: 12),
-                  SkeletonBox(width: 160, height: 12),
-                ],
-              ),
-            ),
-        ],
-      ),
     );
   }
 

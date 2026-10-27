@@ -248,7 +248,12 @@ class _ScannerShellState extends State<ScannerShell> {
     if (widget.token == null) {
       return const Scaffold(
         backgroundColor: KkSurface.bg,
-        body: Center(child: KkLoader(color: KkSurface.accent)),
+        body: SafeArea(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(20, 16, 20, 24),
+            child: KkPageSkeleton(),
+          ),
+        ),
       );
     }
 
@@ -435,7 +440,7 @@ class _ScannerShellState extends State<ScannerShell> {
   }
 
   Widget _buildActivityList() {
-    if (_activityLoading) return _buildActivitySkeleton();
+    if (_activityLoading) return const SizedBox.shrink();
     if (_activity.isEmpty) return const SizedBox.shrink();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -525,34 +530,6 @@ class _ScannerShellState extends State<ScannerShell> {
           );
         }),
       ],
-    );
-  }
-
-  Widget _buildActivitySkeleton() {
-    return SkeletonPulse(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const SkeletonBox(width: 120, height: 13),
-          const SizedBox(height: 10),
-          for (var i = 0; i < 3; i++)
-            Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: KkSurface.container,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Row(
-                children: [
-                  SkeletonCircle(size: 32),
-                  SizedBox(width: 12),
-                  SkeletonBox(width: 150, height: 12),
-                ],
-              ),
-            ),
-        ],
-      ),
     );
   }
 

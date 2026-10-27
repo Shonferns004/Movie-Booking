@@ -502,8 +502,11 @@ class _HomeScreenState extends State<HomeScreen> {
       if (_roles.contains('SCANNER') && !_roles.contains('ADMIN')) {
         return const Scaffold(
           backgroundColor: KkSurface.bg,
-          body: Center(
-            child: KkLoader(color: KkSurface.accent),
+          body: SafeArea(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(20, 16, 20, 24),
+              child: KkPageSkeleton(),
+            ),
           ),
         );
       }

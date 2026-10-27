@@ -54,9 +54,8 @@ class _AuthGateState extends State<AuthGate> {
               ),
               SizedBox(height: 28),
               const SizedBox(
-                width: 110,
-                height: 3,
-                child: KkLoader(color: Color(0xFFD96B43)),
+                width: 130,
+                child: KkPageSkeleton(blocks: 1),
               ),
             ],
           ),

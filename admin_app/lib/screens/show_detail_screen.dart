@@ -1309,11 +1309,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
                   padding: const EdgeInsets.symmetric(vertical: 15),
                 ),
                 child: _savingShow
-                    ? const SizedBox(
-                        width: 15,
-                        height: 15,
-                        child: KkLoader(color: Color(0xFFF5EFEB), width: 40, height: 3),
-                      )
+                    ? const SizedBox.shrink()
                     : Text(
                         'SAVE CHANGES',
                         style: GoogleFonts.spaceMono(
@@ -1373,15 +1369,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
                       ? null
                       : _confirmDelete,
                   icon: _deletingShow
-                      ? const SizedBox(
-                          width: 34,
-                          height: 3,
-                          child: KkLoader(
-                            color: Color(0xFFD96B43),
-                            width: 34,
-                            height: 3,
-                          ),
-                        )
+                      ? const SizedBox.shrink()
                       : const Icon(Icons.delete_outline, size: 15),
                   label: Text(
                     _deletingShow ? 'DELETING SHOW' : 'DELETE SHOW',
