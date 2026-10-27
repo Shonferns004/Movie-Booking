@@ -386,46 +386,29 @@ class _ScannerShellState extends State<ScannerShell> {
         color: KkSurface.containerLow,
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Column(
+      child: Row(
         children: [
-          Container(
-            height: 120,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: KkSurface.container,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Center(
-              child: Icon(Icons.center_focus_strong,
-                  size: 44, color: KkSurface.onSurfaceVariant),
+          const Icon(Icons.keyboard_rounded,
+              size: 18, color: KkSurface.onSurfaceVariant),
+          const SizedBox(width: 8),
+          Text(
+            'Manual entry fallback',
+            style: GoogleFonts.poppins(
+              fontSize: 13,
+              color: KkSurface.onSurfaceVariant,
             ),
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              const Icon(Icons.keyboard_rounded,
-                  size: 18, color: KkSurface.onSurfaceVariant),
-              const SizedBox(width: 8),
-              Text(
-                'Manual entry fallback',
-                style: GoogleFonts.poppins(
-                  fontSize: 13,
-                  color: KkSurface.onSurfaceVariant,
-                ),
+          const Spacer(),
+          TextButton(
+            onPressed: _busy ? null : _manualEntry,
+            child: Text(
+              'Enter ticket code',
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: KkSurface.primary,
               ),
-              const Spacer(),
-              TextButton(
-                onPressed: _busy ? null : _manualEntry,
-                child: Text(
-                  'Enter ticket code',
-                  style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: KkSurface.primary,
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ],
       ),
