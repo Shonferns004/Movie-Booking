@@ -29,7 +29,7 @@ data class ObserverConfig(
         get() = baseUrl.isNotBlank() && (observerToken.isNotBlank() || isPaired)
 
     companion object {
-        const val DEFAULT_BASE_URL = "http://192.168.0.151:4000/youpi"
+        const val DEFAULT_BASE_URL = "https://movie-booking-nvmq.onrender.com/youpi"
     }
 }
 

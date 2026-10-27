@@ -1,1 +1,1 @@
-const String apiBaseUrl = 'https://movie-booking-roan-nine.vercel.app/api/v1';
+const String apiBaseUrl = 'https://movie-booking-nvmq.onrender.com/api/v1';
