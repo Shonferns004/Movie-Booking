@@ -1540,10 +1540,10 @@
     function getApiHeaders(customHeaders = {}) {
       const headers = { ...customHeaders };
       if (typeof DeviceIdentity !== 'undefined' && DeviceIdentity?.currentDeviceId) {
-        headers['X-Device-Id'] = DeviceIdentity.currentDeviceId;
+        // skip device headers for browser checkout to avoid duplicate-session 409
       }
       if (typeof DeviceIdentity !== 'undefined' && DeviceIdentity?.currentDeviceToken) {
-        headers['X-Device-Token'] = DeviceIdentity.currentDeviceToken;
+        // skip device token for browser checkout
       }
       const token = activeToken || (getPreservedIdentity()?.token) || localStorage.getItem('ypg_customer_token');
       if (token) {
@@ -1555,7 +1555,6 @@
 
     async function loadState() {
       try {
-        await DeviceIdentity.getOrRegister();
         const headers = getApiHeaders();
 
         const res = await fetch(`${API_BASE}/api/v1/checkout/${PAYMENT_ID}/state`, { headers });
