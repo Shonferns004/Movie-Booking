@@ -11,6 +11,7 @@ import '../services/auth_service.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/skeleton.dart';
 import 'scanner_screen.dart';
+import 'profile_screen.dart';
 import 'show_detail_screen.dart';
 import 'add_show_screen.dart' show AddShowSheet;
 import 'theater_list_sheet.dart';
@@ -501,6 +502,15 @@ class _HomeScreenState extends State<HomeScreen> {
           title: const Text('Ticket Scanner'),
           actions: [
             IconButton(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ProfileScreen(token: _token!),
+                ),
+              ),
+              icon: const Icon(Icons.person),
+            ),
+            IconButton(
               onPressed: () => _logout(context),
               icon: const Icon(Icons.logout),
             ),
@@ -702,6 +712,20 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
+        GestureDetector(
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ProfileScreen(token: _token!),
+            ),
+          ),
+          child: const CircleAvatar(
+            radius: 16,
+            backgroundColor: Color(0xFF2F2F37),
+            child: Icon(Icons.person, color: Color(0xFFF5EFEB), size: 16),
+          ),
+        ),
+        const SizedBox(width: 8),
         GestureDetector(
           onTap: () => _logout(context),
           child: const CircleAvatar(

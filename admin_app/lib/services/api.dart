@@ -93,6 +93,9 @@ class Api {
     throw Exception('Login failed: ${res.body}');
   }
 
+  static Future<List<dynamic>> getScanHistory(String token) =>
+      _getList(token, '/staff/scan-history', 'Failed to load scan history');
+
   static Future<Map<String, dynamic>> validateTicket(
     String token,
     String ticketReference, {
