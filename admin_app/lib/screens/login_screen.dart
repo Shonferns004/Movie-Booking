@@ -10,8 +10,8 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _email = TextEditingController(text: 'adminapp@movie.local');
-  final _password = TextEditingController(text: 'adminapp123');
+  final _email = TextEditingController(text: '123456');
+  final _password = TextEditingController(text: '123456');
   bool _loading = false;
   String? _error;
 
@@ -49,7 +49,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     const Text('Konkani Samudai', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Color(0xFFF5EFEB), letterSpacing: -0.5)),
                     const Text('Cinema Gazette & Curatorial Control', style: TextStyle(fontSize: 12, color: Color(0xFF9E9890), fontStyle: FontStyle.italic)),
                     const SizedBox(height: 24),
-                    TextField(controller: _email, decoration: const InputDecoration(labelText: 'Email')),
+                    TextField(controller: _email, decoration: const InputDecoration(labelText: 'Username')),
                     const SizedBox(height: 12),
                     TextField(controller: _password, obscureText: true, decoration: const InputDecoration(labelText: 'Password')),
                     const SizedBox(height: 12),
