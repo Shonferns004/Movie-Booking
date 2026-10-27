@@ -124,43 +124,8 @@ export default function Checkout() {
         });
         setUpiUri(`upi://pay?${params.toString()}`);
       }
-      const Youpi = await loadYoupiScript(order.scriptUrl, order.merchantKey, {
-        apiUrl: order.apiUrl,
-        portalUrl: order.portalUrl,
-      });
-
-      setStatus('Secure payment window opened. Complete payment to confirm your tickets.');
-      Youpi.pay({
-        checkoutUrl: order.checkoutUrl,
-        order_id: order.orderId,
-        amount: Number(order.amount),
-        currency: order.currency,
-        name: 'Konkani Samudai Cinema',
-        description: `Booking ${booking.booking_reference}`,
-        handler: async (response) => {
-          if (response && response.status === 'SUCCESS') {
-            setStatus('Payment received. Confirming your tickets…');
-            try {
-              await api.post('/payments/youpi/confirm', {
-                orderId: order.orderId,
-                utr: response.utr,
-                amountPaise: order.amountMinor,
-              });
-            } catch (confirmError) {
-              console.warn('Client confirmation failed; relying on payment webhook.', confirmError);
-            }
-            localStorage.removeItem('currentHold');
-            navigate(`/booking/${booking.booking_reference}`);
-          } else {
-            setStatus('Payment was not completed. You can retry from the booking page.');
-            setLoading(false);
-          }
-        },
-        onClose: () => {
-          setStatus('Payment window closed. Your booking may still be pending confirmation.');
-          setLoading(false);
-        },
-      });
+      setStatus('Choose a UPI app below to complete your payment.');
+      setLoading(false);
     } catch (checkoutError) {
       setError(checkoutError.response?.data?.error || checkoutError.message || 'Unable to start checkout. Please try again.');
       setStatus('');
