@@ -40,6 +40,7 @@ function formatExpiry(value) {
 export default function Checkout() {
   const location = useLocation();
   const navigate = useNavigate();
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [mobile, setMobile] = useState('');
   const [loading, setLoading] = useState(false);
@@ -106,6 +107,7 @@ export default function Checkout() {
       const orderResponse = await api.post('/payments/youpi/orders', {
         bookingReference: booking.booking_reference,
         customer: {
+          name: name.trim() || undefined,
           email: email.trim() || undefined,
           mobile: mobile.trim() || undefined,
         },
@@ -212,6 +214,21 @@ export default function Checkout() {
             </div>
 
             <div className="space-y-5">
+              <div>
+                <label htmlFor="checkout-name" className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#EFEBE0]/65">Full name <span className="font-normal normal-case tracking-normal text-[#EFEBE0]/35">(optional)</span></label>
+                <div className="flex items-center rounded-xl border border-[#EFEBE0]/10 bg-[#071E23]/65 transition focus-within:border-[#F4B63F]/70 focus-within:ring-2 focus-within:ring-[#F4B63F]/10">
+                  <span className="pl-4 text-[#EFEBE0]/35"><span className="material-symbols-outlined text-xl">person</span></span>
+                  <input
+                    id="checkout-name"
+                    type="text"
+                    autoComplete="name"
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                    placeholder="Your name"
+                    className="w-full bg-transparent px-3 py-4 text-sm text-[#EFEBE0] outline-none placeholder:text-[#EFEBE0]/30"
+                  />
+                </div>
+              </div>
               <div>
                 <label htmlFor="checkout-email" className="mb-2 block text-xs font-bold uppercase tracking-[0.14em] text-[#EFEBE0]/65">Email address <span className="font-normal normal-case tracking-normal text-[#EFEBE0]/35">(optional)</span></label>
                 <div className="flex items-center rounded-xl border border-[#EFEBE0]/10 bg-[#071E23]/65 transition focus-within:border-[#F4B63F]/70 focus-within:ring-2 focus-within:ring-[#F4B63F]/10">

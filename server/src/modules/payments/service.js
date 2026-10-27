@@ -235,8 +235,8 @@ export async function createYoupiOrder({ bookingReference, customer, publicBase 
         currency: booking.currency || 'INR',
         description: `Konkani Samudai booking ${booking.booking_reference}`,
         returnUrl,
-        customer: customer && (customer.email || customer.mobile)
-          ? { email: customer.email, phoneNumber: customer.mobile }
+        customer: customer && (customer.email || customer.mobile || customer.name)
+        ? { email: customer.email, phoneNumber: customer.mobile, fullName: customer.name }
           : undefined,
         metadata: {
           bookingReference: booking.booking_reference,
