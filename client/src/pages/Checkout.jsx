@@ -46,12 +46,14 @@ export default function Checkout() {
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
 
-  const [upiUri, setUpiUri] = useState('');
+  const [currentOrder, setCurrentOrder] = useState(null);
+  const [currentBooking, setCurrentBooking] = useState(null);
   const [upiApps] = useState([
     { name: 'Google Pay', pkg: 'com.google.android.apps.nbu.paisa.user', icon: 'gpay' },
     { name: 'PhonePe', pkg: 'com.phonepe.app', icon: 'phonepe' },
     { name: 'Paytm', pkg: 'net.one97.paytm', icon: 'paytm' },
   ]);
+  const [hold] = useState(() => {
     if (location.state) return location.state;
     try {
       return JSON.parse(localStorage.getItem('currentHold') || 'null');
@@ -98,6 +100,7 @@ export default function Checkout() {
         sessionRef: localStorage.getItem('sessionRef') || undefined,
       });
       const booking = bookingResponse.data;
+      setCurrentBooking(booking);
 
       const orderResponse = await api.post('/payments/youpi/orders', {
         bookingReference: booking.booking_reference,
@@ -107,7 +110,7 @@ export default function Checkout() {
         },
       });
       const order = orderResponse.data;
-      if (order.upiId) {
+      setCurrentOrder(order);
         const params = new URLSearchParams({
           pa: order.upiId,
           pn: order.payeeName || 'Konkani Samudai',
@@ -331,6 +334,40 @@ export default function Checkout() {
                         onClick={() => {
                           const intentUri = `intent://pay?${upiUri.split('?')[1]}#Intent;scheme=upi;package=${app.pkg};end`;
                           window.location.href = /Android/i.test(navigator.userAgent) ? intentUri : upiUri;
+                          // Start polling for payment confirmation
+                          if (currentOrder?.paymentId && currentBooking?.booking_reference) {
+                            const pid = currentOrder.paymentId;
+                            const ref = currentBooking.booking_reference;
+                            const maxAttempts = 60;
+                            let attempts = 0;
+                            const interval = setInterval(async () => {
+                              attempts++;
+                              try {
+                                const res = await api.get(`/payments/youpi/status/${pid}`);
+                                const st = (res.data?.status || '').toUpperCase();
+                                if (st === 'SUCCESS') {
+                                  clearInterval(interval);
+                                  setStatus('Payment received. Confirming your tickets…');
+                                  try {
+                                    await api.post('/payments/youpi/confirm', {
+                                      orderId: currentOrder.orderId,
+                                      utr: null,
+                                      amountPaise: currentOrder.amountMinor,
+                                    });
+                                  } catch (e) {
+                                    console.warn('Client confirmation failed; relying on webhook.', e);
+                                  }
+                                  localStorage.removeItem('currentHold');
+                                  navigate(`/booking/${ref}`);
+                                } else if (attempts >= maxAttempts) {
+                                  clearInterval(interval);
+                                  setStatus('Payment not detected. Check your booking page.');
+                                }
+                              } catch (e) {
+                                if (attempts >= maxAttempts) clearInterval(interval);
+                              }
+                            }, 3000);
+                          }
                         }}
                         className="flex flex-col items-center gap-1 rounded-xl border border-[#EFEBE0]/10 bg-[#0A2A31]/60 px-2 py-3 text-xs font-medium text-[#EFEBE0]/80 transition hover:border-[#F4B63F]/40 hover:bg-[#F4B63F]/[0.06]"
                       >
@@ -340,7 +377,42 @@ export default function Checkout() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => { window.location.href = upiUri; }}
+                    onClick={() => {
+                      window.location.href = upiUri;
+                      if (currentOrder?.paymentId && currentBooking?.booking_reference) {
+                        const pid = currentOrder.paymentId;
+                        const ref = currentBooking.booking_reference;
+                        const maxAttempts = 60;
+                        let attempts = 0;
+                        const interval = setInterval(async () => {
+                          attempts++;
+                          try {
+                            const res = await api.get(`/payments/youpi/status/${pid}`);
+                            const st = (res.data?.status || '').toUpperCase();
+                            if (st === 'SUCCESS') {
+                              clearInterval(interval);
+                              setStatus('Payment received. Confirming your tickets…');
+                              try {
+                                await api.post('/payments/youpi/confirm', {
+                                  orderId: currentOrder.orderId,
+                                  utr: null,
+                                  amountPaise: currentOrder.amountMinor,
+                                });
+                              } catch (e) {
+                                console.warn('Client confirmation failed; relying on webhook.', e);
+                              }
+                              localStorage.removeItem('currentHold');
+                              navigate(`/booking/${ref}`);
+                            } else if (attempts >= maxAttempts) {
+                              clearInterval(interval);
+                              setStatus('Payment not detected. Check your booking page.');
+                            }
+                          } catch (e) {
+                            if (attempts >= maxAttempts) clearInterval(interval);
+                          }
+                        }, 3000);
+                      }
+                    }}
                     className="mt-2 w-full rounded-lg border border-[#EFEBE0]/10 bg-transparent px-3 py-2 text-xs font-medium text-[#EFEBE0]/60 transition hover:text-[#F4B63F]"
                   >
                     Open any UPI app
