@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/api.dart';
@@ -138,15 +139,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
           );
 
-    // Embedded inside the scanner shell: the shell already provides the
-    // scroll view, so only the content is returned here.
+    // Embedded inside the scanner shell: the shell provides the bounded area,
+    // so the profile renders its own header and scroll view.
     if (widget.embedded) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildHeader(context),
-          const SizedBox(height: 16),
-          body,
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+              child: body,
+            ),
+          ),
         ],
       );
     }
@@ -185,7 +190,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Navigator.maybePop(context);
               }
             },
-            icon: const Icon(Icons.arrow_back, size: 20),
+            icon: const Icon(LucideIcons.arrowLeft, size: 20),
             color: KkSurface.onSurfaceVariant,
           ),
           Expanded(
@@ -205,7 +210,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               color: KkSurface.primary,
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.person, size: 18, color: Color(0xFF5C1900)),
+            child: const Icon(LucideIcons.user, size: 18, color: Color(0xFF5C1900)),
           ),
         ],
       ),
@@ -235,7 +240,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       color: KkSurface.containerHigh,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(Icons.badge,
+                    child: const Icon(LucideIcons.badge,
                         size: 30, color: KkSurface.accentBorder),
                   ),
                   Positioned(
@@ -314,7 +319,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        const Icon(Icons.theaters,
+                        const Icon(LucideIcons.theater,
                             size: 14, color: KkSurface.onSurfaceVariant),
                         const SizedBox(width: 4),
                         Expanded(
@@ -432,7 +437,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.refresh,
+                    const Icon(LucideIcons.refreshCw,
                         size: 16, color: KkSurface.onSurfaceVariant),
                     const SizedBox(width: 4),
                     Text(
@@ -457,7 +462,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _scans.length.toString(),
                 'All attempts',
                 KkSurface.onSurfaceVariant,
-                Icons.qr_code_scanner,
+                LucideIcons.scanQrCode,
                 KkSurface.onSurface,
               ),
             ),
@@ -468,7 +473,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _validScans.toString(),
                 'Admitted',
                 KkSurface.secondary,
-                Icons.check_circle,
+                LucideIcons.circleCheck,
                 KkSurface.secondary,
               ),
             ),
@@ -479,7 +484,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _invalidScans.toString(),
                 'Rejected',
                 KkSurface.error,
-                Icons.cancel,
+                LucideIcons.circleX,
                 KkSurface.error,
               ),
             ),
@@ -585,7 +590,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     color: KkSurface.containerHigh,
                     borderRadius: BorderRadius.circular(4),
                   ),
-                  child: const Icon(Icons.movie,
+                  child: const Icon(LucideIcons.film,
                       size: 18, color: KkSurface.primary),
                 ),
                 const SizedBox(width: 12),
@@ -688,7 +693,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     color: KkSurface.container,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.qr_code_scanner,
+                  child: const Icon(LucideIcons.scanQrCode,
                       size: 32, color: KkSurface.outline),
                 ),
                 const SizedBox(height: 12),
@@ -758,7 +763,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
-                      valid ? Icons.check : Icons.close,
+                      valid ? LucideIcons.check : LucideIcons.x,
                       size: 18,
                       color: valid
                           ? KkSurface.onSecondaryContainer
@@ -858,7 +863,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               );
             }
           },
-          icon: const Icon(Icons.logout, size: 20),
+          icon: const Icon(LucideIcons.logOut, size: 20),
           label: Text(
             'SIGN OUT TERMINAL',
             style: GoogleFonts.manrope(

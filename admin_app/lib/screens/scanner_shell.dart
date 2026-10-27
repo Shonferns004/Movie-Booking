@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../services/api.dart';
 import '../services/auth_service.dart';
@@ -29,7 +30,7 @@ class KkSurface {
   static const onPrimary = Color(0xFF5C1900);
 }
 
-/// Scanner shell with a bottom tab bar (Home / Scanner / Profile).
+/// Scanner shell with a bottom tab bar (Home / Profile).
 class ScannerShell extends StatefulWidget {
   const ScannerShell({
     super.key,
@@ -53,7 +54,7 @@ class ScannerShell extends StatefulWidget {
 }
 
 class _ScannerShellState extends State<ScannerShell> {
-  int _tab = 1;
+  int _tab = 0;
   List<dynamic> _activity = [];
   bool _busy = false;
 
@@ -265,33 +266,30 @@ class _ScannerShellState extends State<ScannerShell> {
       backgroundColor: KkSurface.bg,
       body: SafeArea(
         bottom: false,
-        child: Column(
+        child: IndexedStack(
+          index: _tab,
+          sizing: StackFit.expand,
           children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (_tab == 0) _buildHomeTab(),
-                    if (_tab == 1) _buildScannerTab(),
-                    if (_tab == 2)
-                      ProfileScreen(
-                        token: widget.token!,
-                        embedded: true,
-                        shows: widget.shows,
-                        selectedShowId: widget.selectedShowId,
-                        onSignOut: _signOut,
-                        onBack: () => setState(() => _tab = 0),
-                      ),
-                  ],
-                ),
-              ),
+            _buildScrollable(_buildHomeTab()),
+            ProfileScreen(
+              token: widget.token!,
+              embedded: true,
+              shows: widget.shows,
+              selectedShowId: widget.selectedShowId,
+              onSignOut: _signOut,
+              onBack: () => setState(() => _tab = 0),
             ),
           ],
         ),
       ),
       bottomNavigationBar: _buildNav(),
+    );
+  }
+
+  Widget _buildScrollable(Widget child) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      child: child,
     );
   }
 
@@ -354,6 +352,51 @@ class _ScannerShellState extends State<ScannerShell> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildHomeTab() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildShowSelectorCard(),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: KkSurface.containerLow,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: KkSurface.secondaryContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.confirmation_number_rounded,
+                    size: 18, color: KkSurface.onSecondaryContainer),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Scanned tickets: ${widget.scannedCount}',
+                style: GoogleFonts.poppins(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: KkSurface.onSurface,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        _buildViewfinderCard(),
+        _buildScanButton(),
+        const SizedBox(height: 24),
+        _buildActivityList(),
+      ],
     );
   }
 
@@ -455,66 +498,6 @@ class _ScannerShellState extends State<ScannerShell> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildHomeTab() {
-    final s = _selectedShow;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _buildShowSelectorCard(),
-        const SizedBox(height: 16),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: KkSurface.containerLow,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: KkSurface.secondaryContainer,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(Icons.confirmation_number_rounded,
-                    size: 18, color: KkSurface.onSecondaryContainer),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                'Scanned tickets: ${widget.scannedCount}',
-                style: GoogleFonts.poppins(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: KkSurface.onSurface,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        _buildViewfinderCard(),
-        _buildScanButton(),
-        const SizedBox(height: 24),
-        _buildActivityList(),
-      ],
-    );
-  }
-
-  Widget _buildScannerTab() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _buildShowSelectorCard(),
-        const SizedBox(height: 16),
-        _buildViewfinderCard(),
-
-        _buildScanButton(),
-
-      ],
     );
   }
 
@@ -674,6 +657,7 @@ class _ScannerShellState extends State<ScannerShell> {
   Widget _buildNav() {
     Widget item(IconData icon, String label, int index) {
       final active = _tab == index;
+      final color = active ? KkSurface.onSurface : KkSurface.onSurfaceVariant;
       return Expanded(
         child: InkWell(
           onTap: () => setState(() => _tab = index),
@@ -682,20 +666,23 @@ class _ScannerShellState extends State<ScannerShell> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(icon,
-                    size: 22,
-                    color: active
-                        ? KkSurface.onSurface
-                        : KkSurface.onSurfaceVariant),
+                Icon(icon, size: 24, color: color),
                 const SizedBox(height: 2),
                 Text(
                   label,
                   style: GoogleFonts.poppins(
                     fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                    color: active
-                        ? KkSurface.onSurface
-                        : KkSurface.onSurfaceVariant,
+                    fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+                    color: color,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Container(
+                  width: 4,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: active ? KkSurface.accent : Colors.transparent,
+                    shape: BoxShape.circle,
                   ),
                 ),
               ],
@@ -713,13 +700,12 @@ class _ScannerShellState extends State<ScannerShell> {
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 8, 24, 8),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              item(Icons.home_outlined, 'Home', 0),
-              item(Icons.qr_code_scanner, 'Scanner', 1),
-              item(Icons.person_outline, 'Profile', 2),
+              item(LucideIcons.house, 'Home', 0),
+              item(LucideIcons.circleUser, 'Profile', 1),
             ],
           ),
         ),
