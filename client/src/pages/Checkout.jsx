@@ -122,45 +122,8 @@ export default function Checkout() {
         });
         setUpiUri(`upi://pay?${params.toString()}`);
       }
-      const Youpi = await loadYoupiScript(order.scriptUrl, order.merchantKey, {
-        apiUrl: order.apiUrl,
-        portalUrl: order.portalUrl,
-      });
-
-      setStatus('Secure payment window opened. Complete payment to confirm your tickets.');
-      Youpi.pay({
-        // Reuse the checkout session created by the server.
-        checkoutUrl: order.checkoutUrl,
-        order_id: order.orderId,
-        amount: Number(order.amount),
-        currency: order.currency,
-        name: 'Konkani Samudai Cinema',
-        description: `Booking ${booking.booking_reference}`,
-        handler: async (response) => {
-          if (response && response.status === 'SUCCESS') {
-            setStatus('Payment received. Confirming your tickets…');
-            try {
-              await api.post('/payments/youpi/confirm', {
-                orderId: order.orderId,
-                utr: response.utr,
-                amountPaise: order.amountMinor,
-              });
-            } catch (confirmError) {
-              // The payment webhook may already have confirmed this transaction.
-              console.warn('Client confirmation failed; relying on payment webhook.', confirmError);
-            }
-            localStorage.removeItem('currentHold');
-            navigate(`/booking/${booking.booking_reference}`);
-          } else {
-            setStatus('Payment was not completed. You can retry from the booking page.');
-            setLoading(false);
-          }
-        },
-        onClose: () => {
-          setStatus('Payment window closed. Your booking may still be pending confirmation.');
-          setLoading(false);
-        },
-      });
+      setStatus('Choose a payment method below to complete your booking.');
+      setLoading(false);
     } catch (checkoutError) {
       setError(checkoutError.response?.data?.error || checkoutError.message || 'Unable to start checkout. Please try again.');
       setStatus('');
@@ -419,6 +382,16 @@ export default function Checkout() {
                   >
                     Open any UPI app
                   </button>
+                  {currentOrder?.checkoutUrl && (
+                    <a
+                      href={currentOrder.checkoutUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-2 block w-full text-center text-xs font-medium text-[#EFEBE0]/50 transition hover:text-[#F4B63F]"
+                    >
+                      Or open checkout page (QR code)
+                    </a>
+                  )}
                 </div>
               )}
               <p className="mt-4 flex items-center justify-center gap-1.5 text-center text-[11px] text-[#EFEBE0]/40">
