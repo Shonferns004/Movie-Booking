@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../services/api.dart';
+import '../services/auth_service.dart';
 import '../widgets/app_toast.dart';
 import 'profile_screen.dart';
 import 'scanner_screen.dart';
@@ -21,6 +22,11 @@ class KkSurface {
   static const border = Color(0xFF26262A);
   static const secondaryContainer = Color(0xFF3C4B3A);
   static const onSecondaryContainer = Color(0xFFA9BAA5);
+  static const secondary = Color(0xFFBBCBB6);
+  static const error = Color(0xFFFFB4AB);
+  static const outline = Color(0xFFA58B83);
+  static const outlineVariant = Color(0xFF56423C);
+  static const onPrimary = Color(0xFF5C1900);
 }
 
 /// Scanner shell with a bottom tab bar (Home / Scanner / Profile).
@@ -240,6 +246,12 @@ class _ScannerShellState extends State<ScannerShell> {
     }
   }
 
+  Future<void> _signOut() async {
+    await AuthService.logout();
+    if (!mounted) return;
+    Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+  }
+
   @override
   Widget build(BuildContext context) {
     if (widget.token == null) {
@@ -264,7 +276,13 @@ class _ScannerShellState extends State<ScannerShell> {
                     if (_tab == 0) _buildHomeTab(),
                     if (_tab == 1) _buildScannerTab(),
                     if (_tab == 2)
-                      ProfileScreen(token: widget.token!, embedded: true),
+                      ProfileScreen(
+                        token: widget.token!,
+                        embedded: true,
+                        shows: widget.shows,
+                        selectedShowId: widget.selectedShowId,
+                        onSignOut: _signOut,
+                      ),
                   ],
                 ),
               ),
