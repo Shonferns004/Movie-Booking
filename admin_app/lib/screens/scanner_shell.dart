@@ -195,35 +195,13 @@ class _ScannerShellState extends State<ScannerShell> {
   Future<void> _manualEntry() async {
     final token = widget.token;
     if (token == null || token.isEmpty) return;
-    final controller = TextEditingController();
-    final code = await showDialog<String>(
+    final code = await showModalBottomSheet<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: KkSurface.container,
-        title: const Text('Enter ticket code'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          keyboardType: TextInputType.text,
-          style: const TextStyle(color: KkSurface.onSurface),
-          decoration: const InputDecoration(
-            hintText: 'TKT-XXXXXXXX',
-            hintStyle: TextStyle(color: KkSurface.onSurfaceVariant),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
-            child: const Text('Verify'),
-          ),
-        ],
-      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.55),
+      builder: (ctx) => const _ManualEntrySheet(),
     );
-    controller.dispose();
     if (code == null || code.isEmpty) return;
 
     setState(() => _busy = true);
@@ -708,6 +686,195 @@ class _ScannerShellState extends State<ScannerShell> {
               item(LucideIcons.circleUser, 'Profile', 1),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// iOS-style bottom sheet container.
+class _IosSheet extends StatelessWidget {
+  const _IosSheet({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: KkSurface.containerLow,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: SafeArea(top: false, child: child),
+    );
+  }
+}
+
+/// Rounded pill button used inside the bottom sheet.
+class _IosSheetButton extends StatelessWidget {
+  const _IosSheetButton({
+    required this.label,
+    required this.filled,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool filled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 48,
+      child: Material(
+        color: filled ? KkSurface.accent : KkSurface.containerHigh,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Center(
+            child: Text(
+              label,
+              style: GoogleFonts.poppins(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: filled ? const Color(0xFF1A1A1A) : KkSurface.onSurface,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Bottom sheet that owns the ticket-code field.
+///
+/// The controller lives inside this widget's State, so it is disposed only
+/// after the sheet's exit animation has finished. Disposing it from the
+/// caller while the sheet was still animating out caused the
+/// "TextEditingController was used after being disposed" crash.
+class _ManualEntrySheet extends StatefulWidget {
+  const _ManualEntrySheet();
+
+  @override
+  State<_ManualEntrySheet> createState() => _ManualEntrySheetState();
+}
+
+class _ManualEntrySheetState extends State<_ManualEntrySheet> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final value = _controller.text.trim();
+    if (value.isEmpty) return;
+    Navigator.pop(context, value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _IosSheet(
+      child: Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const SizedBox(height: 8),
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: KkSurface.outlineVariant,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Enter ticket code',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.notoSerif(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: KkSurface.onSurface,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Type the reference printed under the QR code.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                color: KkSurface.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 20),
+            TextField(
+              controller: _controller,
+              autofocus: true,
+              textCapitalization: TextCapitalization.characters,
+              keyboardType: TextInputType.text,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => _submit(),
+              style: GoogleFonts.poppins(
+                fontSize: 16,
+                letterSpacing: 1.2,
+                color: KkSurface.onSurface,
+              ),
+              decoration: InputDecoration(
+                hintText: 'TKT-XXXXXXXX',
+                hintStyle: GoogleFonts.poppins(
+                  fontSize: 15,
+                  letterSpacing: 1.2,
+                  color: KkSurface.onSurfaceVariant,
+                ),
+                filled: true,
+                fillColor: KkSurface.container,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: KkSurface.border),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: KkSurface.accent),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: _IosSheetButton(
+                    label: 'Cancel',
+                    filled: false,
+                    onTap: () => Navigator.pop(context),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _IosSheetButton(
+                    label: 'Verify',
+                    filled: true,
+                    onTap: _submit,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+          ],
         ),
       ),
     );
