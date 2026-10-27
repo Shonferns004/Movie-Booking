@@ -19,13 +19,49 @@ const uploadDir = path.resolve(process.cwd(), 'uploads');
 // staged in the temp dir and pushed to Supabase Storage/Cloudinary instead of disk.
 const isEphemeralFs = !!process.env.VERCEL || !!process.env.AWS_LAMBDA_FUNCTION_NAME;
 if (!isEphemeralFs && !fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.heic', '.heif', '.avif', '.svg', '.tif', '.tiff']);
+
+const EXTENSION_MIME_TYPES = {
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.bmp': 'image/bmp',
+  '.heic': 'image/heic',
+  '.heif': 'image/heif',
+  '.avif': 'image/avif',
+  '.svg': 'image/svg+xml',
+  '.tif': 'image/tiff',
+  '.tiff': 'image/tiff',
+};
+
+/** Best-effort content type for the stored object. */
+function resolveContentType(file) {
+  const mime = String(file.mimetype || '').toLowerCase();
+  if (mime && mime !== 'application/octet-stream') return mime;
+  const ext = path.extname(file.originalname || '').toLowerCase();
+  return EXTENSION_MIME_TYPES[ext] || 'application/octet-stream';
+}
+
 const upload = multer({
   dest: isEphemeralFs ? os.tmpdir() : uploadDir,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
   fileFilter: (req, file, cb) => {
-    const allowed = /^image\/(jpeg|png|gif|webp)$/i;
-    if (allowed.test(file.mimetype)) cb(null, true);
-    else cb(new Error('Only image files (jpeg, png, gif, webp) are allowed'));
+    // Flutter's MultipartFile.fromPath sends no content type, so the mime type
+    // can be application/octet-stream. Accept any image mime type, and fall
+    // back to the file extension when the client did not label the part.
+    const mime = String(file.mimetype || '').toLowerCase();
+    const ext = path.extname(file.originalname || '').toLowerCase();
+    const isImageMime = mime.startsWith('image/');
+    const isUnknownMime = mime === '' || mime === 'application/octet-stream';
+    if (isImageMime || (isUnknownMime && IMAGE_EXTENSIONS.has(ext))) {
+      cb(null, true);
+      return;
+    }
+    const error = new Error('Only image files are allowed');
+    error.status = 400;
+    cb(error);
   },
 });
 
@@ -53,7 +89,7 @@ async function uploadToSupabase(file, movieId, type) {
     const { error } = await supabase.storage
       .from(supabaseStorageBucket)
       .upload(objectPath, body, {
-        contentType: file.mimetype || 'application/octet-stream',
+        contentType: resolveContentType(file),
         cacheControl: '31536000',
         upsert: false,
       });
@@ -111,7 +147,16 @@ router.get('/:id', optionalAuth, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.post('/:id/media', requireAuth, requireRole('ADMIN'), upload.single('file'), async (req, res, next) => {
+router.post('/:id/media', requireAuth, requireRole('ADMIN'), (req, res, next) => {
+  upload.single('file')(req, res, (err) => {
+    if (err) {
+      // Multer errors (bad mime type, file too large) are client errors.
+      const status = err.code === 'LIMIT_FILE_SIZE' ? 413 : 400;
+      return res.status(status).json({ error: err.message || 'Upload rejected' });
+    }
+    next();
+  });
+}, async (req, res, next) => {
   try {
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(req.params.id);
     if (!isUuid) return res.status(400).json({ error: 'invalid movie id' });

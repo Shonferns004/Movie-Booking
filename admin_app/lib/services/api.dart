@@ -263,7 +263,14 @@ class Api {
       );
       req.headers['Authorization'] = 'Bearer $activeToken';
       req.fields['type'] = type;
-      req.files.add(await http.MultipartFile.fromPath('file', file.path));
+      // MultipartFile.fromPath defaults to application/octet-stream, so the
+      // real image mime type has to be supplied explicitly.
+      req.files.add(await http.MultipartFile.fromPath(
+        'file',
+        file.path,
+        filename: file.name.isEmpty ? 'upload' : file.name,
+        contentType: _mediaTypeFor(file),
+      ));
       return req.send();
     }
 
@@ -283,6 +290,26 @@ class Api {
       return j['url'] as String?;
     }
     throw Exception('Upload failed: $body');
+  }
+
+  /// Best-effort image mime type for the uploaded part.
+  static http.MediaType _mediaTypeFor(XFile file) {
+    final name = file.name.toLowerCase();
+    if (name.endsWith('.jpg') || name.endsWith('.jpeg')) {
+      return http.MediaType('image', 'jpeg');
+    }
+    if (name.endsWith('.png')) return http.MediaType('image', 'png');
+    if (name.endsWith('.gif')) return http.MediaType('image', 'gif');
+    if (name.endsWith('.webp')) return http.MediaType('image', 'webp');
+    if (name.endsWith('.bmp')) return http.MediaType('image', 'bmp');
+    if (name.endsWith('.heic')) return http.MediaType('image', 'heic');
+    if (name.endsWith('.heif')) return http.MediaType('image', 'heif');
+    if (name.endsWith('.avif')) return http.MediaType('image', 'avif');
+    if (name.endsWith('.svg')) return http.MediaType('image', 'svg+xml');
+    if (name.endsWith('.tif') || name.endsWith('.tiff')) {
+      return http.MediaType('image', 'tiff');
+    }
+    return http.MediaType('image', 'jpeg');
   }
 
   static Future<void> updateShow(
