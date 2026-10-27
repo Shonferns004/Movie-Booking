@@ -1,6 +1,6 @@
+import { env } from '../config/env.js';
 import { pool } from '../db/pool.js';
 import nodemailer from 'nodemailer';
-import { env } from '../config/env.js';
 import { publishDueMovies } from './publish.js';
 
 const transporter = env.EMAIL_PROVIDER === 'smtp' ? nodemailer.createTransport({
@@ -76,5 +76,14 @@ export async function runTick() {
   const expired = await expireHolds();
   const published = await publishDueMovies();
   const sent = await processOutbox();
+  if (env.YOUPI_ENABLED) {
+    try {
+      const { cleanupOldObservations } = await import('../payments/youpi/gateway.js');
+      const cleaned = await cleanupOldObservations(30);
+      if (cleaned > 0) console.log(`[cleanup] removed ${cleaned} old observations`);
+    } catch (e) {
+      console.error('[cleanup] error', e);
+    }
+  }
   return { expired, sent, published };
 }

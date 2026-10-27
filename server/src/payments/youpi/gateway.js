@@ -57,6 +57,25 @@ function configureGatewayEnv() {
 }
 
 /**
+ * Removes bank observations older than `days` from the gateway database.
+ * Used for data-minimization / retention compliance.
+ */
+export async function cleanupOldObservations(days = 30) {
+  if (!env.YOUPI_ENABLED) return 0;
+  try {
+    const { getDatabase } = await import(vendorUrl('packages', 'db', 'src', 'index.js'));
+    const db = getDatabase();
+    const sql = db.dialect === 'postgres'
+      ? `DELETE FROM payment_observations WHERE created_at < NOW() - INTERVAL '${days} days'`
+      : `DELETE FROM payment_observations WHERE created_at < datetime('now', '-${days} days')`;
+    const result = db.execute(sql);
+    return result?.changes || 0;
+  } catch (e) {
+    console.error('[YOUPI] observation cleanup error', e);
+    return 0;
+  }
+}
+/**
  * Points the gateway's default merchant at this server's webhook endpoint and makes
  * sure a receiving UPI account exists. Without this the gateway would post webhooks
  * to its upstream default URL and the booking would never be confirmed.
