@@ -20,7 +20,7 @@ https://<service>.onrender.com/youpi/admin                merchant admin / devic
 - The movie database is already Supabase. Copy `DATABASE_URL` from your existing `.env`.
   The gateway creates its own SQLite database on the disk, so there is nothing else to
   provision.
-- A paid Render instance type is required for a persistent disk and pre-deploy commands.
+- A paid Render instance type is required for the persistent disk.
 - Free instance types spin down after 15 minutes of inactivity. The observer needs an
   always-on process, so use **Starter** or higher.
 
@@ -40,7 +40,6 @@ https://<service>.onrender.com/youpi/admin                merchant admin / devic
 | Build Command | `npm ci && npm run build` |
 | Start Command | `npm start` |
 | Health Check Path | `/health` |
-| Pre-Deploy Command | `npm run migrate` |
 | Disk mount path | `/opt/render/project/src/server/vendor/youpi-pg/data` |
 | Disk size | 1 GB |
 
@@ -64,6 +63,10 @@ Do **not** point `YOUPI_DATABASE_URL` at Supabase unless you have audited the ga
 queries: it uses integer boolean flags and `datetime('now')`, which the Postgres schema
 does not accept. The gateway still calls the movie API's Postgres webhook handler over
 loopback, so booking confirmation works normally.
+
+The movie schema is already applied to Supabase. `database/full_schema.sql` is a
+**destructive clean-slate script** (it drops every table), so do not run it against the
+existing database, and the Render service deliberately has no pre-deploy migration.
 
 ## 3. Environment variables
 

@@ -18,8 +18,6 @@ services:
     buildCommand: npm ci && npm run build
     startCommand: npm start
     healthCheckPath: /health
-    # Requires a paid instance type. Runs before the new instance is promoted.
-    preDeployCommand: npm run migrate
     autoDeploy: true
     disk:
       name: youpi-data
