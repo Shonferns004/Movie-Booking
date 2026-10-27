@@ -36,6 +36,14 @@ export const env = {
   GMAIL_CLIENT_SECRET: process.env.GMAIL_CLIENT_SECRET || '',
   GMAIL_REDIRECT_URI: process.env.GMAIL_REDIRECT_URI || '',
   YOUPI_PUBLIC_BASE_URL: process.env.YOUPI_PUBLIC_BASE_URL || '',
+  // Database used by the embedded gateway only. The vendored gateway's SQL is
+  // SQLite-flavored (integer booleans, datetime('now')), so it persists to SQLite on
+  // the mounted disk by default. The movie API keeps using DATABASE_URL (Postgres).
+  // Set this to a postgres:// URL only if you have audited the gateway's PG queries.
+  YOUPI_DATABASE_URL: process.env.YOUPI_DATABASE_URL || 'sqlite',
+  // Optional absolute path for the gateway SQLite file (defaults to
+  // vendor/youpi-pg/data/youpi_pg.sqlite, which is on the Render disk).
+  YOUPI_SQLITE_PATH: process.env.YOUPI_SQLITE_PATH || '',
   YOUPI_WEBHOOK_URL: process.env.YOUPI_WEBHOOK_URL || '',
   YOUPI_ALLOW_ADMIN: process.env.YOUPI_ALLOW_ADMIN === 'true',
   YOUPI_ALLOW_DEV_TOOLS: process.env.YOUPI_ALLOW_DEV_TOOLS === 'true',
@@ -57,6 +65,11 @@ export const env = {
   SMTP_PASS: process.env.SMTP_PASS,
   EMAIL_FROM: process.env.EMAIL_FROM || 'no-reply@movie.local',
   WORKER_POLL_INTERVAL_MS: Number(process.env.WORKER_POLL_INTERVAL_MS || 5000),
+  // Runs the maintenance loop (seat-hold expiry, publishing, email outbox) inside the
+  // web process. Useful on single-service hosts (Render) where a separate worker
+  // service is not configured. On serverless hosts leave this false and use the cron
+  // endpoint in modules/internal/routes.js instead.
+  RUN_WORKER: process.env.RUN_WORKER === 'true',
   // Secret for the /api/v1/internal/tick endpoint used by Vercel Cron.
   INTERNAL_CRON_SECRET: process.env.INTERNAL_CRON_SECRET || process.env.CRON_SECRET || '',
   HOLD_EXPIRY_SECONDS: Number(process.env.HOLD_EXPIRY_SECONDS || 600),

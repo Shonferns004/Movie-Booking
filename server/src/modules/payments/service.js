@@ -186,7 +186,9 @@ export function youpiPublicBase(req) {
   if (!req) return '';
   const proto = req.headers['x-forwarded-proto'] || req.protocol || 'http';
   const host = req.headers['x-forwarded-host'] || req.get('host');
-  return host ? `${proto}://${host}` : '';
+  if (host) return `${proto}://${host}`;
+  // Render always exposes the public origin; use it if a proxy ever drops the headers.
+  return (process.env.RENDER_EXTERNAL_URL || '').replace(/\/$/, '');
 }
 
 function toRupees(amountMinor) {
@@ -202,8 +204,11 @@ export async function createYoupiOrder({ bookingReference, customer, publicBase 
 
   const orderId = `order_${randomToken(8)}`;
   const amount = toRupees(booking.total_minor);
-  const baseOrigin = (publicBase || env.APP_BASE_URL || '').replace(/\/$/, '');
-  const returnUrl = `${baseOrigin}/booking/${booking.booking_reference}`;
+  // The confirmation page belongs to the customer SPA, which may live on a different
+  // origin than this API (for example a Vercel client talking to a Render API). Prefer
+  // APP_BASE_URL for that redirect; publicBase is only a same-origin fallback.
+  const appOrigin = (env.APP_BASE_URL || publicBase || '').replace(/\/$/, '');
+  const returnUrl = `${appOrigin}/booking/${booking.booking_reference}`;
 
   // reserve a local payment row first so the webhook can be matched
   const { rows: pays } = await pool.query(

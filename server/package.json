@@ -3,13 +3,17 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=24 <25"
+  },
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "worker": "node src/worker.js",
     "migrate": "node src/db/migrate.js",
     "seed": "node src/db/seed.js",
-    "build": "echo \"no build step\"",
+    "vendor:install": "npm --prefix vendor/youpi-pg ci --omit=dev --no-audit --no-fund",
+    "build": "npm run vendor:install",
     "test": "vitest run",
     "youpi:smoke": "node scripts/youpi-single-port-smoke.mjs",
     "youpi:e2e": "node scripts/youpi-e2e.mjs",

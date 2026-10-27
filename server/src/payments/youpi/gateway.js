@@ -29,10 +29,23 @@ function configureGatewayEnv() {
   // through the single public port.
   process.env.YOUPI_BIND_HOST = '127.0.0.1';
   process.env.BASE_PAYMENT_API_URL = `http://127.0.0.1:${env.YOUPI_GATEWAY_API_PORT}`;
+  // The gateway's vendored SQL is SQLite-flavored, so it gets its own SQLite database
+  // by default (on the persisted data/ disk) instead of sharing the movie API's
+  // Postgres. The movie API already created its pg Pool from env.DATABASE_URL before
+  // this runs, so mutating process.env here only affects the vendored modules.
+  const gatewayDbUrl = (env.YOUPI_DATABASE_URL || 'sqlite').trim();
+  process.env.DATABASE_URL = /^sqlite$/i.test(gatewayDbUrl) ? '' : gatewayDbUrl;
+  if (env.YOUPI_SQLITE_PATH) process.env.SQLITE_DB_PATH = env.YOUPI_SQLITE_PATH;
+  // Public origin of this server. The gateway returns checkout links to browsers and
+  // builds the Gmail OAuth callback from it. Render injects RENDER_EXTERNAL_URL, so a
+  // hosted deployment works without hardcoding the generated *.onrender.com domain.
+  const publicBase = (env.YOUPI_PUBLIC_BASE_URL || process.env.RENDER_EXTERNAL_URL || '').replace(/\/+$/, '');
+  if (publicBase) process.env.BASE_CHECKOUT_URL = publicBase;
   // The Gmail observer's OAuth callback comes back through this server's own port.
   process.env.GMAIL_OBSERVER_PORT = String(env.YOUPI_GMAIL_PORT);
   if (!process.env.GMAIL_REDIRECT_URI) {
-    process.env.GMAIL_REDIRECT_URI = `http://127.0.0.1:${env.API_PORT}/youpi/gmail/oauth/callback`;
+    const oauthBase = publicBase || `http://127.0.0.1:${env.API_PORT}`;
+    process.env.GMAIL_REDIRECT_URI = `${oauthBase}/youpi/gmail/oauth/callback`;
   }
   // Prefix the checkout page uses for its own /api/v1 calls (local patch in the portal).
   process.env.YOUPI_CLIENT_API_BASE = env.YOUPI_CLIENT_API_BASE;
@@ -49,7 +62,11 @@ function configureGatewayEnv() {
  * to its upstream default URL and the booking would never be confirmed.
  */
 async function configureMerchant() {
-  const { getDatabase, MerchantRepository, ReceivingAccountRepository } = await import('@youpi/db');
+  // Import the vendored file directly: a bare `@youpi/db` specifier would be resolved
+  // relative to the movie server, whose node_modules does not contain the workspace.
+  const { getDatabase, MerchantRepository, ReceivingAccountRepository } = await import(
+    vendorUrl('packages', 'db', 'src', 'index.js')
+  );
   const db = getDatabase();
   const merchantRepo = new MerchantRepository(db);
   const merchant =

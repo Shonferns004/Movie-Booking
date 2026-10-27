@@ -1,0 +1,126 @@
+# Render Blueprint for the movie booking API + embedded YouPI payment gateway.
+#
+# Deploy from the repository root: Render Dashboard -> New -> Blueprint.
+# The API and the payment/observer gateway run in one process, so they share the
+# single public HTTPS origin (https://<service>.onrender.com) that the Android
+# observer app talks to.
+#
+# Values marked `sync: false` are secrets you must paste into the Render dashboard
+# when the blueprint is created. They are never committed here.
+
+services:
+  - type: web
+    name: movie-api
+    runtime: node
+    plan: starter
+    region: singapore
+    rootDir: server
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    # Requires a paid instance type. Runs before the new instance is promoted.
+    preDeployCommand: npm run migrate
+    autoDeploy: true
+    disk:
+      name: youpi-data
+      # Must stay in sync with the path hardcoded in the vendored gateway:
+      # youpi_pg.sqlite, data/.secrets and the WhatsApp session live here.
+      mountPath: /opt/render/project/src/server/vendor/youpi-pg/data
+      sizeGB: 1
+    envVars:
+      # Node 22.13+ is the first line where node:sqlite (used by the vendored
+      # gateway's SQLite fallback) no longer needs a CLI flag. Pin 24 LTS.
+      - key: NODE_VERSION
+        value: 24.22.1
+      - key: NODE_ENV
+        value: production
+      - key: RUN_WORKER
+        value: true
+
+      # --- Movie API ---
+      - key: DATABASE_URL
+        sync: false
+      # Without this the API falls back to mock payments.
+      - key: PAYMENT_PROVIDER
+        value: youpi
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_ACCESS_TTL
+        value: 7d
+      - key: JWT_REFRESH_TTL
+        value: 30d
+      # Public origin of the customer web app (used in emails / return links).
+      - key: APP_BASE_URL
+        sync: false
+      - key: ADMIN_TOKEN
+        generateValue: true
+      - key: MAX_SEATS_PER_BOOKING
+        value: 10
+      - key: HOLD_EXPIRY_SECONDS
+        value: 600
+      - key: WORKER_POLL_INTERVAL_MS
+        value: 5000
+      - key: EMAIL_PROVIDER
+        value: console
+
+      # --- Supabase storage (movie posters / media) ---
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_STORAGE_BUCKET
+        value: movie-posters
+
+      # --- YouPI gateway ---
+      - key: YOUPI_ENABLED
+        value: true
+      # The vendored gateway is SQLite-native. Its database file and .secrets live on
+      # the disk; the movie API keeps using DATABASE_URL (Postgres).
+      - key: YOUPI_DATABASE_URL
+        value: sqlite
+      - key: YOUPI_ALLOW_ADMIN
+        value: true
+      - key: YOUPI_ADMIN_ENABLED
+        value: true
+      # The browser-based SMS observer needs Chrome/Puppeteer; Android devices are the
+      # observers on this host.
+      - key: YOUPI_OBSERVER_ENABLED
+        value: false
+      - key: YOUPI_ALLOW_DEV_TOOLS
+        value: false
+      # The Android observer must never receive a dev OTP in production.
+      - key: YOUPI_EXPOSE_DEV_OTP
+        value: false
+      - key: YOUPI_CLIENT_API_BASE
+        value: /youpi
+      - key: YOUPI_MERCHANT_ID
+        value: 00000000-0000-0000-0000-000000000001
+      # Your real UPI VPA and the name shown in the customer's UPI app.
+      - key: YOUPI_UPI_ID
+        sync: false
+      - key: YOUPI_PAYEE_NAME
+        value: Konkani Samudai
+      - key: YOUPI_WEBHOOK_SECRET
+        generateValue: true
+      # Comma separated origins allowed to embed the hosted checkout page.
+      - key: YOUPI_FRAME_ANCESTORS
+        sync: false
+
+      # --- Gateway credentials ---
+      # Generated once on first boot if omitted, but they live on the disk. Set them
+      # explicitly so a disk failure or a service move does not invalidate paired
+      # observer devices. Keep these values stable once devices are paired.
+      - key: ADMIN_API_TOKEN
+        generateValue: true
+      - key: OBSERVER_API_TOKEN
+        generateValue: true
+      - key: DEVICE_CREDENTIAL_KEY
+        generateValue: true
+      - key: ANDROID_ENROLLMENT_SECRET
+        generateValue: true
+      - key: BLIND_INDEX_KEY
+        generateValue: true
+      - key: INTERNAL_SERVICE_TOKEN
+        generateValue: true

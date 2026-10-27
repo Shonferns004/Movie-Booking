@@ -13,3 +13,12 @@ try {
 app.listen(env.API_PORT, '0.0.0.0', () => {
   console.log(`API listening on http://0.0.0.0:${env.API_PORT}`);
 });
+
+// Single-service deployments (Render, Railway, a VPS) can run the maintenance loop in
+// this process instead of paying for a separate background worker. Keep it off when a
+// dedicated worker service exists, otherwise both processes will do the same work.
+if (env.RUN_WORKER) {
+  import('./worker.js')
+    .then(() => console.log('[worker] maintenance loop started in-process'))
+    .catch((err) => console.error('[worker] failed to start:', err));
+}

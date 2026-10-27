@@ -9,13 +9,21 @@ export class AuditLogRepository {
     this.db = db;
   }
 
+  /**
+   * The SQLite schema keeps the unprefixed name; the Postgres schema prefixes it to
+   * avoid colliding with the movie booking `audit_logs` table.
+   */
+  get table() {
+    return this.db.dialect === 'postgres' ? 'youpi_audit_logs' : 'audit_logs';
+  }
+
   log(data) {
     const id = data.id || crypto.randomUUID();
     const now = new Date().toISOString();
     const details = typeof data.details === 'object' ? JSON.stringify(data.details) : (data.details || '{}');
 
     const sql = `
-      INSERT INTO youpi_audit_logs (id, merchant_id, entity_type, entity_id, action, actor_type, actor_id, details, ip_address, created_at)
+      INSERT INTO ${this.table} (id, merchant_id, entity_type, entity_id, action, actor_type, actor_id, details, ip_address, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
@@ -37,7 +45,7 @@ export class AuditLogRepository {
 
   findByEntity(entityType, entityId) {
     const rows = this.db.query(
-      'SELECT * FROM youpi_audit_logs WHERE entity_type = ? AND entity_id = ? ORDER BY created_at ASC',
+      `SELECT * FROM ${this.table} WHERE entity_type = ? AND entity_id = ? ORDER BY created_at ASC`,
       [entityType, entityId]
     );
     return rows.map(r => this.mapRow(r));
@@ -45,7 +53,7 @@ export class AuditLogRepository {
 
   findByMerchant(merchantId, limit = 100) {
     const rows = this.db.query(
-      'SELECT * FROM youpi_audit_logs WHERE merchant_id = ? ORDER BY created_at DESC LIMIT ?',
+      `SELECT * FROM ${this.table} WHERE merchant_id = ? ORDER BY created_at DESC LIMIT ?`,
       [merchantId, limit]
     );
     return rows.map(r => this.mapRow(r));
