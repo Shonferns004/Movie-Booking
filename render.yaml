@@ -57,7 +57,7 @@ services:
       - key: MAX_SEATS_PER_BOOKING
         value: 10
       - key: HOLD_EXPIRY_SECONDS
-        value: 600
+        value: 300
       - key: WORKER_POLL_INTERVAL_MS
         value: 5000
       - key: EMAIL_PROVIDER
