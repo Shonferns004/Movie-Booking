@@ -149,6 +149,7 @@ export async function processPaymentEvent({ provider, providerEventId, eventType
       await confirmBookingAfterPayment(client, booking.id, null);
     });
   } catch (e) {
+    console.error('[payments] confirmBookingAfterPayment failed:', e.message, e.stack);
     // if seats unavailable, mark for refund
     await pool.query("UPDATE bookings SET status='failed', updated_at=now() WHERE id=$1 AND status='pending'", [booking.id]);
     await pool.query("UPDATE payments SET status='requires_refund', updated_at=now() WHERE booking_id=$1", [booking.id]);
