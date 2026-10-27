@@ -6,7 +6,7 @@ import { validate } from '../../middleware/validate.js';
 const router = Router();
 
 const registerSchema = z.object({ email: z.string().email(), password: z.string().min(6), displayName: z.string().optional() });
-const loginSchema = z.object({ email: z.string().email(), password: z.string() });
+const loginSchema = z.object({ email: z.string().min(1), password: z.string() });
 const refreshSchema = z.object({ refreshToken: z.string().min(1) });
 
 router.post('/register', validate(registerSchema), async (req, res, next) => {
