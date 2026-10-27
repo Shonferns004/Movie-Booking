@@ -252,10 +252,7 @@ class _ScannerShellState extends State<ScannerShell> {
             ProfileScreen(
               token: widget.token!,
               embedded: true,
-              shows: widget.shows,
-              selectedShowId: widget.selectedShowId,
               onSignOut: _signOut,
-              onBack: () => setState(() => _tab = 0),
             ),
           ],
         ),
@@ -733,38 +730,45 @@ class _ManualEntrySheetState extends State<_ManualEntrySheet> {
               ),
             ),
             const SizedBox(height: 20),
-            TextField(
-              controller: _controller,
-              autofocus: true,
-              textCapitalization: TextCapitalization.characters,
-              keyboardType: TextInputType.text,
-              textInputAction: TextInputAction.done,
-              onSubmitted: (_) => _submit(),
-              style: GoogleFonts.poppins(
-                fontSize: 16,
-                letterSpacing: 1.2,
-                color: KkSurface.onSurface,
-              ),
-              decoration: InputDecoration(
-                hintText: 'TKT-XXXXXXXX',
-                hintStyle: GoogleFonts.poppins(
-                  fontSize: 15,
-                  letterSpacing: 1.2,
-                  color: KkSurface.onSurfaceVariant,
-                ),
-                filled: true,
-                fillColor: KkSurface.container,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 16,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: KkSurface.border),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: KkSurface.accent),
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 220),
+                child: TextField(
+                  controller: _controller,
+                  autofocus: true,
+                  textAlign: TextAlign.center,
+                  textCapitalization: TextCapitalization.characters,
+                  keyboardType: TextInputType.text,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => _submit(),
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    letterSpacing: 1.2,
+                    color: KkSurface.onSurface,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: 'TKT-XXXXXXXX',
+                    hintStyle: GoogleFonts.poppins(
+                      fontSize: 13,
+                      letterSpacing: 1.2,
+                      color: KkSurface.onSurfaceVariant,
+                    ),
+                    filled: true,
+                    fillColor: KkSurface.container,
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: KkSurface.border),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: KkSurface.accent),
+                    ),
+                  ),
                 ),
               ),
             ),
