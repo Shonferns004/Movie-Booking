@@ -282,6 +282,7 @@ class _ScannerShellState extends State<ScannerShell> {
                         shows: widget.shows,
                         selectedShowId: widget.selectedShowId,
                         onSignOut: _signOut,
+                        onBack: () => setState(() => _tab = 0),
                       ),
                   ],
                 ),
@@ -356,6 +357,107 @@ class _ScannerShellState extends State<ScannerShell> {
     );
   }
 
+  Widget _buildViewfinderCard() {
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: KkSurface.containerLow,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Container(
+            height: 120,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: KkSurface.container,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Center(
+              child: Icon(Icons.center_focus_strong,
+                  size: 44, color: KkSurface.onSurfaceVariant),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              const Icon(Icons.keyboard_rounded,
+                  size: 18, color: KkSurface.onSurfaceVariant),
+              const SizedBox(width: 8),
+              Text(
+                'Manual entry fallback',
+                style: GoogleFonts.poppins(
+                  fontSize: 13,
+                  color: KkSurface.onSurfaceVariant,
+                ),
+              ),
+              const Spacer(),
+              TextButton(
+                onPressed: _busy ? null : _manualEntry,
+                child: Text(
+                  'Enter ticket code',
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: KkSurface.primary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScanButton() {
+    return Container(
+      constraints: const BoxConstraints(minHeight: 300),
+      padding: const EdgeInsets.symmetric(vertical: 48),
+      alignment: Alignment.center,
+      child: GestureDetector(
+        onTap: _openScanner,
+        child: Container(
+          width: 160,
+          height: 160,
+          decoration: BoxDecoration(
+            color: KkSurface.accent,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: KkSurface.accentBorder.withValues(alpha: 0.3),
+              width: 4,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: KkSurface.accent.withValues(alpha: 0.2),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.center_focus_strong,
+                  size: 36, color: Color(0xFF1A1A1A)),
+              const SizedBox(height: 6),
+              Text(
+                'START SCANNING',
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.8,
+                  color: const Color(0xFF1A1A1A),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildHomeTab() {
     final s = _selectedShow;
     return Column(
@@ -393,6 +495,9 @@ class _ScannerShellState extends State<ScannerShell> {
             ],
           ),
         ),
+        const SizedBox(height: 16),
+        _buildViewfinderCard(),
+        _buildScanButton(),
         const SizedBox(height: 24),
         _buildActivityList(),
       ],
@@ -405,102 +510,10 @@ class _ScannerShellState extends State<ScannerShell> {
       children: [
         _buildShowSelectorCard(),
         const SizedBox(height: 16),
-        Container(
-          margin: const EdgeInsets.only(top: 16),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: KkSurface.containerLow,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            children: [
-              Container(
-                height: 120,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: KkSurface.container,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Center(
-                  child: Icon(Icons.center_focus_strong,
-                      size: 44, color: KkSurface.onSurfaceVariant),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  const Icon(Icons.keyboard_rounded,
-                      size: 18, color: KkSurface.onSurfaceVariant),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Manual entry fallback',
-                    style: GoogleFonts.poppins(
-                      fontSize: 13,
-                      color: KkSurface.onSurfaceVariant,
-                    ),
-                  ),
-                  const Spacer(),
-                  TextButton(
-                    onPressed: _busy ? null : _manualEntry,
-                    child: Text(
-                      'Enter ticket code',
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: KkSurface.primary,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 24),
-        Container(
-          constraints: const BoxConstraints(minHeight: 300),
-          padding: const EdgeInsets.symmetric(vertical: 48),
-          alignment: Alignment.center,
-          child: GestureDetector(
-            onTap: _openScanner,
-            child: Container(
-              width: 160,
-              height: 160,
-              decoration: BoxDecoration(
-                color: KkSurface.accent,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: KkSurface.accentBorder.withValues(alpha: 0.3),
-                  width: 4,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: KkSurface.accent.withValues(alpha: 0.2),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.center_focus_strong,
-                      size: 36, color: Color(0xFF1A1A1A)),
-                  const SizedBox(height: 6),
-                  Text(
-                    'START SCANNING',
-                    style: GoogleFonts.poppins(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.8,
-                      color: const Color(0xFF1A1A1A),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
+        _buildViewfinderCard(),
+
+        _buildScanButton(),
+
       ],
     );
   }

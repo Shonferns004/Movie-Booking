@@ -15,6 +15,7 @@ class ProfileScreen extends StatefulWidget {
     this.onSignOut,
     this.shows = const [],
     this.selectedShowId,
+    this.onBack,
   });
 
   final String token;
@@ -23,6 +24,7 @@ class ProfileScreen extends StatefulWidget {
   /// so it can be embedded inside the scanner shell's tab body.
   final bool embedded;
 
+  final VoidCallback? onBack;
   final VoidCallback? onSignOut;
   final List<dynamic> shows;
   final String? selectedShowId;
@@ -114,47 +116,54 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final content = _buildContent(context);
+    final body = _loading
+        ? const Padding(
+            padding: EdgeInsets.only(top: 80),
+            child: Center(
+              child: CircularProgressIndicator(color: KkSurface.accent),
+            ),
+          )
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildIdentityCard(),
+              const SizedBox(height: 24),
+              _buildStats(),
+              const SizedBox(height: 16),
+              _buildOperationsCard(),
+              const SizedBox(height: 16),
+              _buildRecentScans(),
+              const SizedBox(height: 16),
+              _buildSignOut(context),
+            ],
+          );
 
-    if (widget.embedded) return content;
+    // Embedded inside the scanner shell: the shell already provides the
+    // scroll view, so only the content is returned here.
+    if (widget.embedded) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildHeader(context),
+          const SizedBox(height: 16),
+          body,
+        ],
+      );
+    }
 
     return Scaffold(
       backgroundColor: KkSurface.bg,
-      body: content,
-    );
-  }
-
-  Widget _buildContent(BuildContext context) {
-    return Column(
-      children: [
-        _buildHeader(context),
-        Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-            child: _loading
-                ? const Padding(
-                    padding: EdgeInsets.only(top: 80),
-                    child: Center(
-                      child: CircularProgressIndicator(color: KkSurface.accent),
-                    ),
-                  )
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _buildIdentityCard(),
-                      const SizedBox(height: 24),
-                      _buildStats(),
-                      const SizedBox(height: 16),
-                      _buildOperationsCard(),
-                      const SizedBox(height: 16),
-                      _buildRecentScans(),
-                      const SizedBox(height: 16),
-                      _buildSignOut(context),
-                    ],
-                  ),
+      body: Column(
+        children: [
+          _buildHeader(context),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+              child: body,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -169,7 +178,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Row(
         children: [
           IconButton(
-            onPressed: () => Navigator.maybePop(context),
+            onPressed: () {
+              if (widget.onBack != null) {
+                widget.onBack!();
+              } else {
+                Navigator.maybePop(context);
+              }
+            },
             icon: const Icon(Icons.arrow_back, size: 20),
             color: KkSurface.onSurfaceVariant,
           ),
