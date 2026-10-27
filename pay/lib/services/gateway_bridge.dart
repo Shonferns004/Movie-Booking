@@ -154,6 +154,12 @@ class GatewayBridge {
 
   Future<void> openAppSettings() => _invoke('openAppSettings');
 
+  Future<void> setConsent(bool accepted) =>
+      _invoke('setConsent', {'accepted': accepted});
+
+  Future<void> openUrl(String url) =>
+      _invoke('openUrl', {'url': url});
+
   Future<ActiveWindowResult> fetchActiveWindow() async {
     return ActiveWindowResult.fromJson(await _invoke('fetchActiveWindow'));
   }

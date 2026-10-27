@@ -20,6 +20,7 @@ data class ObserverConfig(
     val deviceId: String = "",
     val deviceSigningKey: String = "",
     val deviceMerchantId: String = "",
+    val consentAccepted: Boolean = false,
 ) {
     /** A phone enrolled from the admin panel's pairing QR / enrollment secret. */
     val isPaired: Boolean
@@ -104,6 +105,7 @@ class ObserverStore(context: Context) {
         deviceId = prefs.getString(KEY_DEVICE_ID, "") ?: "",
         deviceSigningKey = prefs.getString(KEY_DEVICE_SIGNING_KEY, "") ?: "",
         deviceMerchantId = prefs.getString(KEY_DEVICE_MERCHANT_ID, "") ?: "",
+        consentAccepted = prefs.getBoolean(KEY_CONSENT, false),
     )
 
     fun saveConfig(config: ObserverConfig) {
@@ -120,6 +122,7 @@ class ObserverStore(context: Context) {
             .putString(KEY_DEVICE_ID, config.deviceId.trim())
             .putString(KEY_DEVICE_SIGNING_KEY, config.deviceSigningKey.trim())
             .putString(KEY_DEVICE_MERCHANT_ID, config.deviceMerchantId.trim())
+            .putBoolean(KEY_CONSENT, config.consentAccepted)
             .apply()
     }
 
@@ -148,6 +151,10 @@ class ObserverStore(context: Context) {
     fun setReceivingAccountId(id: String) {
         if (id.isBlank()) return
         prefs.edit().putString(KEY_ACCOUNT_ID, id.trim()).apply()
+    }
+
+    fun setConsent(accepted: Boolean) {
+        prefs.edit().putBoolean(KEY_CONSENT, accepted).apply()
     }
 
     @Synchronized
@@ -237,6 +244,7 @@ class ObserverStore(context: Context) {
         private const val KEY_DEVICE_ID = "device_id"
         private const val KEY_DEVICE_SIGNING_KEY = "device_signing_key"
         private const val KEY_DEVICE_MERCHANT_ID = "device_merchant_id"
+        private const val KEY_CONSENT = "consent_accepted"
         private const val MAX_EVENTS = 250
     }
 }

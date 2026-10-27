@@ -74,6 +74,21 @@ signed with a different key.
 used on first launch. Set it to the hosted gateway origin before building so a fresh
 install is pre-pointed at production. The value can still be changed in Settings.
 
+## Privacy and compliance
+
+The observer reads bank SMS and notifications on the device to verify UPI payments.
+Before enabling it, the app shows a consent dialog. Operators should also:
+
+- Publish a privacy policy and link it in Settings (the app opens
+  `https://example.com/privacy-policy` by default — replace with your own URL).
+- Keep raw observations only as long as needed; the gateway deletes observations
+  older than 30 days automatically.
+- Provide a way for staff to unpair and delete local data (Settings → Delete my data).
+- Confirm with a lawyer that reading bank messages is permitted in your jurisdiction
+  and under your bank/UPI provider's terms.
+- Do not use this app to read messages on a device the user does not own without
+  explicit, informed consent.
+
 ## Local development
 
 The gateway normally runs as part of the API server (`cd ../server && npm run dev`) and

@@ -67,7 +67,40 @@ class StatusScreen extends StatelessWidget {
               _HeroCard(
                 snapshot: snapshot,
                 onToggle: state.config.isConfigured
-                    ? () => state.setEnabled(!state.config.enabled)
+                    ? () async {
+                        if (!state.config.enabled &&
+                            !state.config.consentAccepted) {
+                          final accepted = await showDialog<bool>(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (dialogContext) => AlertDialog(
+                              title: const Text('Privacy & consent'),
+                              content: const Text(
+                                'Enabling the observer lets this app read bank '
+                                'SMS and notifications to verify UPI payments. '
+                                'Only the amount, UPI reference, and sender VPA '
+                                'are parsed and sent to your gateway. Raw '
+                                'messages are stored locally for up to 30 days.',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.pop(dialogContext, false),
+                                  child: const Text('Decline'),
+                                ),
+                                FilledButton(
+                                  onPressed: () =>
+                                      Navigator.pop(dialogContext, true),
+                                  child: const Text('I agree'),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (accepted != true) return;
+                          await state.setConsent(true);
+                        }
+                        await state.setEnabled(!state.config.enabled);
+                      }
                     : onOpenSettings,
               ),
               const SizedBox(height: 24),

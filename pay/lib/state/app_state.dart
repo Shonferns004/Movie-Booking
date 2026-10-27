@@ -174,7 +174,10 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     return granted;
   }
 
-  Future<void> openAppSettings() => _bridge.openAppSettings();
+  Future<void> setConsent(bool accepted) async {
+    await _bridge.setConsent(accepted);
+    await refresh(quiet: true);
+  }
 
   Future<void> clearLog() async {
     await _bridge.clearLog();
@@ -186,6 +189,16 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     // The worker runs asynchronously; give it a moment before re-reading.
     await Future<void>.delayed(const Duration(milliseconds: 600));
     await refresh(quiet: true);
+  }
+
+  Future<void> openAppSettings() => _bridge.openAppSettings();
+
+  Future<void> openPrivacyPolicy() =>
+      _bridge.openUrl('https://example.com/privacy-policy');
+
+  Future<void> deleteMyData() async {
+    await unpairDevice();
+    await clearLog();
   }
 
   Future<TestSendResult> sendTest({

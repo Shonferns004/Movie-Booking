@@ -12,6 +12,7 @@ class ObserverConfig {
     this.paired = false,
     this.deviceId = '',
     this.deviceMerchantId = '',
+    this.consentAccepted = false,
   });
 
   /// Gateway origin, e.g. `https://movie-booking-nvmq.onrender.com/youpi`.
@@ -44,6 +45,7 @@ class ObserverConfig {
 
   /// Merchant the device is bound to; the gateway uses it to attribute credits.
   final String deviceMerchantId;
+  final bool consentAccepted;
 
   factory ObserverConfig.fromJson(Map<String, dynamic> json) {
     return ObserverConfig(
@@ -56,6 +58,7 @@ class ObserverConfig {
       paired: (json['paired'] as bool?) ?? false,
       deviceId: (json['deviceId'] as String?) ?? '',
       deviceMerchantId: (json['deviceMerchantId'] as String?) ?? '',
+      consentAccepted: (json['consentAccepted'] as bool?) ?? false,
     );
   }
 
@@ -69,6 +72,7 @@ class ObserverConfig {
         'paired': paired,
         'deviceId': deviceId,
         'deviceMerchantId': deviceMerchantId,
+        'consentAccepted': consentAccepted,
       };
 
   bool get isConfigured =>
@@ -124,6 +128,7 @@ class ObserverConfig {
     bool? paired,
     String? deviceId,
     String? deviceMerchantId,
+    bool? consentAccepted,
   }) {
     return ObserverConfig(
       baseUrl: baseUrl ?? this.baseUrl,
@@ -135,6 +140,7 @@ class ObserverConfig {
       paired: paired ?? this.paired,
       deviceId: deviceId ?? this.deviceId,
       deviceMerchantId: deviceMerchantId ?? this.deviceMerchantId,
+      consentAccepted: consentAccepted ?? this.consentAccepted,
     );
   }
 }

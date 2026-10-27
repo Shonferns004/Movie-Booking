@@ -65,6 +65,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() => _dirty = true);
   }
 
+  Future<bool> _showConsentDialog(BuildContext context) async {
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Privacy & consent'),
+        content: SingleChildScrollView(
+          child: Text(
+            'This app reads bank SMS and notifications on this phone to verify '
+            'UPI payments for your theater. Only the amount, UPI reference, and '
+            'sender VPA are parsed and sent to your gateway. Raw messages are '
+            'stored locally for up to 30 days and then deleted automatically.\n\n'
+            'By continuing, you consent to this data collection and confirm you '
+            'have the right to process these messages on this device.',
+            style: Theme.of(dialogContext).textTheme.bodySmall?.copyWith(height: 1.5),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Decline'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('I agree'),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
+
   Future<void> _save() async {
     final form = _formKey.currentState;
     if (form == null || !form.validate()) return;
@@ -151,6 +183,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _pairDevice() async {
     final state = AppScope.of(context);
+    if (!state.config.consentAccepted) {
+      final accepted = await _showConsentDialog(context);
+      if (!accepted) return;
+      await state.setConsent(true);
+    }
     final baseUrl = _normalizeUrl(_url.text);
     if (baseUrl.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -525,17 +562,87 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
             ),
-            if (state.platformError != null) ...[
-              const SizedBox(height: 16),
-              AppCard(
-                borderColor: AppColors.danger.withValues(alpha: 0.5),
-                child: Text(
-                  state.platformError!,
-                  style: const TextStyle(
-                      fontSize: 12.5, color: AppColors.danger),
-                ),
+            const SizedBox(height: 24),
+            SectionLabel('Privacy'),
+            AppCard(
+              padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
+              child: Column(
+                children: [
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.privacy_tip_rounded,
+                        size: 19, color: AppColors.accent2),
+                    title: const Text(
+                      'Privacy policy',
+                      style: TextStyle(fontSize: 13.5, color: AppColors.text),
+                    ),
+                    subtitle: Text(
+                      'How payment observations are collected and stored',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    trailing: const Icon(Icons.open_in_new_rounded,
+                        size: 18, color: AppColors.faint),
+                    onTap: () => AppScope.of(context).openPrivacyPolicy(),
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.delete_forever_rounded,
+                        size: 19, color: AppColors.danger),
+                    title: const Text(
+                      'Delete my data',
+                      style: TextStyle(fontSize: 13.5, color: AppColors.danger),
+                    ),
+                    subtitle: Text(
+                      'Unpair this phone and clear all local observation logs',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    onTap: () async {
+                      final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (dialogContext) => AlertDialog(
+                          title: const Text('Delete my data?'),
+                          content: const Text(
+                            'This will unpair the phone and clear all local '
+                            'observation history. The gateway may still retain '
+                            'server-side records until its retention window.',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () =>
+                                  Navigator.pop(dialogContext, false),
+                              child: const Text('Cancel'),
+                            ),
+                            FilledButton(
+                              onPressed: () =>
+                                  Navigator.pop(dialogContext, true),
+                              child: const Text('Delete'),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirmed != true) return;
+                      await AppScope.of(context).deleteMyData();
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Local data deleted')),
+                      );
+                    },
+                  ),
+                ],
               ),
-            ],
+            ),
+              if (state.platformError != null) ...[
+                const SizedBox(height: 16),
+                AppCard(
+                  borderColor: AppColors.danger.withValues(alpha: 0.5),
+                  child: Text(
+                    state.platformError!,
+                    style: const TextStyle(
+                        fontSize: 12.5, color: AppColors.danger),
+                  ),
+                ),
+              ],
               const SizedBox(height: 16),
               _SyncBadge(),
             ],

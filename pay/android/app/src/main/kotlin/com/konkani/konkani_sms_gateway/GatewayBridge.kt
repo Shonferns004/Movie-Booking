@@ -82,6 +82,32 @@ class GatewayBridge(
                 result.success(null)
             }
 
+            "setConsent" -> {
+                val accepted = (call.arguments as? Map<*, *>)?.get("accepted") as? Boolean
+                if (accepted == null) {
+                    result.error("BAD_ARGS", "accepted is required", null)
+                    return
+                }
+                store.setConsent(accepted)
+                result.success(buildState())
+            }
+
+            "openUrl" -> {
+                val url = (call.arguments as? Map<*, *>)?.get("url") as? String
+                if (url.isNullOrBlank()) {
+                    result.error("BAD_ARGS", "url is required", null)
+                    return
+                }
+                try {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    activity.startActivity(intent)
+                    result.success(null)
+                } catch (e: Exception) {
+                    result.error("OPEN_URL_FAILED", e.message, null)
+                }
+            }
+
             "parsePreview" -> {
                 val text = (call.arguments as? Map<*, *>)?.get("text") as? String
                 val parsed = BankSmsParser.parse(text)
@@ -417,6 +443,7 @@ class GatewayBridge(
                 "paired" to config.isPaired,
                 "deviceId" to config.deviceId,
                 "deviceMerchantId" to config.deviceMerchantId,
+                "consentAccepted" to config.consentAccepted,
             ),
             "stats" to store.stats(),
             "events" to store.events().take(LOG_PAGE).map(::eventToMap),
