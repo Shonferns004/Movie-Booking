@@ -34,7 +34,7 @@ export async function createHold({ showId, seatIds, userId, sessionRef, guestEma
         const expired = !hold || hold.status !== 'active' || new Date(hold.expires_at) <= now;
         if (!expired) throw conflict('seat currently held');
         // reclaim: mark hold released
-        if (hold) await client.query("UPDATE seat_holds SET status='released', released_at=now() WHERE id=$1", [ss.hold_id]);
+        if (hold) await client.query("UPDATE seat_holds SET status='released', released_at=now() WHERE id=$1 AND status='active'", [ss.hold_id]);
       }
     }
 

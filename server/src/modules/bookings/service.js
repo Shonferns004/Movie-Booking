@@ -12,6 +12,44 @@ export async function createBooking({ holdId, userId, sessionRef, contactEmail, 
     if (hold.owner_user_id && hold.owner_user_id !== userId) throw forbidden('not owner');
     if (!hold.owner_user_id && hold.session_ref && hold.session_ref !== sessionRef) throw forbidden('not owner');
 
+    // Serialize booking creation per hold to prevent duplicates.
+    await client.query('SELECT pg_advisory_xact_lock(hashtext($1::text))', [holdId]);
+
+    // Idempotent: return existing booking if one was already created.
+    const { rows: existingBookings } = await client.query('SELECT * FROM bookings WHERE hold_id=$1', [holdId]);
+    if (existingBookings.length) return existingBookings[0];
+    await client.query('SELECT * FROM shows WHERE id=$1 FOR SHARE', [hold.show_id]);
+
+    // Verify the seats are still held by this hold.
+    const heldSeats = await client.query('SELECT id FROM show_seats WHERE hold_id=$1 FOR UPDATE', [holdId]);
+    if (!heldSeats.rows.length) throw conflict('hold no longer holds any seats');
+
+    const items = await client.query(
+      `SELECT shi.show_seat_id, ss.price_minor, ss.currency, ss.seat_id
+       FROM seat_hold_items shi JOIN show_seats ss ON ss.id=shi.show_seat_id
+       WHERE shi.hold_id=$1`, [holdId]);
+    if (!items.rows.length) throw badRequest('empty hold');
+
+    // Ensure all hold items are still held by this hold.
+    for (const it of items.rows) {
+      if (!heldSeats.rows.some((hs) => hs.id === it.show_seat_id)) {
+        throw conflict('seat no longer held by this hold');
+      }
+    }
+
+    const showId = hold.show_id;
+    const show = await client.query('SELECT * FROM shows WHERE id=$1', [showId]);
+    if (!show.rows.length) throw notFound('show not found');""", "oldString">
+export async function createBooking({ holdId, userId, sessionRef, contactEmail, contactMobile }) {
+  return withTransaction(async (client) => {
+    const { rows: holds } = await client.query('SELECT * FROM seat_holds WHERE id=$1 FOR UPDATE', [holdId]);
+    if (!holds.length) throw notFound('hold not found');
+    const hold = holds[0];
+    if (hold.status !== 'active') throw badRequest('hold not active');
+    if (new Date(hold.expires_at) <= new Date()) throw badRequest('hold expired');
+    if (hold.owner_user_id && hold.owner_user_id !== userId) throw forbidden('not owner');
+    if (!hold.owner_user_id && hold.session_ref && hold.session_ref !== sessionRef) throw forbidden('not owner');
+
     const items = await client.query(
       `SELECT shi.show_seat_id, ss.price_minor, ss.currency, ss.seat_id
        FROM seat_hold_items shi JOIN show_seats ss ON ss.id=shi.show_seat_id

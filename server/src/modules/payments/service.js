@@ -12,8 +12,10 @@ async function confirmBookingAfterPayment(client, bookingId, paymentId) {
   if (booking.status === 'confirmed') return booking; // idempotent
   if (booking.status !== 'pending') throw conflict(`booking not payable: ${booking.status}`);
 
-  // hold
-  const hold = booking.hold_id ? (await client.query('SELECT * FROM seat_holds WHERE id=$1', [booking.hold_id])).rows[0] : null;
+  // lock hold to prevent expiry while confirming
+  if (booking.hold_id) {
+    await client.query('SELECT * FROM seat_holds WHERE id=$1 FOR UPDATE', [booking.hold_id]);
+  }
 
   // check seats availability
   const seatRows = await client.query('SELECT * FROM show_seats WHERE booking_id=$1 OR hold_id=$2', [bookingId, booking.hold_id]);

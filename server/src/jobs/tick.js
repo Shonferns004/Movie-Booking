@@ -14,7 +14,12 @@ export async function expireHolds() {
   try {
     await client.query('BEGIN');
     const { rows } = await client.query(
-      `SELECT id FROM seat_holds WHERE status='active' AND expires_at <= now() FOR UPDATE SKIP LOCKED`);
+      `SELECT id FROM seat_holds
+       WHERE status='active' AND expires_at <= now()
+         AND NOT EXISTS (
+           SELECT 1 FROM bookings WHERE hold_id = seat_holds.id AND status IN ('pending','confirmed')
+         )
+       FOR UPDATE SKIP LOCKED`);
     for (const r of rows) {
       await client.query("UPDATE seat_holds SET status='expired', released_at=now() WHERE id=$1", [r.id]);
       await client.query("UPDATE show_seats SET status='available', hold_id=NULL, booking_id=NULL, updated_at=now() WHERE hold_id=$1", [r.id]);

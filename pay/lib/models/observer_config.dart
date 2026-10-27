@@ -14,7 +14,7 @@ class ObserverConfig {
     this.deviceMerchantId = '',
   });
 
-  /// Gateway origin, e.g. `http://192.168.0.151:4000/youpi`.
+  /// Gateway origin, e.g. `https://movie-booking-nvmq.onrender.com/youpi`.
   final String baseUrl;
 
   /// Observer bearer token (`data/.secrets/observer_api_token`). Optional when
