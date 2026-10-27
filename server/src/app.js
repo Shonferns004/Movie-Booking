@@ -14,6 +14,7 @@ import staffRoutes from './modules/staff/routes.js';
 import adminRoutes from './modules/admin/routes.js';
 import { errorMiddleware } from './middleware/error.js';
 import { youpiGatewayMiddleware } from './payments/youpi/mount.js';
+import { env } from './config/env.js';
 import internalRoutes from './modules/internal/routes.js';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -27,7 +28,61 @@ app.use(morgan('dev'));
 // parser: it streams its own request bodies and ships its own CSP/CORS headers.
 app.use(youpiGatewayMiddleware);
 app.use(helmet());
-app.use(cors({ origin: true, credentials: true }));
+
+// Restrict CORS to known origins instead of reflecting any origin.
+const allowedOrigins = new Set(
+  [
+    env.APP_BASE_URL,
+    env.YOUPI_FRAME_ANCESTORS,
+    'http://localhost:5173',
+    'http://localhost:5175',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:5175',
+  ]
+    .flatMap((v) => String(v || '').split(','))
+    .map((s) => s.trim().replace(/\/+$/, ''))
+    .filter(Boolean)
+);
+
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.has(origin)) return callback(null, true);
+    return callback(new Error('CORS origin not allowed'));
+  },
+  credentials: true,
+}));
+
+// Simple in-memory rate limiter for auth and payment endpoints.
+const rateLimitBuckets = new Map();
+function rateLimit({ windowMs, max, keyPrefix }) {
+  return (req, res, next) => {
+    const ip = req.ip || req.connection?.remoteAddress || 'unknown';
+    const key = keyPrefix + ':' + ip;
+    const now = Date.now();
+    let bucket = rateLimitBuckets.get(key);
+    if (!bucket || now - bucket.start > windowMs) {
+      bucket = { start: now, count: 0 };
+      rateLimitBuckets.set(key, bucket);
+    }
+    bucket.count += 1;
+    if (bucket.count > max) {
+      return res.status(429).json({ error: 'Too many requests. Please try again later.' });
+    }
+    next();
+  };
+}
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, bucket] of rateLimitBuckets) {
+    if (now - bucket.start > 10 * 60 * 1000) rateLimitBuckets.delete(key);
+  }
+}, 60 * 1000).unref();
+
+app.use('/api/v1/auth', rateLimit({ windowMs: 15 * 60 * 1000, max: 20, keyPrefix: 'auth' }));
+app.use('/api/v1/payments', rateLimit({ windowMs: 60 * 1000, max: 30, keyPrefix: 'payments' }));
+
 app.use(express.json({ limit: '10mb', verify: (req, res, buf) => { req.rawBody = buf; } }));
 
 app.get('/health', (req, res) => res.json({ ok: true }));

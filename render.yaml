@@ -124,3 +124,5 @@ services:
         generateValue: true
       - key: INTERNAL_SERVICE_TOKEN
         generateValue: true
+      - key: ENCRYPTION_MASTER_KEY
+        generateValue: true
