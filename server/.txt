@@ -1,0 +1,30 @@
+Both are used in the server code, but for different things:
+WORKER_POLL_INTERVAL_MS
+Used in:
+server/src/worker.js — line 14
+await new Promise((r) => setTimeout(r, env.WORKER_POLL_INTERVAL_MS));
+It controls how often the long-running background worker runs maintenance:
+- releases expired seat holds
+- processes the email outbox
+Default: 5000 ms = 5 seconds
+This only applies when you run the worker with npm run worker. On Vercel, worker.js does not run — you use the cron/tick endpoint instead. So on Vercel this variable is effectively unused.
+HOLD_EXPIRY_SECONDS
+Used in:
+server/src/modules/inventory/service.js — line 48
+const expiresAt = new Date(now.getTime() + env.HOLD_EXPIRY_SECONDS * 1000);
+It sets how long a seat hold stays active before it expires.
+Example:
+- HOLD_EXPIRY_SECONDS=600 → seat hold expires after 10 minutes
+- HOLD_EXPIRY_SECONDS=300 → 5 minutes
+The actual release happens in server/src/jobs/tick.js:
+SELECT id FROM seat_holds
+WHERE status='active' AND expires_at <= now()
+That cleanup runs via the worker loop or the Vercel cron tick endpoint.
+Defaults
+Both have defaults in server/src/config/env.js:
+WORKER_POLL_INTERVAL_MS: Number(process.env.WORKER_POLL_INTERVAL_MS || 5000),
+HOLD_EXPIRY_SECONDS: Number(process.env.HOLD_EXPIRY_SECONDS || 600),
+So if you omit them from .env:
+- worker polls every 5 seconds
+- seat holds expire after 10 minutes
+For your current setup, omitting them is fine unless you want to change those timings.
