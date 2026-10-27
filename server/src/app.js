@@ -27,7 +27,21 @@ app.use(morgan('dev'));
 // The embedded YouPI PG gateway is mounted before the security headers and the body
 // parser: it streams its own request bodies and ships its own CSP/CORS headers.
 app.use(youpiGatewayMiddleware);
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", 'data:', 'https:'],
+      connectSrc: ["'self'", ...allowedOrigins],
+      frameAncestors: ["'none'"],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+}));
 
 // Restrict CORS to known origins instead of reflecting any origin.
 const allowedOrigins = new Set(

@@ -19,7 +19,15 @@ const uploadDir = path.resolve(process.cwd(), 'uploads');
 // staged in the temp dir and pushed to Supabase Storage/Cloudinary instead of disk.
 const isEphemeralFs = !!process.env.VERCEL || !!process.env.AWS_LAMBDA_FUNCTION_NAME;
 if (!isEphemeralFs && !fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-const upload = multer({ dest: isEphemeralFs ? os.tmpdir() : uploadDir });
+const upload = multer({
+  dest: isEphemeralFs ? os.tmpdir() : uploadDir,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+  fileFilter: (req, file, cb) => {
+    const allowed = /^image\/(jpeg|png|gif|webp)$/i;
+    if (allowed.test(file.mimetype)) cb(null, true);
+    else cb(new Error('Only image files (jpeg, png, gif, webp) are allowed'));
+  },
+});
 
 if (process.env.CLOUDINARY_CLOUD_NAME) {
   cloudinary.config({
