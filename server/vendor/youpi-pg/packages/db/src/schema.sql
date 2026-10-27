@@ -4,6 +4,9 @@
 -- Lives in the same database as the movie booking tables, so the one table
 -- whose name collides (`audit_logs`) is prefixed with `youpi_`.
 
+CREATE SCHEMA IF NOT EXISTS youpi;
+SET search_path TO youpi, public;
+
 -- 1. Merchants Table
 CREATE TABLE IF NOT EXISTS merchants (
     id TEXT PRIMARY KEY,
