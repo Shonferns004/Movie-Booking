@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/auth_service.dart';
+import '../widgets/skeleton.dart';
 
 /// Restores the saved session before showing the login screen, so a restart
 /// does not force the user to sign in again.
@@ -52,13 +53,10 @@ class _AuthGateState extends State<AuthGate> {
                 ),
               ),
               SizedBox(height: 28),
-              SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Color(0xFFD96B43),
-                ),
+              const SizedBox(
+                width: 110,
+                height: 3,
+                child: KkLoader(color: Color(0xFFD96B43)),
               ),
             ],
           ),

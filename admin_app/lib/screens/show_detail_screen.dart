@@ -1312,10 +1312,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
                     ? const SizedBox(
                         width: 15,
                         height: 15,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Color(0xFFF5EFEB),
-                        ),
+                        child: KkLoader(color: Color(0xFFF5EFEB), width: 40, height: 3),
                       )
                     : Text(
                         'SAVE CHANGES',
@@ -1377,11 +1374,12 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
                       : _confirmDelete,
                   icon: _deletingShow
                       ? const SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
+                          width: 34,
+                          height: 3,
+                          child: KkLoader(
                             color: Color(0xFFD96B43),
+                            width: 34,
+                            height: 3,
                           ),
                         )
                       : const Icon(Icons.delete_outline, size: 15),

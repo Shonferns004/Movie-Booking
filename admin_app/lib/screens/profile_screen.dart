@@ -15,6 +15,7 @@ class ProfileScreen extends StatefulWidget {
     required this.token,
     this.embedded = false,
     this.onSignOut,
+    this.shows = const [],
   });
 
   final String token;
@@ -24,6 +25,9 @@ class ProfileScreen extends StatefulWidget {
   final bool embedded;
 
   final VoidCallback? onSignOut;
+
+  /// Shows used to label the per-movie scan counts.
+  final List<dynamic> shows;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -65,6 +69,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return parts.first[0] + parts.first.substring(1).toLowerCase();
   }
 
+  /// Scan counts grouped by the show each scan was recorded against.
+  List<Map<String, dynamic>> get _perMovie {
+    final counts = <String, int>{};
+    for (final s in _scans) {
+      final id = s['show_id']?.toString() ?? '';
+      if (id.isEmpty) continue;
+      counts[id] = (counts[id] ?? 0) + 1;
+    }
+    final rows = <Map<String, dynamic>>[];
+    counts.forEach((showId, count) {
+      rows.add({'showId': showId, 'title': _showTitle(showId), 'count': count});
+    });
+    rows.sort((a, b) => (b['count'] as int).compareTo(a['count'] as int));
+    return rows;
+  }
+
+  String _showTitle(String showId) {
+    for (final s in widget.shows) {
+      if (s['id']?.toString() == showId) {
+        final t = s['movie_title'] ?? s['title'];
+        if (t != null && t.toString().isNotEmpty) return t.toString();
+      }
+    }
+    return 'Show ${showId.substring(0, showId.length.clamp(0, 8))}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final body = _loading ? _buildSkeleton() : _buildContent(context);
@@ -92,6 +122,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _buildIdentityCard(),
         const SizedBox(height: 16),
         _buildTotalCard(),
+        const SizedBox(height: 16),
+        _buildPerMovieCard(),
         const SizedBox(height: 16),
         _buildRecentScans(),
         const SizedBox(height: 16),
@@ -232,6 +264,96 @@ class _ProfileScreenState extends State<ProfileScreen> {
               color: KkSurface.onSurface,
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPerMovieCard() {
+    final rows = _perMovie;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: KkSurface.containerLow,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'SCANNED PER MOVIE',
+                style: GoogleFonts.poppins(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.8,
+                  color: KkSurface.onSurfaceVariant,
+                ),
+              ),
+              const Icon(LucideIcons.film,
+                  size: 18, color: KkSurface.onSurfaceVariant),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (rows.isEmpty)
+            Text(
+              'No movie scans yet',
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                color: KkSurface.onSurfaceVariant,
+              ),
+            )
+          else
+            ...rows.map((r) {
+              final count = r['count'] as int;
+              final max = (rows.first['count'] as int).clamp(1, 1 << 30);
+              final pct = (count / max).clamp(0.0, 1.0);
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            r['title'] as String,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.poppins(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: KkSurface.onSurface,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '$count',
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: KkSurface.accent,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(3),
+                      child: LinearProgressIndicator(
+                        value: pct,
+                        minHeight: 5,
+                        backgroundColor: KkSurface.containerHigh,
+                        valueColor: const AlwaysStoppedAnimation(KkSurface.accent),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
         ],
       ),
     );

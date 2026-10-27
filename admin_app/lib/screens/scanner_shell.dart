@@ -248,7 +248,7 @@ class _ScannerShellState extends State<ScannerShell> {
     if (widget.token == null) {
       return const Scaffold(
         backgroundColor: KkSurface.bg,
-        body: Center(child: CircularProgressIndicator(color: KkSurface.accent)),
+        body: Center(child: KkLoader(color: KkSurface.accent)),
       );
     }
 
@@ -265,6 +265,7 @@ class _ScannerShellState extends State<ScannerShell> {
               token: widget.token!,
               embedded: true,
               onSignOut: _signOut,
+              shows: widget.shows,
             ),
           ],
         ),
@@ -427,47 +428,9 @@ class _ScannerShellState extends State<ScannerShell> {
   Widget _buildScanButton() {
     return Container(
       constraints: const BoxConstraints(minHeight: 300),
-      padding: const EdgeInsets.symmetric(vertical: 48),
+      padding: const EdgeInsets.symmetric(vertical: 40),
       alignment: Alignment.center,
-      child: GestureDetector(
-        onTap: _openScanner,
-        child: Container(
-          width: 160,
-          height: 160,
-          decoration: BoxDecoration(
-            color: KkSurface.accent,
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: KkSurface.accentBorder.withValues(alpha: 0.3),
-              width: 4,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: KkSurface.accent.withValues(alpha: 0.2),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.center_focus_strong,
-                  size: 36, color: Color(0xFF1A1A1A)),
-              const SizedBox(height: 6),
-              Text(
-                'START SCANNING',
-                style: GoogleFonts.poppins(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.8,
-                  color: const Color(0xFF1A1A1A),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+      child: _ScanButton(onTap: _openScanner),
     );
   }
 
@@ -638,6 +601,88 @@ class _ScannerShellState extends State<ScannerShell> {
               item(LucideIcons.house, 'Home', 0),
               item(LucideIcons.circleUser, 'Profile', 1),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Big round "start scanning" button with press feedback.
+class _ScanButton extends StatefulWidget {
+  const _ScanButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  State<_ScanButton> createState() => _ScanButtonState();
+}
+
+class _ScanButtonState extends State<_ScanButton> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: 'Start scanning',
+      child: GestureDetector(
+        onTapDown: (_) => setState(() => _pressed = true),
+        onTapUp: (_) => setState(() => _pressed = false),
+        onTapCancel: () => setState(() => _pressed = false),
+        onTap: widget.onTap,
+        child: AnimatedScale(
+          scale: _pressed ? 0.94 : 1,
+          duration: const Duration(milliseconds: 120),
+          curve: Curves.easeOut,
+          child: Container(
+            width: 164,
+            height: 164,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFFE07148), Color(0xFFD96B43)],
+              ),
+              border: Border.all(
+                color: KkSurface.accentBorder.withValues(alpha: 0.45),
+                width: 3,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: KkSurface.accent.withValues(alpha: 0.28),
+                  blurRadius: 24,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(LucideIcons.scanQrCode,
+                    size: 38, color: Color(0xFF14100E)),
+                const SizedBox(height: 8),
+                Text(
+                  'START',
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.4,
+                    color: const Color(0xFF14100E),
+                  ),
+                ),
+                Text(
+                  'SCANNING',
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.4,
+                    color: const Color(0xFF14100E),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -830,26 +875,29 @@ class _ManualEntrySheetState extends State<_ManualEntrySheet> {
               ),
             ),
             const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: _IosSheetButton(
-                    label: 'Cancel',
-                    filled: false,
-                    icon: LucideIcons.x,
-                    onTap: () => Navigator.pop(context),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _IosSheetButton(
+                      label: 'Cancel',
+                      filled: false,
+                      icon: LucideIcons.x,
+                      onTap: () => Navigator.pop(context),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _IosSheetButton(
-                    label: 'Verify',
-                    filled: true,
-                    icon: LucideIcons.check,
-                    onTap: _submit,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _IosSheetButton(
+                      label: 'Verify',
+                      filled: true,
+                      icon: LucideIcons.check,
+                      onTap: _submit,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
             const SizedBox(height: 12),
           ],

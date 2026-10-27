@@ -91,6 +91,83 @@ class SkeletonCircle extends StatelessWidget {
   }
 }
 
+/// Non-circular indeterminate loader (a sliding bar).
+///
+/// The circular `CircularProgressIndicator` is avoided on purpose: the app
+/// uses a rounded "pill" visual language and a sweeping bar matches it.
+class KkLoader extends StatefulWidget {
+  const KkLoader({
+    super.key,
+    this.width = 120,
+    this.height = 3,
+    this.color = _skeletonBase,
+  });
+
+  final double width;
+  final double height;
+  final Color color;
+
+  @override
+  State<KkLoader> createState() => _KkLoaderState();
+}
+
+class _KkLoaderState extends State<KkLoader>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1100),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: widget.width,
+      height: widget.height,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(widget.height / 2),
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, _) {
+            final t = _controller.value;
+            // Slide a short segment from left to right and back.
+            final x = (t * 2) % 2;
+            final offset = x <= 1 ? x : 2 - x;
+            return Stack(
+              children: [
+                Container(color: widget.color),
+                FractionallySizedBox(
+                  widthFactor: 0.4,
+                  child: Align(
+                    alignment: Alignment(-1 + (2 * offset), 0),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: widget.color,
+                        borderRadius: BorderRadius.circular(widget.height / 2),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
 /// Card shell used by the list/screen skeletons.
 class SkeletonCard extends StatelessWidget {
   final Widget child;

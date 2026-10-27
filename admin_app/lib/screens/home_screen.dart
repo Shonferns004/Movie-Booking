@@ -503,7 +503,7 @@ class _HomeScreenState extends State<HomeScreen> {
         return const Scaffold(
           backgroundColor: KkSurface.bg,
           body: Center(
-            child: CircularProgressIndicator(color: KkSurface.accent),
+            child: KkLoader(color: KkSurface.accent),
           ),
         );
       }
