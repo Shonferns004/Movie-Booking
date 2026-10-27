@@ -19,12 +19,6 @@ services:
     startCommand: npm start
     healthCheckPath: /health
     autoDeploy: true
-    disk:
-      name: youpi-data
-      # Must stay in sync with the path hardcoded in the vendored gateway:
-      # youpi_pg.sqlite, data/.secrets and the WhatsApp session live here.
-      mountPath: /opt/render/project/src/server/vendor/youpi-pg/data
-      sizeGB: 1
     envVars:
       # Node 22.13+ is the first line where node:sqlite (used by the vendored
       # gateway's SQLite fallback) no longer needs a CLI flag. Pin 24 LTS.
