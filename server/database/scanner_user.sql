@@ -1,6 +1,11 @@
 -- Create a scanner user with username/password: 123456 / 123456
 -- Run this in Supabase SQL Editor.
 
+-- Clean up any previous attempt with a different username
+DELETE FROM user_roles WHERE user_id IN (SELECT id FROM users WHERE email = 'scann');
+DELETE FROM users WHERE email = 'scann';
+
+-- Create the scanner user
 INSERT INTO users (id, email, password_hash, display_name, status)
 VALUES (
   gen_random_uuid(),
