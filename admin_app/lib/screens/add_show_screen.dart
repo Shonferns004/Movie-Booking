@@ -20,7 +20,7 @@ class _AddShowSheetState extends State<AddShowSheet> {
   String? _token;
   final _titleCtrl = TextEditingController();
   final _trailerCtrl = TextEditingController();
-  final _dateCtrl = TextEditingController(text: '31-10-2026');
+  final _dateCtrl = TextEditingController();
   final _timeCtrl = TextEditingController(text: '09:30 PM');
 
   XFile? _pickedThumb;
@@ -38,6 +38,9 @@ class _AddShowSheetState extends State<AddShowSheet> {
   @override
   void initState() {
     super.initState();
+    final now = DateTime.now();
+    _dateCtrl.text =
+        '${now.day.toString().padLeft(2, '0')}-${now.month.toString().padLeft(2, '0')}-${now.year}';
     _token = widget.token;
     _init();
   }

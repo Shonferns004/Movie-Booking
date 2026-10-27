@@ -2392,7 +2392,9 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
       }
     }
 
-    final shouldSchedulePublish = _movieStatus == 'draft' && prices.isNotEmpty;
+    final shouldSchedulePublish =
+        (_movieStatus == 'draft' || _movieStatus == 'pending') &&
+        prices.isNotEmpty;
 
     final originalStart = _parseShowTimestamp(_show?['starts_at']);
     final originalEnd = _parseShowTimestamp(_show?['ends_at']);
