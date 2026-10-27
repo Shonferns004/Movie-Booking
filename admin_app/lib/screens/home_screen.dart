@@ -49,6 +49,8 @@ class _HomeScreenState extends State<HomeScreen> {
   int _scannedCount = 0;
   bool _loading = true;
 
+  int _scannerTab = 0;
+
   @override
   void initState() {
     super.initState();
@@ -502,15 +504,6 @@ class _HomeScreenState extends State<HomeScreen> {
           title: const Text('Ticket Scanner'),
           actions: [
             IconButton(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ProfileScreen(token: _token!),
-                ),
-              ),
-              icon: const Icon(Icons.person),
-            ),
-            IconButton(
               onPressed: () => _logout(context),
               icon: const Icon(Icons.logout),
             ),
@@ -598,6 +591,52 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
+        ),
+        bottomNavigationBar: BottomNavigationBar(
+          currentIndex: 0,
+          onTap: (i) {
+            if (i == 1) {
+              if (_selectedShowId == null) {
+                AppToast.show(
+                  context,
+                  'Select a show first.',
+                  type: AppToastType.error,
+                );
+                return;
+              }
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ScannerScreen(
+                    showId: _selectedShowId,
+                    token: _token,
+                    onValidated: (_) => setState(() => _scannedCount++),
+                  ),
+                ),
+              );
+            } else if (i == 2) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ProfileScreen(token: _token!),
+                ),
+              );
+            }
+          },
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home),
+              label: 'Home',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.qr_code_scanner),
+              label: 'Scanner',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person),
+              label: 'Profile',
+            ),
+          ],
         ),
       );
     }
