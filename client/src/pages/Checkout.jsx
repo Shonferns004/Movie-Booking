@@ -46,7 +46,12 @@ export default function Checkout() {
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
 
-  const [hold] = useState(() => {
+  const [upiUri, setUpiUri] = useState('');
+  const [upiApps] = useState([
+    { name: 'Google Pay', pkg: 'com.google.android.apps.nbu.paisa.user', icon: 'gpay' },
+    { name: 'PhonePe', pkg: 'com.phonepe.app', icon: 'phonepe' },
+    { name: 'Paytm', pkg: 'net.one97.paytm', icon: 'paytm' },
+  ]);
     if (location.state) return location.state;
     try {
       return JSON.parse(localStorage.getItem('currentHold') || 'null');
@@ -102,7 +107,16 @@ export default function Checkout() {
         },
       });
       const order = orderResponse.data;
-
+      if (order.upiId) {
+        const params = new URLSearchParams({
+          pa: order.upiId,
+          pn: order.payeeName || 'Konkani Samudai',
+          am: order.amount,
+          cu: order.currency || 'INR',
+          tn: order.orderId,
+        });
+        setUpiUri(`upi://pay?${params.toString()}`);
+      }
       const Youpi = await loadYoupiScript(order.scriptUrl, order.merchantKey, {
         apiUrl: order.apiUrl,
         portalUrl: order.portalUrl,
@@ -306,7 +320,33 @@ export default function Checkout() {
                   <>Pay ₹{total.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}<span className="material-symbols-outlined text-lg transition-transform group-hover:translate-x-1">arrow_forward</span></>
                 )}
               </button>
-              <p className="mt-4 flex items-center justify-center gap-1.5 text-center text-[11px] text-[#EFEBE0]/40">
+              {upiUri && (
+                <div className="mt-4 rounded-xl border border-[#EFEBE0]/10 bg-[#071E23]/40 p-4">
+                  <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-[#EFEBE0]/55">Or pay directly with a UPI app</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {upiApps.map((app) => (
+                      <button
+                        key={app.pkg}
+                        type="button"
+                        onClick={() => {
+                          const intentUri = `intent://pay?${upiUri.split('?')[1]}#Intent;scheme=upi;package=${app.pkg};end`;
+                          window.location.href = /Android/i.test(navigator.userAgent) ? intentUri : upiUri;
+                        }}
+                        className="flex flex-col items-center gap-1 rounded-xl border border-[#EFEBE0]/10 bg-[#0A2A31]/60 px-2 py-3 text-xs font-medium text-[#EFEBE0]/80 transition hover:border-[#F4B63F]/40 hover:bg-[#F4B63F]/[0.06]"
+                      >
+                        <span className="text-sm font-bold">{app.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { window.location.href = upiUri; }}
+                    className="mt-2 w-full rounded-lg border border-[#EFEBE0]/10 bg-transparent px-3 py-2 text-xs font-medium text-[#EFEBE0]/60 transition hover:text-[#F4B63F]"
+                  >
+                    Open any UPI app
+                  </button>
+                </div>
+              )}
                 <span className="material-symbols-outlined text-sm">shield_lock</span>
                 Secure payment · Your ticket is confirmed after payment verification
               </p>

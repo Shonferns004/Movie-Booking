@@ -273,6 +273,8 @@ export async function createYoupiOrder({ bookingReference, customer, publicBase 
     scriptUrl: `${base}/youpi.js?v=2`,
     apiUrl: `${base}/youpi`,
     portalUrl: base,
+    upiId: env.YOUPI_UPI_ID || '',
+    payeeName: env.YOUPI_PAYEE_NAME || 'Konkani Samudai',
     // The SDK sends this as X-Merchant-Id, so it must be the merchant id, not the secret.
     merchantKey: env.YOUPI_MERCHANT_ID,
     bookingReference: booking.booking_reference,
