@@ -41,7 +41,7 @@ async function confirmBookingAfterPayment(client, bookingId, paymentId) {
     [bookingId, showSeatIds]);
 
   // hold released
-  if (hold) await client.query("UPDATE seat_holds SET status='converted', released_at=now() WHERE id=$1", [booking.hold_id]);
+  if (booking.hold_id) await client.query("UPDATE seat_holds SET status='converted', released_at=now() WHERE id=$1", [booking.hold_id]);
 
   // booking confirmed
   await client.query("UPDATE bookings SET status='confirmed', updated_at=now() WHERE id=$1", [bookingId]);
@@ -103,7 +103,8 @@ export async function processPaymentEvent({ provider, providerEventId, eventType
   // idempotency
   if (providerEventId) {
     const existing = await pool.query('SELECT id, processing_status FROM payment_events WHERE provider=$1 AND provider_event_id=$2', [provider, providerEventId]);
-    if (existing.rows.length && existing.rows[0].processing_status === 'processed') {
+    if (existing.rows.length) {
+      // Already processed or in-flight; don't insert a duplicate.
       return { duplicate: true };
     }
   }
