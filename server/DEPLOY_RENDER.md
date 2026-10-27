@@ -151,11 +151,11 @@ the Flutter app from `pay/` (`flutter build apk --release`) until that file is r
 
 After verifying, update:
 
-| App | File | Change |
+| App | Where | Change |
 | --- | --- | --- |
-| Customer web | `client/.env` | `VITE_API_BASE_URL=https://<svc>.onrender.com` (then redeploy Vercel) |
+| Customer web | Vercel → Project → Settings → Environment Variables | `VITE_API_BASE_URL=https://<svc>.onrender.com`, then redeploy. `client/.env` is git-ignored, so editing it locally does not change the Vercel build. |
 | Admin Flutter app | `admin_app/lib/services/api_config.dart` | `https://<svc>.onrender.com/api/v1` |
-| Observer app | `pay/android/app/src/main/kotlin/.../ObserverStore.kt` | `DEFAULT_BASE_URL` → `https://<svc>.onrender.com/youpi` |
+| Observer app | Settings screen (or `ObserverStore.kt` for a fresh install) | Base URL `https://<svc>.onrender.com/youpi` |
 
 Then **delete or pause the old Vercel API project**. It only served the API (its `/`
 is a 404) and it cannot run the gateway; leaving it up just gives the client two
