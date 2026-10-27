@@ -5,6 +5,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../services/api.dart';
 import '../services/auth_service.dart';
 import '../widgets/app_toast.dart';
+import '../widgets/skeleton.dart';
 import 'profile_screen.dart';
 import 'scanner_screen.dart';
 
@@ -57,6 +58,7 @@ class _ScannerShellState extends State<ScannerShell> {
   int _tab = 0;
   List<dynamic> _activity = [];
   bool _busy = false;
+  bool _activityLoading = true;
 
   @override
   void initState() {
@@ -66,11 +68,21 @@ class _ScannerShellState extends State<ScannerShell> {
 
   Future<void> _loadActivity() async {
     final token = widget.token;
-    if (token == null || token.isEmpty) return;
+    if (token == null || token.isEmpty) {
+      if (mounted) setState(() => _activityLoading = false);
+      return;
+    }
     try {
       final list = await Api.getScanHistory(token);
-      if (mounted) setState(() => _activity = list);
-    } catch (_) {}
+      if (mounted) {
+        setState(() {
+          _activity = list;
+          _activityLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _activityLoading = false);
+    }
   }
 
   dynamic get _selectedShow {
@@ -460,6 +472,7 @@ class _ScannerShellState extends State<ScannerShell> {
   }
 
   Widget _buildActivityList() {
+    if (_activityLoading) return _buildActivitySkeleton();
     if (_activity.isEmpty) return const SizedBox.shrink();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -552,6 +565,34 @@ class _ScannerShellState extends State<ScannerShell> {
     );
   }
 
+  Widget _buildActivitySkeleton() {
+    return SkeletonPulse(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SkeletonBox(width: 120, height: 13),
+          const SizedBox(height: 10),
+          for (var i = 0; i < 3; i++)
+            Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: KkSurface.container,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Row(
+                children: [
+                  SkeletonCircle(size: 32),
+                  SizedBox(width: 12),
+                  SkeletonBox(width: 150, height: 12),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildNav() {
     Widget item(IconData icon, String label, int index) {
       final active = _tab == index;
@@ -628,30 +669,46 @@ class _IosSheetButton extends StatelessWidget {
     required this.label,
     required this.filled,
     required this.onTap,
+    this.icon,
   });
 
   final String label;
   final bool filled;
   final VoidCallback onTap;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
+    final bg = filled ? KkSurface.accent : KkSurface.containerHigh;
+    final fg = filled ? const Color(0xFF1A1A1A) : KkSurface.onSurface;
     return SizedBox(
-      height: 48,
+      height: 50,
       child: Material(
-        color: filled ? KkSurface.accent : KkSurface.containerHigh,
-        borderRadius: BorderRadius.circular(12),
+        color: bg,
+        borderRadius: BorderRadius.circular(14),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
+          splashColor: Colors.white.withValues(alpha: 0.12),
+          highlightColor: Colors.white.withValues(alpha: 0.06),
           child: Center(
-            child: Text(
-              label,
-              style: GoogleFonts.poppins(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: filled ? const Color(0xFF1A1A1A) : KkSurface.onSurface,
-              ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (icon != null) ...[
+                  Icon(icon, size: 18, color: fg),
+                  const SizedBox(width: 8),
+                ],
+                Text(
+                  label,
+                  style: GoogleFonts.poppins(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.2,
+                    color: fg,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -779,6 +836,7 @@ class _ManualEntrySheetState extends State<_ManualEntrySheet> {
                   child: _IosSheetButton(
                     label: 'Cancel',
                     filled: false,
+                    icon: LucideIcons.x,
                     onTap: () => Navigator.pop(context),
                   ),
                 ),
@@ -787,6 +845,7 @@ class _ManualEntrySheetState extends State<_ManualEntrySheet> {
                   child: _IosSheetButton(
                     label: 'Verify',
                     filled: true,
+                    icon: LucideIcons.check,
                     onTap: _submit,
                   ),
                 ),
