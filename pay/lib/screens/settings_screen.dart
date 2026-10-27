@@ -212,7 +212,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
     );
-    controller.dispose();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.dispose();
+    });
     if (!mounted || secret == null || secret.isEmpty) return;
 
     setState(() => _pairing = true);
