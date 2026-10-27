@@ -48,6 +48,7 @@ export default function Checkout() {
 
   const [currentOrder, setCurrentOrder] = useState(null);
   const [currentBooking, setCurrentBooking] = useState(null);
+  const [upiUri, setUpiUri] = useState('');
   const [upiApps] = useState([
     { name: 'Google Pay', pkg: 'com.google.android.apps.nbu.paisa.user', icon: 'gpay' },
     { name: 'PhonePe', pkg: 'com.phonepe.app', icon: 'phonepe' },
