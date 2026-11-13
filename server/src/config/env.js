@@ -1,81 +1,94 @@
 import dotenv from 'dotenv';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { IS_WORKERS } from './runtime.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
-dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
-dotenv.config();
+// On Workers there is no project .env: variables and secrets arrive as bindings and
+// are already on process.env. Reading dotenv there would only touch a stub filesystem,
+// and `import.meta.url` is not available in the bundle.
+if (!IS_WORKERS) {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+  dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
+  dotenv.config();
+}
 
+/**
+ * Configuration for the movie API.
+ *
+ * Only keys that code in this repository actually reads are listed; anything omitted
+ * here falls back to the default shown. Configuration for the embedded YouPI gateway -
+ * which runs on the Node host only - lives in `gateway-env.js`.
+ *
+ * On Workers every value comes from `vars`/secrets in wrangler.jsonc.
+ */
 export const env = {
+  // --- Database -------------------------------------------------------------
   DATABASE_URL: process.env.DATABASE_URL,
+
+  // --- API ------------------------------------------------------------------
   API_PORT: Number(process.env.PORT || process.env.API_PORT || 4000),
-  NODE_ENV: process.env.NODE_ENV || 'development',
-  JWT_SECRET: process.env.JWT_SECRET || 'dev-secret-change-me',
-  JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET || 'dev-refresh-secret-change-me',
-  JWT_ACCESS_TTL: process.env.JWT_ACCESS_TTL || '7d',
-  JWT_REFRESH_TTL: process.env.JWT_REFRESH_TTL || '30d',
-  APP_BASE_URL: process.env.APP_BASE_URL || 'http://localhost:5173',
-  PAYMENT_PROVIDER: process.env.PAYMENT_PROVIDER || 'mock',
-  // --- Embedded YouPI PG gateway (single-port mode) ---
-  YOUPI_ENABLED: process.env.YOUPI_ENABLED !== 'false',
-  // Public URL of a gateway that runs somewhere else (split deployment). When set the
-  // API proxies to it instead of booting a local one.
-  YOUPI_GATEWAY_URL: process.env.YOUPI_GATEWAY_URL || '',
-  YOUPI_GATEWAY_API_PORT: Number(process.env.YOUPI_GATEWAY_API_PORT || 6100),
-  YOUPI_GATEWAY_PORTAL_PORT: Number(process.env.YOUPI_GATEWAY_PORTAL_PORT || 7000),
-  YOUPI_CLIENT_API_BASE: process.env.YOUPI_CLIENT_API_BASE || '/youpi',
-  // Merchant admin panel (WhatsApp pairing, APK download) and the local SMS observer.
-  YOUPI_ADMIN_ENABLED: process.env.YOUPI_ADMIN_ENABLED !== 'false',
-  YOUPI_ADMIN_PORT: Number(process.env.YOUPI_ADMIN_PORT || 6001),
-  YOUPI_OBSERVER_ENABLED: process.env.YOUPI_OBSERVER_ENABLED === 'true',
-  YOUPI_OBSERVER_PORT: Number(process.env.YOUPI_OBSERVER_PORT || 6002),
-  YOUPI_GMAIL_PORT: Number(process.env.YOUPI_GMAIL_PORT || 6003),
-  // Google OAuth client for the Gmail observer (create one in Google Cloud Console).
-  GMAIL_CLIENT_ID: process.env.GMAIL_CLIENT_ID || '',
-  GMAIL_CLIENT_SECRET: process.env.GMAIL_CLIENT_SECRET || '',
-  GMAIL_REDIRECT_URI: process.env.GMAIL_REDIRECT_URI || '',
-  YOUPI_PUBLIC_BASE_URL: process.env.YOUPI_PUBLIC_BASE_URL || '',
-  // Database used by the embedded gateway only. The vendored gateway's SQL is
-  // SQLite-flavored (integer booleans, datetime('now')), so it persists to SQLite on
-  // the mounted disk by default. The movie API keeps using DATABASE_URL (Postgres).
-  // Set this to a postgres:// URL only if you have audited the gateway's PG queries.
-  YOUPI_DATABASE_URL: process.env.YOUPI_DATABASE_URL || process.env.DATABASE_URL || 'sqlite',
-  // Optional absolute path for the gateway SQLite file (defaults to
-  // vendor/youpi-pg/data/youpi_pg.sqlite, which is on the Render disk).
-  YOUPI_SQLITE_PATH: process.env.YOUPI_SQLITE_PATH || '',
-  YOUPI_WEBHOOK_URL: process.env.YOUPI_WEBHOOK_URL || '',
-  YOUPI_ALLOW_ADMIN: process.env.YOUPI_ALLOW_ADMIN === 'true',
-  YOUPI_ALLOW_DEV_TOOLS: process.env.YOUPI_ALLOW_DEV_TOOLS === 'true',
-  YOUPI_FRAME_ANCESTORS: process.env.YOUPI_FRAME_ANCESTORS || '',
-  YOUPI_UPI_ID: process.env.YOUPI_UPI_ID || '',
-  YOUPI_PAYEE_NAME: process.env.YOUPI_PAYEE_NAME || '',
-  // --- Gateway URL for server-to-server calls (through this server's own port) ---
-  YOUPI_API_URL: process.env.YOUPI_API_URL || `http://127.0.0.1:${Number(process.env.PORT || process.env.API_PORT || 4000)}/youpi`,
-  YOUPI_MERCHANT_ID: process.env.YOUPI_MERCHANT_ID || '00000000-0000-0000-0000-000000000001',
-  YOUPI_MERCHANT_KEY: process.env.YOUPI_MERCHANT_KEY || '',
-  YOUPI_WEBHOOK_SECRET: process.env.YOUPI_WEBHOOK_SECRET || '',
-  CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME,
-  CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY,
-  CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET,
-  EMAIL_PROVIDER: process.env.EMAIL_PROVIDER || 'console',
+  JWT_SECRET: process.env.JWT_SECRET,
+  JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET,
+  JWT_ACCESS_TTL: process.env.JWT_ACCESS_TTL || "7d",
+  JWT_REFRESH_TTL: process.env.JWT_REFRESH_TTL || "30d",
+  APP_BASE_URL: process.env.APP_BASE_URL || "http://localhost:5173",
+
+  // --- Payments -------------------------------------------------------------
+  PAYMENT_PROVIDER: process.env.PAYMENT_PROVIDER || "mock",
+  // Gates both the embedded gateway (Node) and its cleanup job (cron).
+  YOUPI_ENABLED: process.env.YOUPI_ENABLED !== "false",
+  // Base URL for server-to-server calls. On Workers point this at the Node host,
+  // e.g. https://your-service.onrender.com/youpi.
+  YOUPI_API_URL:
+    process.env.YOUPI_API_URL ||
+    // Workers has no loopback gateway: the URL must be set explicitly (point it at
+    // the Node host, e.g. https://your-service.onrender.com/youpi).
+    (IS_WORKERS
+      ? ""
+      : `http://127.0.0.1:${Number(process.env.PORT || process.env.API_PORT || 4000)}/youpi`),
+  // Public origin used to build checkout links.
+  YOUPI_PUBLIC_BASE_URL: process.env.YOUPI_PUBLIC_BASE_URL || "",
+  YOUPI_MERCHANT_ID:
+    process.env.YOUPI_MERCHANT_ID || "00000000-0000-0000-0000-000000000001",
+  YOUPI_UPI_ID: process.env.YOUPI_UPI_ID || "",
+  YOUPI_PAYEE_NAME: process.env.YOUPI_PAYEE_NAME || "",
+  YOUPI_WEBHOOK_SECRET: process.env.YOUPI_WEBHOOK_SECRET || "",
+  // Also used by the API's CORS allow-list.
+  YOUPI_FRAME_ANCESTORS: process.env.YOUPI_FRAME_ANCESTORS || "",
+
+  // --- Email ----------------------------------------------------------------
+  // console = log only. Workers has no SMTP sockets, so keep it on `console` there.
+  EMAIL_PROVIDER: process.env.EMAIL_PROVIDER || "console",
   SMTP_HOST: process.env.SMTP_HOST,
   SMTP_PORT: Number(process.env.SMTP_PORT || 587),
   SMTP_USER: process.env.SMTP_USER,
   SMTP_PASS: process.env.SMTP_PASS,
-  EMAIL_FROM: process.env.EMAIL_FROM || 'no-reply@movie.local',
+  EMAIL_FROM: process.env.EMAIL_FROM || "no-reply@movie.local",
+
+  // --- Maintenance ----------------------------------------------------------
   WORKER_POLL_INTERVAL_MS: Number(process.env.WORKER_POLL_INTERVAL_MS || 5000),
-  // Runs the maintenance loop (seat-hold expiry, publishing, email outbox) inside the
-  // web process. Useful on single-service hosts (Render) where a separate worker
-  // service is not configured. On serverless hosts leave this false and use the cron
-  // endpoint in modules/internal/routes.js instead.
-  RUN_WORKER: process.env.RUN_WORKER === 'true',
-  // Secret for the /api/v1/internal/tick endpoint used by Vercel Cron.
-  INTERNAL_CRON_SECRET: process.env.INTERNAL_CRON_SECRET || process.env.CRON_SECRET || '',
+  // Runs the maintenance loop inside the web process (Node single-service hosts).
+  // False on Workers: a Cron Trigger calls runTick() instead.
+  RUN_WORKER: process.env.RUN_WORKER === "true",
+  // Bearer token for /api/v1/internal/tick and /api/v1/internal/keepalive.
+  INTERNAL_CRON_SECRET:
+    process.env.INTERNAL_CRON_SECRET || process.env.CRON_SECRET || "",
   HOLD_EXPIRY_SECONDS: Number(process.env.HOLD_EXPIRY_SECONDS || 600),
   MAX_SEATS_PER_BOOKING: Number(process.env.MAX_SEATS_PER_BOOKING || 10),
-  SUPABASE_URL: process.env.SUPABASE_URL,
-  SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY,
-  SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
-  SUPABASE_STORAGE_BUCKET: process.env.SUPABASE_STORAGE_BUCKET || '',
+
+  // --- Object storage -------------------------------------------------------
+
+  NEON_STORAGE_ENDPOINT:
+    process.env.NEON_STORAGE_ENDPOINT ||
+    "https://br-twilight-term-bdc6qrfo.storage.c-8.us-east-2.aws.neon.tech",
+  NEON_STORAGE_REGION: process.env.NEON_STORAGE_REGION || "us-east-2",
+  NEON_STORAGE_BUCKET: process.env.NEON_STORAGE_BUCKET || "movies",
+  NEON_STORAGE_ACCESS_KEY_ID:
+    process.env.NEON_STORAGE_ACCESS_KEY_ID ||
+    "nak_live_701fcac6e37a46c4b270dfbe379f2ed8",
+  NEON_STORAGE_SECRET_ACCESS_KEY:
+    process.env.NEON_STORAGE_SECRET_ACCESS_KEY ||
+    "nsk_live_db672a45c1ddfa6711f1068de6a9a3a4c7adf60b8e252b02b5723a99900877f7",
+  NEON_STORAGE_PUBLIC_URL: process.env.NEON_STORAGE_PUBLIC_URL || "",
 };

@@ -1,5 +1,6 @@
 import { createProxy } from '../proxy.js';
 import { env } from '../../config/env.js';
+import { gatewayEnv } from '../../config/gateway-env.js';
 import { startYoupiGateway } from './gateway.js';
 import { listGatewayServices, serviceNotManaged } from './supervisor.js';
 
@@ -52,8 +53,8 @@ function matchesAny(path, prefixes) {
  * port unless they are explicitly enabled.
  */
 function isBlockedCorePath(upstreamPath) {
-  if (upstreamPath.startsWith('/api/v1/admin/') && !env.YOUPI_ALLOW_ADMIN) return true;
-  if (/simulate-observation$/.test(upstreamPath) && !env.YOUPI_ALLOW_DEV_TOOLS) return true;
+  if (upstreamPath.startsWith('/api/v1/admin/') && !gatewayEnv.YOUPI_ALLOW_ADMIN) return true;
+  if (/simulate-observation$/.test(upstreamPath) && !gatewayEnv.YOUPI_ALLOW_DEV_TOOLS) return true;
   return false;
 }
 

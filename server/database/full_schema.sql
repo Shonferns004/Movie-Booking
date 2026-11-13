@@ -645,6 +645,17 @@ SET search_path TO public;
 
 
 -- ============================================================================
+-- Keep-alive marker.
+--
+-- Free-tier Postgres (Neon) suspends when idle and can be removed after long
+-- inactivity. The Workers Cron Trigger writes at most one row here every two days.
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS temp (
+  id BIGSERIAL PRIMARY KEY,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ============================================================================
 -- Minimal seeds required for auth / categories (safe to re-run)
 -- ============================================================================
 INSERT INTO roles (name) VALUES ('CUSTOMER'),('ADMIN'),('SCANNER'),('SUPERVISOR')

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import crypto from 'node:crypto';
 import { env } from '../../config/env.js';
 import { runTick } from '../../jobs/tick.js';
+import { recordKeepAlive } from '../../jobs/keepalive.js';
 
 const router = Router();
 
@@ -29,6 +30,22 @@ router.get('/tick', async (req, res, next) => {
   }
   try {
     res.json({ ok: true, ...(await runTick()) });
+  } catch (e) { next(e); }
+});
+
+/**
+ * Keep-alive for free-tier Postgres: writes at most one row to `temp` every two days.
+ *
+ * Cloudflare Cron Triggers already call this, so it only exists for hosts without
+ * cron support (or for an external uptime monitor). `?force=1` always inserts.
+ */
+router.get('/keepalive', async (req, res, next) => {
+  if (!isAuthorised(req)) {
+    res.status(401).json({ error: 'unauthorised' });
+    return;
+  }
+  try {
+    res.json({ ok: true, ...(await recordKeepAlive({ force: req.query.force === '1' })) });
   } catch (e) { next(e); }
 });
 

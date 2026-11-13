@@ -1,0 +1,22 @@
+{
+  "name": "movie-worker",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "start": "wrangler dev",
+    "test": "vitest run",
+    "cf-typegen": "wrangler types",
+    "secrets:sync": "node scripts/sync-secrets.mjs",
+    "hyperdrive:create": "wrangler hyperdrive create movie-db",
+    "tail": "wrangler tail"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "^1.4.3",
+    "@types/node": "^26.6.6",
+    "typescript": "^5.5.2",
+    "vitest": "~5.0.3",
+    "wrangler": "^4.162.0"
+  }
+}

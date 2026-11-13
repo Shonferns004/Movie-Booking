@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { env } from '../../config/env.js';
+import { gatewayEnv } from '../../config/gateway-env.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -21,38 +22,38 @@ function vendorUrl(...parts) {
  * has to be populated before the modules are imported.
  */
 function configureGatewayEnv() {
-  process.env.PAYMENT_API_PORT = String(env.YOUPI_GATEWAY_API_PORT);
-  process.env.CHECKOUT_PORTAL_PORT = String(env.YOUPI_GATEWAY_PORTAL_PORT);
-  process.env.MERCHANT_ADMIN_PORT = String(env.YOUPI_ADMIN_PORT);
-  process.env.SMS_OBSERVER_PORT = String(env.YOUPI_OBSERVER_PORT);
+  process.env.PAYMENT_API_PORT = String(gatewayEnv.YOUPI_GATEWAY_API_PORT);
+  process.env.CHECKOUT_PORTAL_PORT = String(gatewayEnv.YOUPI_GATEWAY_PORTAL_PORT);
+  process.env.MERCHANT_ADMIN_PORT = String(gatewayEnv.YOUPI_ADMIN_PORT);
+  process.env.SMS_OBSERVER_PORT = String(gatewayEnv.YOUPI_OBSERVER_PORT);
   // Loopback only. The gateway is never published directly; the movie API proxies it
   // through the single public port.
   process.env.YOUPI_BIND_HOST = '127.0.0.1';
-  process.env.BASE_PAYMENT_API_URL = `http://127.0.0.1:${env.YOUPI_GATEWAY_API_PORT}`;
+  process.env.BASE_PAYMENT_API_URL = `http://127.0.0.1:${gatewayEnv.YOUPI_GATEWAY_API_PORT}`;
   // The gateway's vendored SQL is SQLite-flavored, so it gets its own SQLite database
   // by default (on the persisted data/ disk) instead of sharing the movie API's
   // Postgres. The movie API already created its pg Pool from env.DATABASE_URL before
   // this runs, so mutating process.env here only affects the vendored modules.
-  const gatewayDbUrl = (env.YOUPI_DATABASE_URL || 'sqlite').trim();
+  const gatewayDbUrl = (gatewayEnv.YOUPI_DATABASE_URL || 'sqlite').trim();
   process.env.DATABASE_URL = /^sqlite$/i.test(gatewayDbUrl) ? '' : gatewayDbUrl;
-  if (env.YOUPI_SQLITE_PATH) process.env.SQLITE_DB_PATH = env.YOUPI_SQLITE_PATH;
+  if (gatewayEnv.YOUPI_SQLITE_PATH) process.env.SQLITE_DB_PATH = gatewayEnv.YOUPI_SQLITE_PATH;
   // Public origin of this server. The gateway returns checkout links to browsers and
   // builds the Gmail OAuth callback from it. Render injects RENDER_EXTERNAL_URL, so a
   // hosted deployment works without hardcoding the generated *.onrender.com domain.
   const publicBase = (env.YOUPI_PUBLIC_BASE_URL || process.env.RENDER_EXTERNAL_URL || '').replace(/\/+$/, '');
   if (publicBase) process.env.BASE_CHECKOUT_URL = publicBase;
   // The Gmail observer's OAuth callback comes back through this server's own port.
-  process.env.GMAIL_OBSERVER_PORT = String(env.YOUPI_GMAIL_PORT);
+  process.env.GMAIL_OBSERVER_PORT = String(gatewayEnv.YOUPI_GMAIL_PORT);
   if (!process.env.GMAIL_REDIRECT_URI) {
     const oauthBase = publicBase || `http://127.0.0.1:${env.API_PORT}`;
     process.env.GMAIL_REDIRECT_URI = `${oauthBase}/youpi/gmail/oauth/callback`;
   }
   // Prefix the checkout page uses for its own /api/v1 calls (local patch in the portal).
-  process.env.YOUPI_CLIENT_API_BASE = env.YOUPI_CLIENT_API_BASE;
+  process.env.YOUPI_CLIENT_API_BASE = gatewayEnv.YOUPI_CLIENT_API_BASE;
   // Our webhook target is the movie API on loopback, which the gateway's SSRF guard
   // rejects unless private targets are explicitly allowed.
   process.env.YOUPI_ALLOW_PRIVATE_WEBHOOKS = 'true';
-  if (env.YOUPI_ALLOW_DEV_TOOLS) process.env.YOUPI_ALLOW_DEV_TOOLS = 'true';
+  if (gatewayEnv.YOUPI_ALLOW_DEV_TOOLS) process.env.YOUPI_ALLOW_DEV_TOOLS = 'true';
   if (env.YOUPI_FRAME_ANCESTORS) process.env.CHECKOUT_FRAME_ANCESTORS = env.YOUPI_FRAME_ANCESTORS;
 }
 
@@ -95,7 +96,7 @@ async function configureMerchant() {
   if (!merchant) return null;
 
   const webhookUrl =
-    env.YOUPI_WEBHOOK_URL || `http://127.0.0.1:${env.API_PORT}/api/v1/payments/webhooks/youpi`;
+    gatewayEnv.YOUPI_WEBHOOK_URL || `http://127.0.0.1:${env.API_PORT}/api/v1/payments/webhooks/youpi`;
   const updates = {};
   if (merchant.webhookUrl !== webhookUrl) updates.webhookUrl = webhookUrl;
   if (env.YOUPI_WEBHOOK_SECRET && merchant.webhookSecret !== env.YOUPI_WEBHOOK_SECRET) {
@@ -131,13 +132,13 @@ async function configureMerchant() {
  * and this process only proxies to it - nothing is booted locally.
  */
 export function startYoupiGateway() {
-  if (env.YOUPI_GATEWAY_URL) {
-    console.log(`[YOUPI] using remote gateway ${env.YOUPI_GATEWAY_URL}`);
+  if (gatewayEnv.YOUPI_GATEWAY_URL) {
+    console.log(`[YOUPI] using remote gateway ${gatewayEnv.YOUPI_GATEWAY_URL}`);
     return Promise.resolve({
       remote: true,
-      targetUrl: env.YOUPI_GATEWAY_URL.replace(/\/$/, ''),
-      corePort: env.YOUPI_GATEWAY_API_PORT,
-      portalPort: env.YOUPI_GATEWAY_PORTAL_PORT,
+      targetUrl: gatewayEnv.YOUPI_GATEWAY_URL.replace(/\/$/, ''),
+      corePort: gatewayEnv.YOUPI_GATEWAY_API_PORT,
+      portalPort: gatewayEnv.YOUPI_GATEWAY_PORTAL_PORT,
       close: async () => {},
     });
   }
@@ -153,51 +154,51 @@ export function startYoupiGateway() {
     const core = createPaymentApp();
     await new Promise((resolve, reject) => {
       core.rawServer.once('error', reject);
-      core.rawServer.listen(env.YOUPI_GATEWAY_API_PORT, '127.0.0.1', resolve);
+      core.rawServer.listen(gatewayEnv.YOUPI_GATEWAY_API_PORT, '127.0.0.1', resolve);
     });
 
     const portal = new CheckoutServer();
     const portalServer = portal.createServer();
     await new Promise((resolve, reject) => {
       portalServer.once('error', reject);
-      portalServer.listen(env.YOUPI_GATEWAY_PORTAL_PORT, '127.0.0.1', resolve);
+      portalServer.listen(gatewayEnv.YOUPI_GATEWAY_PORTAL_PORT, '127.0.0.1', resolve);
     });
 
     // Merchant admin panel (WhatsApp pairing, APK download, service management).
     let admin = null;
-    if (env.YOUPI_ADMIN_ENABLED) {
+    if (gatewayEnv.YOUPI_ADMIN_ENABLED) {
       const { startAdminServer } = await import(vendorUrl('apps', 'merchant-admin', 'src', 'index.js'));
-      admin = await startAdminServer(env.YOUPI_ADMIN_PORT, { apiBaseUrl: '/youpi' });
+      admin = await startAdminServer(gatewayEnv.YOUPI_ADMIN_PORT, { apiBaseUrl: '/youpi' });
     }
 
     // Local SMS observer (reads Google Messages in a browser and forwards bank SMS).
     let observer = null;
-    if (env.YOUPI_OBSERVER_ENABLED) {
+    if (gatewayEnv.YOUPI_OBSERVER_ENABLED) {
       const { startSmsObserver } = await import(vendorUrl('apps', 'sms-observer', 'src', 'index.js'));
-      observer = await startSmsObserver(env.YOUPI_OBSERVER_PORT);
+      observer = await startSmsObserver(gatewayEnv.YOUPI_OBSERVER_PORT);
     }
 
     // Gmail observer (official Google OAuth: reads bank credit emails).
     let gmail = null;
-    if (env.GMAIL_CLIENT_ID && env.GMAIL_CLIENT_SECRET) {
+    if (gatewayEnv.GMAIL_CLIENT_ID && gatewayEnv.GMAIL_CLIENT_SECRET) {
       const { startGmailObserver } = await import(vendorUrl('apps', 'gmail-observer', 'src', 'index.js'));
-      gmail = await startGmailObserver(env.YOUPI_GMAIL_PORT);
+      gmail = await startGmailObserver(gatewayEnv.YOUPI_GMAIL_PORT);
     }
 
     await configureMerchant();
 
     console.log(
-      `[YOUPI] gateway ready (core 127.0.0.1:${env.YOUPI_GATEWAY_API_PORT}, ` +
-        `portal 127.0.0.1:${env.YOUPI_GATEWAY_PORTAL_PORT}` +
-        (admin ? `, admin 127.0.0.1:${env.YOUPI_ADMIN_PORT}` : '') +
-        (observer ? `, observer 127.0.0.1:${env.YOUPI_OBSERVER_PORT}` : '') +
-        (gmail ? `, gmail 127.0.0.1:${env.YOUPI_GMAIL_PORT}` : '') +
+      `[YOUPI] gateway ready (core 127.0.0.1:${gatewayEnv.YOUPI_GATEWAY_API_PORT}, ` +
+        `portal 127.0.0.1:${gatewayEnv.YOUPI_GATEWAY_PORTAL_PORT}` +
+        (admin ? `, admin 127.0.0.1:${gatewayEnv.YOUPI_ADMIN_PORT}` : '') +
+        (observer ? `, observer 127.0.0.1:${gatewayEnv.YOUPI_OBSERVER_PORT}` : '') +
+        (gmail ? `, gmail 127.0.0.1:${gatewayEnv.YOUPI_GMAIL_PORT}` : '') +
         ')'
     );
 
     return {
-      corePort: env.YOUPI_GATEWAY_API_PORT,
-      portalPort: env.YOUPI_GATEWAY_PORTAL_PORT,
+      corePort: gatewayEnv.YOUPI_GATEWAY_API_PORT,
+      portalPort: gatewayEnv.YOUPI_GATEWAY_PORTAL_PORT,
       adminPort: admin ? admin.port : null,
       observerPort: observer ? observer.port : null,
       gmailPort: gmail ? gmail.port : null,

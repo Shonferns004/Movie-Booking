@@ -1,0 +1,91 @@
+# Render blueprint for the YouPI payment gateway ONLY.
+#
+# The movie API runs on Cloudflare Workers; this service exists only because the
+# gateway needs child processes, loopback ports and a database connection.
+#
+# Deploy: Render Dashboard -> New -> Blueprint -> pick this file's repo.
+# Then set the `sync: false` values in the dashboard (they are secrets).
+#
+# Free plan note: Render free services have no disk and sleep after ~15 idle minutes.
+#  - persistence: point YOUPI_DATABASE_URL at the Neon database (schema `youpi`);
+#    SQLite would be wiped on every restart.
+#  - sleep: the Worker's cron pings /health every 5 minutes, so it stays awake.
+
+services:
+  - type: web
+    name: youpi-gateway
+    runtime: node
+    plan: free
+    region: singapore
+    rootDir: server
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start:gateway
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 24.22.1
+      - key: NODE_ENV
+        value: production
+
+      # Gateway on, background API jobs off (the Worker's cron does those).
+      - key: YOUPI_ENABLED
+        value: true
+      - key: RUN_WORKER
+        value: false
+
+      # Postgres keeps the gateway data across restarts. Same Neon URL as the API;
+      # the gateway uses its own `youpi` schema, separate from the booking tables.
+      - key: YOUPI_DATABASE_URL
+        sync: false
+
+      # Public origin of THIS service, e.g. https://youpi-gateway.onrender.com
+      # Used for checkout links and the Gmail OAuth callback.
+      - key: YOUPI_PUBLIC_BASE_URL
+        sync: false
+
+      # Where the gateway posts payment confirmations: the Worker's webhook route.
+      # e.g. https://movie-worker.<subdomain>.workers.dev/api/v1/payments/webhooks/youpi
+      - key: YOUPI_WEBHOOK_URL
+        sync: false
+
+      # Merchant / UPI settings (must match the Worker's values).
+      - key: YOUPI_UPI_ID
+        value: 7506419340-1@naviaxis
+      - key: YOUPI_PAYEE_NAME
+        value: Konkani Samudai
+      - key: YOUPI_MERCHANT_ID
+        value: 00000000-0000-0000-0000-000000000001
+      - key: YOUPI_WEBHOOK_SECRET
+        sync: false
+      - key: YOUPI_CLIENT_API_BASE
+        value: /youpi
+      - key: YOUPI_ALLOW_ADMIN
+        value: true
+      - key: YOUPI_ADMIN_ENABLED
+        value: true
+      - key: YOUPI_FRAME_ANCESTORS
+        sync: false
+      - key: YOUPI_EXPOSE_DEV_OTP
+        value: false
+
+      # The browser SMS observer needs Chrome; the Android APK is the observer here.
+      - key: YOUPI_OBSERVER_ENABLED
+        value: false
+
+      # Stable credentials. If these are omitted they are generated on first boot and
+      # lost on restart, which unpairs every enrolled Android device.
+      - key: ADMIN_API_TOKEN
+        generateValue: true
+      - key: OBSERVER_API_TOKEN
+        generateValue: true
+      - key: DEVICE_CREDENTIAL_KEY
+        generateValue: true
+      - key: ANDROID_ENROLLMENT_SECRET
+        generateValue: true
+      - key: BLIND_INDEX_KEY
+        generateValue: true
+      - key: INTERNAL_SERVICE_TOKEN
+        generateValue: true
+      - key: ENCRYPTION_MASTER_KEY
+        generateValue: true

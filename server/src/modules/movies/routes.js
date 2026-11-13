@@ -8,16 +8,19 @@ import { z } from 'zod';
 import * as movies from './service.js';
 import { validate } from '../../middleware/validate.js';
 import { optionalAuth, requireAuth, requireRole } from '../../middleware/auth.js';
+import { IS_WORKERS } from '../../config/runtime.js';
 import {
   supabase,
   supabaseStorageBucket,
   isSupabaseStorageEnabled,
 } from '../../integrations/supabase.js';
+import { isNeonStorageEnabled, uploadObject } from '../../integrations/neon-storage.js';
 
 const uploadDir = path.resolve(process.cwd(), 'uploads');
-// Serverless platforms (Vercel, Lambda) have a read-only filesystem, so uploads are
-// staged in the temp dir and pushed to Supabase Storage/Cloudinary instead of disk.
-const isEphemeralFs = !!process.env.VERCEL || !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+// Serverless platforms (Vercel, Lambda, Cloudflare Workers) have a read-only
+// filesystem, so uploads are staged in memory and pushed to Supabase Storage/Cloudinary
+// instead of disk.
+const isEphemeralFs = !!process.env.VERCEL || !!process.env.AWS_LAMBDA_FUNCTION_NAME || IS_WORKERS;
 if (!isEphemeralFs && !fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.heic', '.heif', '.avif', '.svg', '.tif', '.tiff']);
 
@@ -45,7 +48,11 @@ function resolveContentType(file) {
 }
 
 const upload = multer({
-  dest: isEphemeralFs ? os.tmpdir() : uploadDir,
+  // Workers has no writable disk: keep the multipart file in memory and push it
+  // straight to Supabase Storage / Cloudinary.
+  ...(IS_WORKERS
+    ? { storage: multer.memoryStorage() }
+    : { dest: isEphemeralFs ? os.tmpdir() : uploadDir }),
   limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
   fileFilter: (req, file, cb) => {
     // Flutter's MultipartFile.fromPath sends no content type, so the mime type
@@ -73,7 +80,7 @@ if (process.env.CLOUDINARY_CLOUD_NAME) {
   });
 }
 
-async function uploadToSupabase(file, movieId, type) {
+function buildObjectPath(file, movieId, type) {
   const ext = path
     .extname(file.originalname || '')
     .toLowerCase()
@@ -82,10 +89,38 @@ async function uploadToSupabase(file, movieId, type) {
     String(type || 'poster')
       .toLowerCase()
       .replace(/[^a-z0-9_-]/g, '') || 'poster';
-  const objectPath = `movies/${movieId}/${safeType}-${Date.now()}-${file.filename}${ext}`;
+  const unique = file.filename || Math.random().toString(16).slice(2);
+  return `movies/${movieId}/${safeType}-${Date.now()}-${unique}${ext}`;
+}
+
+/** The uploaded bytes: in memory on Workers, on disk on the Node host. */
+async function readUpload(file) {
+  return file.buffer ?? (await fs.promises.readFile(file.path));
+}
+
+async function cleanupUpload(file) {
+  if (file.path) await fs.promises.rm(file.path, { force: true }).catch(() => {});
+}
+
+/** Neon Object Storage (public_read bucket). */
+async function uploadToNeon(file, movieId, type) {
+  const objectPath = buildObjectPath(file, movieId, type);
+  try {
+    return await uploadObject(
+      objectPath,
+      await readUpload(file),
+      resolveContentType(file),
+    );
+  } finally {
+    await cleanupUpload(file);
+  }
+}
+
+async function uploadToSupabase(file, movieId, type) {
+  const objectPath = buildObjectPath(file, movieId, type);
 
   try {
-    const body = await fs.promises.readFile(file.path);
+    const body = await readUpload(file);
     const { error } = await supabase.storage
       .from(supabaseStorageBucket)
       .upload(objectPath, body, {
@@ -113,7 +148,7 @@ async function uploadToSupabase(file, movieId, type) {
     }
     return data.publicUrl;
   } finally {
-    await fs.promises.rm(file.path, { force: true }).catch(() => {});
+    await cleanupUpload(file);
   }
 }
 
@@ -163,15 +198,20 @@ router.post('/:id/media', requireAuth, requireRole('ADMIN'), (req, res, next) =>
     if (!req.file) return res.status(400).json({ error: 'no file' });
     const type = req.body.type || 'poster';
     let url;
-    if (isSupabaseStorageEnabled()) {
+    if (isNeonStorageEnabled()) {
+      url = await uploadToNeon(req.file, req.params.id, type);
+    } else if (isSupabaseStorageEnabled()) {
       url = await uploadToSupabase(req.file, req.params.id, type);
     } else if (process.env.CLOUDINARY_CLOUD_NAME) {
-      const result = await cloudinary.uploader.upload(req.file.path, { folder: 'konkani_samudai' });
+      // With memory storage (Workers) there is no path, so hand Cloudinary a data URI.
+      const source = req.file.path
+        || `data:${resolveContentType(req.file)};base64,${req.file.buffer.toString('base64')}`;
+      const result = await cloudinary.uploader.upload(source, { folder: 'konkani_samudai' });
       url = result.secure_url;
-      fs.unlinkSync(req.file.path);
+      if (req.file.path) fs.unlinkSync(req.file.path);
     } else {
       if (isEphemeralFs) {
-        fs.unlinkSync(req.file.path);
+        if (req.file.path) fs.unlinkSync(req.file.path);
         res.status(503).json({
           error:
             'media storage is not configured; set SUPABASE_STORAGE_BUCKET with Supabase credentials, or configure Cloudinary',

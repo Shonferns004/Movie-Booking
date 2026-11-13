@@ -1,0 +1,95 @@
+/**
+ * Cloudflare Worker for the movie booking API.
+ *
+ * Docs: https://developers.cloudflare.com/workers/wrangler/configuration/
+ *
+ * The compatibility date is >= 2026-08-04, so Node.js compatibility
+ * (`nodejs_compat` + `nodejs_compat_v2`) and the HTTP server modules Express needs are
+ * enabled automatically. The flag below is kept because the Hyperdrive guide requires
+ * it and it is a no-op at this date.
+ */
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "movie-worker",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-11-13",
+	"compatibility_flags": ["nodejs_compat"],
+	"observability": {
+		"enabled": true
+	},
+	"upload_source_maps": true,
+
+	/**
+	 * `iconv-lite@0.4` (via body-parser → raw-body) stubs its stream modules for
+	 * browser bundles, which is what Wrangler builds, but Workers still look like Node
+	 * to it - so it calls the stubbed module and fails at startup with
+	 * "require_streams(...) is not a function". See src/iconv-lite-shim.cjs.
+	 * The Node host keeps the real package.
+	 */
+	"alias": {
+		"iconv-lite": "./src/iconv-lite-shim.cjs"
+	},
+
+	/**
+	 * Maintenance tick (seat-hold expiry, movie publishing, email outbox) that used to
+	 * run as `RUN_WORKER`'s while-loop. Every minute, like WORKER_POLL_INTERVAL_MS.
+	 * https://developers.cloudflare.com/workers/configuration/cron-triggers/
+	 */
+	"triggers": {
+		"crons": ["* * * * *"]
+	},
+
+	/**
+	 * Existing Postgres (Supabase / Aurora). Nothing is migrated.
+	 *
+	 *   npx wrangler hyperdrive create movie-db \
+	 *     --connection-string="postgres://USER:PASSWORD@HOST:5432/DATABASE"
+	 *
+	 * Paste the returned id below. For local development against the real database:
+	 *   npx wrangler dev --remote
+	 * https://developers.cloudflare.com/hyperdrive/
+	 */
+	"hyperdrive": [
+		{
+			"binding": "HYPERDRIVE",
+			"id": "4abe5b719ca64a57a6f8c714fbbbe964",
+			// Used by `wrangler dev` and vitest only - production goes through Hyperdrive.
+			// Point it at a local Postgres, or override it without touching this file:
+			//   CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE=postgres://...
+			"localConnectionString": "postgres://postgres:postgres@localhost:5432/movie_booking"
+		}
+	],
+
+	/**
+	 * Non-secret configuration. Secrets (JWT_SECRET, SUPABASE_SERVICE_ROLE_KEY, ...)
+	 * do not belong here - use `npx wrangler secret put NAME`.
+	 */
+	"vars": {
+		"NODE_ENV": "production",
+		// The embedded gateway cannot run on Workers; it stays on the Node host.
+		"YOUPI_ENABLED": "false",
+		"RUN_WORKER": "false",
+		"EMAIL_PROVIDER": "console",
+		"PAYMENT_PROVIDER": "youpi",
+		"MAX_SEATS_PER_BOOKING": "10",
+		"HOLD_EXPIRY_SECONDS": "300",
+		"JWT_ACCESS_TTL": "7d",
+		"JWT_REFRESH_TTL": "30d",
+		// Neon Object Storage. Fill in the branch endpoint + bucket name:
+		//   curl "https://console.neon.tech/api/v2/projects/{project}/branches/{branch}/storage"
+		// The access key / secret are secrets: `wrangler secret put NEON_STORAGE_ACCESS_KEY_ID`
+		"NEON_STORAGE_REGION": "us-east-2"
+		// "NEON_STORAGE_ENDPOINT": "https://br-xxxx.storage.c-8.us-east-2.aws.neon.tech",
+		// "NEON_STORAGE_BUCKET": "movie-posters",
+		// "NEON_STORAGE_PUBLIC_URL": "https://br-xxxx.storage.c-8.us-east-2.aws.neon.tech/movie-posters",
+		// Replace with your real values (or move to secrets if they are sensitive):
+		// "APP_BASE_URL": "https://your-frontend.example.com",
+		// "YOUPI_API_URL": "https://your-render-app.onrender.com/youpi",
+		// "YOUPI_PUBLIC_BASE_URL": "https://your-render-app.onrender.com",
+		// "YOUPI_MERCHANT_ID": "...",
+		// "YOUPI_UPI_ID": "...",
+		// "YOUPI_PAYEE_NAME": "...",
+		// "SUPABASE_URL": "https://xxxx.supabase.co",
+		// "SUPABASE_STORAGE_BUCKET": "movie-posters"
+	}
+}

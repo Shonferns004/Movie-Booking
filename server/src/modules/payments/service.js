@@ -1,7 +1,8 @@
 import { pool, withTransaction } from '../../db/pool.js';
-import { badRequest, notFound, conflict } from '../../utils/errors.js';
+import { badRequest, notFound, conflict, serviceUnavailable } from '../../utils/errors.js';
 import { randomToken, sha256 } from '../../utils/crypto.js';
 import { env } from '../../config/env.js';
+import { IS_WORKERS } from '../../config/runtime.js';
 import crypto from 'node:crypto';
 
 async function confirmBookingAfterPayment(client, bookingId, paymentId) {
@@ -178,7 +179,18 @@ export async function mockCompletePayment({ bookingReference, success = true }) 
  * Docs: https://github.com/youpi-pg/YouPI-PG
  * ------------------------------------------------------------------------- */
 
-const youpiApi = () => (env.YOUPI_API_URL || 'http://127.0.0.1:6100').replace(/\/$/, '');
+const youpiApi = () => {
+  const configured = (env.YOUPI_API_URL || '').replace(/\/$/, '');
+  if (configured) return configured;
+  // On Workers the embedded gateway cannot exist: loopback is not reachable, so an
+  // unset URL is a deployment mistake, not a "not found".
+  if (IS_WORKERS) {
+    throw serviceUnavailable(
+      'payment gateway is not configured on this deployment: set YOUPI_API_URL to the Node host (for example https://your-service.onrender.com/youpi)',
+    );
+  }
+  return 'http://127.0.0.1:6100';
+};
 
 /**
  * Public origin of this server, used to build the gateway URLs the browser sees.
@@ -252,7 +264,10 @@ export async function createYoupiOrder({ bookingReference, customer, publicBase 
     session = body;
   } catch (e) {
     await pool.query("UPDATE payments SET status='failed', updated_at=now() WHERE id=$1", [pays[0].id]);
-    throw e;
+    // HttpError = the gateway answered and rejected it; anything else is transport.
+    if (e && e.status) throw e;
+    console.error('[youpi] gateway unreachable:', env.YOUPI_API_URL, e?.message || e);
+    throw serviceUnavailable('payment gateway is unreachable — check YOUPI_API_URL');
   }
 
   if (session.paymentId) {
@@ -320,14 +335,22 @@ export async function handleYoupiWebhook(rawBody, signature) {
 
 /** Poll YOUPI for the authoritative status of a payment session. */
 export async function getYoupiStatus(paymentId) {
-  const res = await fetch(`${youpiApi()}/api/v1/payments/${encodeURIComponent(paymentId)}`, {
-    headers: {
-      ...(env.YOUPI_MERCHANT_ID ? { 'X-Merchant-Id': env.YOUPI_MERCHANT_ID } : {}),
-      // The merchant key is the webhook secret, which unlocks the merchant-private
-      // view (internal status, verification level).
-      ...(env.YOUPI_WEBHOOK_SECRET ? { 'X-Merchant-Key': env.YOUPI_WEBHOOK_SECRET } : {}),
-    },
-  });
+  const gatewayBase = youpiApi();
+  let res;
+  try {
+    res = await fetch(`${gatewayBase}/api/v1/payments/${encodeURIComponent(paymentId)}`, {
+      headers: {
+        ...(env.YOUPI_MERCHANT_ID ? { 'X-Merchant-Id': env.YOUPI_MERCHANT_ID } : {}),
+        // The merchant key is the webhook secret, which unlocks the merchant-private
+        // view (internal status, verification level).
+        ...(env.YOUPI_WEBHOOK_SECRET ? { 'X-Merchant-Key': env.YOUPI_WEBHOOK_SECRET } : {}),
+      },
+    });
+  } catch (e) {
+    if (e && e.status) throw e;
+    console.error('[youpi] gateway unreachable:', gatewayBase, e?.message || e);
+    throw serviceUnavailable('payment gateway is unreachable — check YOUPI_API_URL');
+  }
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw notFound('youpi payment not found');
   return body;
