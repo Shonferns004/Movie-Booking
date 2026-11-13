@@ -88,8 +88,15 @@ export function createApp({
   app.use(cors({
     origin(origin, callback) {
       if (!origin) return callback(null, true);
+      // "null" is what a browser sends for a local file:// page - the root status.html
+      // dashboard is meant to be opened straight from disk.
+      if (origin === 'null') return callback(null, true);
       if (allowedOrigins.has(origin)) return callback(null, true);
-      return callback(new Error('CORS origin not allowed'));
+      // A rejected origin is a client error, not a server failure: 403 keeps it out of
+      // the 5xx error metrics instead of surfacing as "Internal server error".
+      const error = new Error(`CORS origin not allowed: ${origin}`);
+      error.status = 403;
+      return callback(error);
     },
     credentials: true,
   }));

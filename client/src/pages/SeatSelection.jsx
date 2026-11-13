@@ -1,28 +1,105 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { gsap } from 'gsap';
-import api, { assetUrl } from '../services/api.js';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import api from '../services/api.js';
+import { useRealtime } from '../services/realtime.js';
 
-const COLORS = {
+const C = {
   ink: '#0A2A31',
   tide: '#123E47',
   shell: '#EFEBE0',
   kokum: '#C2305E',
   mango: '#F4B63F',
-  deep: '#071E23',
+  green: '#78C9A6',
+  sold: '#93A6A8',
 };
 
-const money = (minor = 0) =>
-  `₹${(Number(minor || 0) / 100).toFixed(2)}`;
+const MAX_SEATS = 10;
+const ZOOM_STEPS = [0.8, 0.9, 1, 1.15, 1.3];
+
+const rupees = (minor = 0) => `₹${Math.round(Number(minor || 0) / 100).toLocaleString('en-IN')}`;
+
+function longDate(value) {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString(undefined, {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
+function timeLabel(value) {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+}
+
+const STYLES = `
+.kk-seat-body { font-family: 'Public Sans', system-ui, sans-serif; }
+.kk-display { font-family: 'Fraunces', Georgia, serif; }
+
+.kk-seat {
+  display: flex; align-items: center; justify-content: center;
+  height: var(--kk-seat); border-radius: 4px; border: 1px solid transparent;
+  font-size: 9px; font-weight: 700; line-height: 1;
+  transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
+}
+.kk-seat:not(:disabled) { cursor: pointer; }
+.kk-seat:not(:disabled):hover { transform: translateY(-1px) scale(1.07); z-index: 1; }
+.kk-seat:disabled { cursor: not-allowed; }
+.kk-seat-row { display: grid; grid-template-columns: repeat(var(--kk-cols), var(--kk-seat)); gap: 4px; --kk-seat: 18px; }
+.kk-cat-line { height: 1px; flex: 1 1 0%; background: rgba(239,235,224,.14); }
+
+.kk-pay { transition: background-color .2s ease, transform .2s ease, opacity .2s ease; }
+.kk-pay:not(:disabled):hover { background-color: #a82651; transform: translateY(-1px); }
+
+.kk-pill { transition: background-color .16s ease, color .16s ease, transform .16s ease; }
+.kk-pill:not(:disabled):hover { transform: translateY(-1px); }
+
+.kk-zoom { transition: background-color .16s ease, color .16s ease; }
+.kk-zoom:not(:disabled):hover { background-color: rgba(239,235,224,.12); }
+
+.kk-toast { animation: kk-toast-in .22s ease both; }
+@keyframes kk-toast-in { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+@media (min-width: 640px) { .kk-seat-row { --kk-seat: 22px; } }
+@media (prefers-reduced-motion: reduce) {
+  .kk-seat, .kk-pay, .kk-pill, .kk-zoom { transition: none !important; }
+  .kk-toast { animation: none !important; }
+}
+`;
+
+function Legend({ color, label, filled = false }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <i
+        className="inline-block h-3 w-3 rounded-[3px] border"
+        style={{
+          borderColor: color,
+          background: filled ? color : 'transparent',
+        }}
+      />
+      {label}
+    </span>
+  );
+}
 
 export default function SeatSelection() {
   const { showId } = useParams();
   const navigate = useNavigate();
+
   const [data, setData] = useState(null);
-  const [selected, setSelected] = useState([]);
   const [movie, setMovie] = useState(null);
+  const [showMeta, setShowMeta] = useState(null);
+  const [selected, setSelected] = useState([]);
+  const [limit, setLimit] = useState(2);
+  const [draft, setDraft] = useState(2);
+  const [pickerOpen, setPickerOpen] = useState(true);
+  const [notice, setNotice] = useState('');
   const [loadingError, setLoadingError] = useState('');
-  const pageRef = useRef(null);
+  const [holding, setHolding] = useState(false);
+  const [zoomIdx, setZoomIdx] = useState(2);
 
   async function load() {
     setLoadingError('');
@@ -37,7 +114,7 @@ export default function SeatSelection() {
             setMovie(m.data);
           }
         } catch (e) {
-          // Seat selection remains usable if movie metadata is unavailable.
+          // Seat selection stays usable without the movie poster.
         }
       }
     } catch (e) {
@@ -47,50 +124,144 @@ export default function SeatSelection() {
 
   useEffect(() => { load(); }, [showId]);
 
-  useEffect(() => {
-    if (pageRef.current && data) {
-      gsap.fromTo(
-        pageRef.current,
-        { opacity: 0, y: 16 },
-        { opacity: 1, y: 0, duration: 0.55, ease: 'power2.out' }
-      );
-    }
-  }, [data]);
+  // Seats are the most volatile data: someone else holding/booking a seat shows up
+  // here without a refresh.
+  useRealtime(['seats'], () => { load(); });
 
   const seats = data?.seats || [];
   const show = data?.show || {};
+
+  // The show payload only carries the auditorium id, so pull the theatre name from
+  // the public show list. Failure is harmless: the header falls back to "Cinema".
+  useEffect(() => {
+    const movieId = show.movie_id || show.movieId;
+    if (!movieId) return undefined;
+    let active = true;
+    api.get('/shows', { params: { movieId } })
+      .then((r) => {
+        const match = (r.data || []).find((s) => s.id === showId || s.id === show.id);
+        if (active && match) setShowMeta(match);
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [show.movie_id, show.movieId, show.id, showId]);
+
+  const layout = useMemo(() => {
+    if (!seats.length) return { sections: [], minX: 0, cols: 0, available: 0 };
+
+    const xs = seats.map((s) => Number(s.x)).filter(Number.isFinite);
+    const minX = xs.length ? Math.min(...xs) : 0;
+    // A merged seat (col_span) reaches past its own column, so measure its right edge.
+    const rightEdges = seats
+      .map((s) => Number(s.x) + Math.max(1, Number(s.col_span) || 1) - 1)
+      .filter(Number.isFinite);
+    const maxX = rightEdges.length ? Math.max(...rightEdges) : 0;
+
+    const grouped = new Map();
+    for (const seat of seats) {
+      const name = seat.category_name || 'Standard';
+      if (!grouped.has(name)) grouped.set(name, { name, price: 0, seats: [] });
+      const cat = grouped.get(name);
+      cat.seats.push(seat);
+      cat.price = Math.max(cat.price, Number(seat.price_minor) || 0);
+    }
+
+    const sections = [...grouped.values()].map((cat) => {
+      const rows = new Map();
+      for (const seat of cat.seats) {
+        const label = seat.row_label || '•';
+        if (!rows.has(label)) rows.set(label, { label, y: Number(seat.y), seats: [] });
+        rows.get(label).seats.push(seat);
+      }
+      const rowList = [...rows.values()].map((row) => ({
+        ...row,
+        seats: [...row.seats].sort((a, b) => Number(a.x) - Number(b.x)),
+      }));
+      const hasY = rowList.some((row) => Number.isFinite(row.y) && row.y !== 0);
+      rowList.sort((a, b) => (hasY ? (a.y - b.y) || a.label.localeCompare(b.label) : b.label.localeCompare(a.label)));
+      const rowYs = rowList.map((row) => row.y).filter(Number.isFinite);
+      const minY = rowYs.length ? Math.min(...rowYs) : null;
+      return { ...cat, rows: rowList, minY };
+    });
+
+    // Printed-plan order: back of the hall first when the layout has coordinates,
+    // otherwise the priciest tier first.
+    sections.sort((a, b) => {
+      if (a.minY !== null && b.minY !== null && a.minY !== b.minY) return a.minY - b.minY;
+      return b.price - a.price;
+    });
+
+    return {
+      sections,
+      minX,
+      cols: maxX - minX + 1,
+      available: seats.filter((s) => s.status === 'available').length,
+    };
+  }, [seats]);
+
+  const { sections, minX, cols } = layout;
+  const availableCount = layout.available;
+
+  const stats = useMemo(() => sections.map((section) => {
+    const total = section.seats.length;
+    const available = section.seats.filter((s) => s.status === 'available').length;
+    const occupancy = total ? (total - available) / total : 0;
+    const status = available === 0 ? 'FILLED' : occupancy >= 0.65 ? 'ALMOST FULL' : 'AVAILABLE';
+    return { name: section.name, price: section.price, total, available, occupancy, status };
+  }), [sections]);
+
+  const bestsellerName = useMemo(() => {
+    if (!stats.length) return null;
+    const top = stats.reduce((a, b) => (b.occupancy > a.occupancy ? b : a));
+    return top.occupancy >= 0.3 ? top.name : null;
+  }, [stats]);
+
+  const maxSelectable = Math.max(1, Math.min(MAX_SEATS, availableCount));
+
   const selectedSeats = useMemo(
     () => seats.filter((seat) => selected.includes(seat.seat_id)),
     [seats, selected]
   );
-  const totalMinor = selectedSeats.reduce((sum, seat) => sum + (seat.price_minor || 0), 0);
-  const rowLabels = [...new Set(seats.map((seat) => seat.row_label))].sort();
-  const xs = seats.map((seat) => Number(seat.x)).filter(Number.isFinite);
-  const minX = xs.length ? Math.min(...xs) : 0;
-  const maxX = xs.length ? Math.max(...xs) : 0;
+  const totalMinor = selectedSeats.reduce((sum, seat) => sum + (Number(seat.price_minor) || 0), 0);
 
-  const categoryColor = (name, row) => {
-    const n = (name || '').toLowerCase();
-    if (n.includes('recliner')) return '#C2305E';
-    if (n.includes('handicap')) return '#F4B63F';
-    if (n.includes('prime')) return '#E1A5B6';
-    if (row === 'N') return '#D88AA2';
-    if (row === 'A' || row === 'B') return '#E8C9CF';
-    return '#7BA6A7';
-  };
+  useEffect(() => {
+    if (!notice) return undefined;
+    const timer = setTimeout(() => setNotice(''), 3200);
+    return () => clearTimeout(timer);
+  }, [notice]);
+
+  useEffect(() => {
+    if (!pickerOpen) return undefined;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (event) => {
+      if (event.key === 'Escape') setPickerOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = previous;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [pickerOpen]);
 
   function toggle(seat) {
     const isSelected = selected.includes(seat.seat_id);
     if (seat.status !== 'available' && !isSelected) return;
-    setSelected((current) =>
-      isSelected
-        ? current.filter((id) => id !== seat.seat_id)
-        : [...current, seat.seat_id]
-    );
+
+    if (isSelected) {
+      setSelected((current) => current.filter((id) => id !== seat.seat_id));
+      return;
+    }
+    if (selected.length >= limit) {
+      setNotice(`You can pick up to ${limit} seat${limit === 1 ? '' : 's'} on this booking.`);
+      return;
+    }
+    setSelected((current) => [...current, seat.seat_id]);
   }
 
   async function hold() {
-    if (!selected.length) return;
+    if (!selected.length || holding) return;
+    setHolding(true);
     try {
       let sessionRef = localStorage.getItem('sessionRef');
       if (!sessionRef) {
@@ -104,274 +275,371 @@ export default function SeatSelection() {
       });
       const holdData = { ...r.data, holdId: r.data.holdId || r.data.id, showId };
       localStorage.setItem('currentHold', JSON.stringify(holdData));
+      localStorage.setItem('currentHoldContext', JSON.stringify({
+        holdId: holdData.holdId,
+        title,
+        theatre: showMeta?.theatre_name || '',
+        auditorium: showMeta?.auditorium_name || '',
+        startsAt: show.starts_at || '',
+        language: movie?.language || '',
+        certification: movie?.certification || '',
+        seats: selectedSeats.map((seat) => ({
+          row_label: seat.row_label,
+          seat_number: seat.seat_number,
+          category_name: seat.category_name,
+          price_minor: seat.price_minor,
+        })),
+      }));
       navigate('/checkout', { state: holdData });
     } catch (e) {
-      alert(e?.response?.data?.error || e.message);
+      setNotice(e?.response?.data?.error || e.message || 'Could not hold those seats.');
+    } finally {
+      setHolding(false);
     }
   }
 
-  const categories = Object.entries(
-    seats.reduce((acc, seat) => {
-      const category = seat.category_name || 'Standard';
-      if (!acc[category]) acc[category] = { count: 0, color: categoryColor(category, seat.row_label) };
-      acc[category].count += 1;
-      return acc;
-    }, {})
-  );
-  const selectedByCategory = Object.entries(
-    selectedSeats.reduce((acc, seat) => {
-      const category = seat.category_name || 'Standard';
-      if (!acc[category]) acc[category] = { count: 0, amount: 0 };
-      acc[category].count += 1;
-      acc[category].amount += seat.price_minor || 0;
-      return acc;
-    }, {})
-  );
-  const handicapSeat = seats.find((seat) =>
-    (seat.category_name || '').toLowerCase().includes('handicap')
-  );
+  function confirmCount() {
+    const next = Math.max(1, Math.min(draft, maxSelectable));
+    setDraft(next);
+    setLimit(next);
+    setPickerOpen(false);
+  }
+
+  const title = movie?.title || showMeta?.movie_title || 'Movie screening';
+  const locality = showMeta?.theatre_name
+    ? `${showMeta.theatre_name}${showMeta.auditorium_name ? ` : ${showMeta.auditorium_name}` : ''}`
+    : (showMeta?.auditorium_name || 'Cinema');
+  const dateText = show.starts_at ? longDate(show.starts_at) : '';
+  const timeText = show.starts_at ? timeLabel(show.starts_at) : '';
 
   if (!data) {
     return (
-      <div className="kk-seat-body min-h-screen flex items-center justify-center px-5 text-center" style={{ background: COLORS.ink, color: COLORS.shell }}>
-        <style>{`@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,900&family=Public+Sans:wght@400;500;600;700&display=swap'); .kk-seat-body{font-family:'Public Sans',sans-serif}.kk-seat-display{font-family:'Fraunces',Georgia,serif}`}</style>
+      <div className="kk-seat-body flex min-h-screen items-center justify-center bg-[#0A2A31] px-5 text-center text-[#EFEBE0]">
+        <style>{STYLES}</style>
         <div className="max-w-sm">
-          <div className="mx-auto mb-4 h-12 w-12 rounded-full border-2 border-dashed animate-spin" style={{ borderColor: COLORS.mango, borderTopColor: 'transparent' }} />
-          <h1 className="kk-seat-display text-2xl font-bold">Preparing your seat map</h1>
-          <p className="mt-2 text-sm opacity-70">{loadingError || 'Finding the best seats for your screening…'}</p>
-          {loadingError && <button onClick={load} className="mt-5 rounded-xl px-5 py-2.5 font-semibold text-white" style={{ background: COLORS.kokum }}>Try again</button>}
+          <div
+            className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-2 border-dashed"
+            style={{ borderColor: C.mango, borderTopColor: 'transparent' }}
+          />
+          <h1 className="kk-display text-2xl font-bold">Preparing your seat map</h1>
+          <p className="mt-2 text-sm text-[#EFEBE0]/65">
+            {loadingError || 'Finding the best seats for your screening…'}
+          </p>
+          {loadingError && (
+            <button type="button" onClick={load} className="mt-5 rounded-xl px-5 py-2.5 font-semibold text-white" style={{ background: C.kokum }}>
+              Try again
+            </button>
+          )}
         </div>
       </div>
     );
   }
 
   return (
-    <div ref={pageRef} className="kk-seat-body min-h-screen pb-32 pt-20 md:pb-12" style={{ background: COLORS.ink, color: COLORS.shell }}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,900&family=Public+Sans:wght@400;500;600;700&display=swap');
-        .kk-seat-body{font-family:'Public Sans',system-ui,sans-serif}
-        .kk-seat-display{font-family:'Fraunces',Georgia,serif}
-        .kk-seat-btn{transition:transform .18s ease,box-shadow .18s ease,filter .18s ease}
-        .kk-seat-btn:not(:disabled):hover{transform:translateY(-2px);filter:brightness(1.06)}
-        .kk-seat-cta{position:relative;overflow:hidden;transition:transform .2s ease,background .2s ease}
-        .kk-seat-cta:not(:disabled):hover{transform:translateY(-2px);background:#a82651}
-        .kk-seat-cta:disabled{opacity:.42;cursor:not-allowed}
-        .kk-seat-card{box-shadow:0 24px 70px rgba(0,0,0,.18)}
-        .kk-seat-screen{filter:drop-shadow(0 0 10px rgba(244,182,63,.35))}
-        @keyframes kk-seat-shimmer{from{transform:translateX(-130%)}to{transform:translateX(130%)}}
-        .kk-seat-cta::after{content:'';position:absolute;inset:0;background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.3) 50%,transparent 65%);transform:translateX(-130%)}
-        .kk-seat-cta:not(:disabled):hover::after{animation:kk-seat-shimmer .75s ease}
-        @media(prefers-reduced-motion:reduce){.kk-seat-btn,.kk-seat-cta{transition:none}.kk-seat-cta::after{display:none}}
-      `}</style>
+    <div className="kk-seat-body min-h-screen bg-[#0A2A31] pb-40 text-[#EFEBE0]">
+      <style>{STYLES}</style>
 
-      <main className="mx-auto max-w-[1440px] px-4 py-5 sm:px-6 lg:px-8">
-        <div className="mb-7 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="mb-2 text-xs font-bold uppercase tracking-[.24em]" style={{ color: COLORS.mango }}>Your cinema experience</p>
-            <h1 className="kk-seat-display text-3xl font-bold tracking-tight sm:text-4xl">Choose your seats<span style={{ color: COLORS.kokum }}>.</span></h1>
-            <p className="mt-2 text-sm" style={{ color: `${COLORS.shell}B8` }}>Pick your favourite spot. We’ll hold your seats while you check out.</p>
+      {/* Show bar */}
+      <div className="sticky top-[72px] z-30 border-b border-[#EFEBE0]/10 bg-[#0A2A31]/95 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2.5 sm:px-6">
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            aria-label="Back to showtimes"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[#EFEBE0]/70 transition hover:bg-[#EFEBE0]/10 hover:text-[#EFEBE0]"
+          >
+            <span className="material-symbols-outlined text-[20px]">arrow_back_ios_new</span>
+          </button>
+
+          <div className="min-w-0 flex-1">
+            <h1 className="kk-display truncate text-base font-bold leading-tight sm:text-xl">{title}</h1>
+            <p className="truncate text-[10px] text-[#EFEBE0]/55 sm:text-xs">
+              {locality}
+              {dateText && <span className="mx-1.5 text-[#EFEBE0]/25">|</span>}
+              {dateText}
+              {timeText && <span className="mx-1.5 text-[#EFEBE0]/25">|</span>}
+              {timeText}
+            </p>
           </div>
-          <button onClick={() => navigate(-1)} className="rounded-full border px-4 py-2 text-sm font-semibold kk-seat-btn" style={{ borderColor: `${COLORS.shell}40`, color: COLORS.shell }}>
-            ← Back to shows
+
+          <button
+            type="button"
+            onClick={() => setPickerOpen(true)}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-md border px-3 py-2 text-xs font-semibold transition hover:bg-[#C2305E]/10"
+            style={{ borderColor: `${C.kokum}99`, color: C.kokum }}
+          >
+            <span className="material-symbols-outlined text-[15px]">edit</span>
+            {selected.length || limit} {selected.length === 1 || (!selected.length && limit === 1) ? 'Ticket' : 'Tickets'}
           </button>
         </div>
+      </div>
 
-        <section className="kk-seat-card relative mb-6 overflow-hidden rounded-3xl p-4 sm:p-6 lg:p-7" style={{ background: COLORS.shell, color: COLORS.ink }}>
-          <div className="pointer-events-none absolute -right-20 -top-28 h-72 w-72 rounded-full blur-3xl" style={{ background: `${COLORS.mango}35` }} />
-          <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center">
-            <div className="h-28 w-20 shrink-0 overflow-hidden rounded-xl shadow-lg sm:h-32 sm:w-24" style={{ background: COLORS.tide }}>
-              {movie?.thumbnail_url ? (
-                <img src={assetUrl(movie.thumbnail_url)} alt={movie.title || 'Movie poster'} className="h-full w-full object-cover" />
-              ) : (
-                <div className="flex h-full items-center justify-center p-2 text-center text-xs font-bold" style={{ color: COLORS.shell }}>KONKANI CINEMA</div>
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="mb-2 flex flex-wrap gap-2">
-                <span className="rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider" style={{ background: COLORS.mango, color: COLORS.ink }}>{movie?.certification || 'UA'}</span>
-                <span className="rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-wider" style={{ borderColor: `${COLORS.ink}30` }}>Cinema screening</span>
-              </div>
-              <h2 className="kk-seat-display text-2xl font-bold leading-tight sm:text-3xl">{movie?.title || 'Movie screening'}</h2>
-              <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm" style={{ color: `${COLORS.ink}B8` }}>
-                <span className="inline-flex items-center gap-2"><span style={{ color: COLORS.kokum }}>⌖</span>{show.auditorium_name || 'Auditorium'}</span>
-                {show.starts_at && <span className="inline-flex items-center gap-2"><span style={{ color: COLORS.kokum }}>◷</span>{new Date(show.starts_at).toLocaleString()}</span>}
-              </div>
-            </div>
-            <div className="hidden min-w-28 border-l pl-6 text-right sm:block" style={{ borderColor: `${COLORS.ink}20` }}>
-              <p className="text-xs uppercase tracking-widest" style={{ color: `${COLORS.ink}8A` }}>Seat map</p>
-              <p className="kk-seat-display mt-1 text-3xl font-bold">{seats.length}</p>
-              <p className="text-xs" style={{ color: `${COLORS.ink}A0` }}>{rowLabels.length} rows</p>
-            </div>
+      <main className="mx-auto max-w-[1180px] px-3 pt-5 sm:px-6">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[.18em] text-[#EFEBE0]/40">
+            {stats.length} categories · {availableCount} seats available
+          </p>
+
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setZoomIdx((i) => Math.max(0, i - 1))}
+              disabled={zoomIdx === 0}
+              aria-label="Zoom out"
+              className="kk-zoom flex h-8 w-8 items-center justify-center rounded-full border border-[#EFEBE0]/[0.12] text-[#EFEBE0]/70 disabled:opacity-30"
+            >
+              <span className="material-symbols-outlined text-[18px]">zoom_out</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setZoomIdx((i) => Math.min(ZOOM_STEPS.length - 1, i + 1))}
+              disabled={zoomIdx === ZOOM_STEPS.length - 1}
+              aria-label="Zoom in"
+              className="kk-zoom flex h-8 w-8 items-center justify-center rounded-full border border-[#EFEBE0]/[0.12] text-[#EFEBE0]/70 disabled:opacity-30"
+            >
+              <span className="material-symbols-outlined text-[18px]">zoom_in</span>
+            </button>
           </div>
-        </section>
+        </div>
 
-        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(310px,.8fr)]">
-          <section className="min-w-0 overflow-hidden rounded-3xl border p-4 sm:p-6 lg:p-7" style={{ background: COLORS.tide, borderColor: `${COLORS.shell}12` }}>
-            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[.2em]" style={{ color: COLORS.mango }}>The auditorium</p>
-                <h2 className="kk-seat-display mt-1 text-2xl font-bold">Select your spot</h2>
-              </div>
-              <span className="rounded-full px-3 py-1.5 text-xs font-semibold" style={{ background: `${COLORS.ink}80`, color: COLORS.shell }}>{selected.length} selected</span>
-            </div>
-
-            <div className="mb-5 flex flex-wrap gap-x-5 gap-y-3 border-b pb-5 text-xs" style={{ borderColor: `${COLORS.shell}20` }}>
-              <span className="flex items-center gap-2"><i className="h-3.5 w-3.5 rounded-sm" style={{ background: '#7BA6A7' }} />Available</span>
-              <span className="flex items-center gap-2"><i className="h-3.5 w-3.5 rounded-sm" style={{ background: COLORS.kokum }} />Selected</span>
-              <span className="flex items-center gap-2"><i className="h-3.5 w-3.5 rounded-sm" style={{ background: '#52676A' }} />Sold / reserved</span>
-              <span className="flex items-center gap-2"><i className="h-3.5 w-3.5 rounded-sm" style={{ background: COLORS.mango }} />Accessible</span>
-            </div>
-
-            <div className="overflow-x-auto pb-3">
-              <div className="min-w-[560px] px-1">
-                <div className="relative mx-auto mb-9 mt-2 max-w-xl pt-2 text-center">
-                  <div className="absolute -inset-x-8 -top-7 h-20 rounded-[50%] blur-2xl" style={{ background: `${COLORS.mango}12` }} />
-                  <svg className="kk-seat-screen relative mx-auto h-10 w-full" viewBox="0 0 500 40" fill="none" preserveAspectRatio="none" aria-hidden="true">
-                    <path d="M 18 32 Q 250 -4 482 32" stroke={COLORS.mango} strokeWidth="2.5" strokeLinecap="round" />
-                  </svg>
-                  <span className="relative -mt-1 inline-flex rounded-full px-5 py-1 text-[10px] font-bold uppercase tracking-[.35em]" style={{ background: COLORS.ink, color: COLORS.mango }}>Screen</span>
-                </div>
-
-                {seats.length === 0 ? (
-                  <p className="py-12 text-center text-sm" style={{ color: `${COLORS.shell}A0` }}>No seats are configured for this show yet.</p>
-                ) : (
-                  <div className="flex flex-col gap-2.5">
-                    {rowLabels.map((row) => {
-                      const cells = Array(maxX - minX + 1).fill(null);
-                      seats.forEach((seat) => {
-                        if (seat.row_label === row) cells[Number(seat.x) - minX] = seat;
-                      });
-                      return (
-                        <div key={row} className="flex items-center gap-2">
-                          <span className="w-5 shrink-0 text-center text-xs font-bold" style={{ color: COLORS.mango }}>{row}</span>
-                          <div className="flex min-w-0 flex-1 items-center justify-center gap-1 sm:gap-1.5">
-                            {cells.map((seat, i) => {
-                              if (!seat) return <span key={`gap-${row}-${i}`} className="h-7 w-5 shrink-0 sm:w-7" />;
-                              const isSelected = selected.includes(seat.seat_id);
-                              const unavailable = seat.status !== 'available' && !isSelected;
-                              const baseColor = categoryColor(seat.category_name, row);
-                              return (
-                                <button
-                                  key={seat.seat_id}
-                                  type="button"
-                                  disabled={unavailable}
-                                  onClick={() => toggle(seat)}
-                                  aria-pressed={isSelected}
-                                  aria-label={`Seat ${row}-${seat.seat_number}, ${seat.category_name || 'Standard'}, ${unavailable ? 'unavailable' : isSelected ? 'selected' : money(seat.price_minor)}`}
-                                  title={`${row}-${seat.seat_number} · ${seat.category_name || 'Standard'} · ${money(seat.price_minor)}`}
-                                  className="kk-seat-btn flex h-7 w-5 shrink-0 items-center justify-center rounded-t-md rounded-b-sm text-[9px] font-bold sm:h-8 sm:w-7 sm:text-[10px]"
-                                  style={{
-                                    background: unavailable ? '#52676A' : isSelected ? COLORS.kokum : baseColor,
-                                    color: unavailable ? '#A3B5B5' : isSelected ? '#FFFFFF' : COLORS.ink,
-                                    opacity: unavailable ? .48 : 1,
-                                    cursor: unavailable ? 'not-allowed' : 'pointer',
-                                    boxShadow: isSelected ? `0 0 0 2px ${COLORS.shell}, 0 0 15px ${COLORS.kokum}70` : '0 2px 0 rgba(0,0,0,.18)',
-                                  }}
-                                >
-                                  {isSelected ? '✓' : seat.seat_number}
-                                </button>
-                              );
-                            })}
-                          </div>
-                          <span className="w-5 shrink-0 text-center text-xs font-bold" style={{ color: COLORS.mango }}>{row}</span>
-                        </div>
-                      );
-                    })}
+        <div className="overflow-x-auto pb-5">
+          <div className="mx-auto w-max px-1" style={{ zoom: ZOOM_STEPS[zoomIdx] }}>
+            {sections.length === 0 ? (
+              <p className="py-16 text-center text-sm text-[#EFEBE0]/55">
+                No seats are configured for this show yet.
+              </p>
+            ) : (
+              sections.map((section) => (
+                <section key={section.name} className="mb-7">
+                  <div className="mx-auto flex items-center gap-3">
+                    <span className="kk-cat-line" />
+                    <span className="whitespace-nowrap text-[11px] font-bold uppercase tracking-[.18em] text-[#EFEBE0]/60">
+                      {rupees(section.price)} {section.name}
+                    </span>
+                    <span className="kk-cat-line" />
                   </div>
-                )}
-              </div>
-            </div>
 
-            <div className="mt-6 grid gap-3 border-t pt-5 sm:grid-cols-2" style={{ borderColor: `${COLORS.shell}20` }}>
-              {categories.map(([category, info]) => (
-                <div key={category} className="flex items-center justify-between gap-3 rounded-xl px-3 py-2.5" style={{ background: `${COLORS.ink}60` }}>
-                  <span className="flex min-w-0 items-center gap-2 text-xs"><i className="h-3 w-3 shrink-0 rounded-sm" style={{ background: info.color }} /><span className="truncate">{category}</span></span>
-                  <span className="shrink-0 text-xs font-semibold" style={{ color: `${COLORS.shell}B8` }}>{info.count} seats</span>
-                </div>
-              ))}
-            </div>
-            {handicapSeat && (
-              <p className="mt-3 text-xs" style={{ color: `${COLORS.shell}A8` }}>Accessible seating is available at {handicapSeat.row_label}-{handicapSeat.seat_number}.</p>
+                  <div className="mt-3 flex flex-col gap-1.5">
+                    {section.rows.map((row) => (
+                      <div key={`${section.name}-${row.label}`} className="flex items-center gap-2">
+                        <span className="w-4 shrink-0 text-center text-[10px] font-semibold text-[#EFEBE0]/35">
+                          {row.label}
+                        </span>
+
+                        <div className="kk-seat-row" style={{ '--kk-cols': cols }}>
+                          {row.seats.map((seat) => {
+                            const isSelected = selected.includes(seat.seat_id);
+                            const unavailable = seat.status !== 'available' && !isSelected;
+                            const isBest = bestsellerName === section.name && !isSelected && !unavailable;
+                            const span = Math.max(1, Number(seat.col_span) || 1);
+
+                            const palette = isSelected
+                              ? { background: C.kokum, borderColor: C.kokum, color: '#fff' }
+                              : unavailable
+                                ? { background: 'rgba(147,166,168,.16)', borderColor: 'rgba(147,166,168,.28)', color: 'rgba(239,235,224,.26)' }
+                                : isBest
+                                  ? { background: 'transparent', borderColor: C.mango, color: C.mango }
+                                  : { background: 'transparent', borderColor: 'rgba(120,201,166,.8)', color: 'rgba(120,201,166,.95)' };
+
+                            return (
+                              <button
+                                key={seat.seat_id}
+                                type="button"
+                                disabled={unavailable}
+                                onClick={() => toggle(seat)}
+                                aria-pressed={isSelected}
+                                aria-label={`Seat ${row.label}-${seat.seat_number}, ${section.name}, ${
+                                  unavailable ? 'sold' : isSelected ? 'selected' : rupees(seat.price_minor || section.price)
+                                }`}
+                                title={`${row.label}-${seat.seat_number} · ${section.name} · ${rupees(seat.price_minor || section.price)}${isBest ? ' · Bestseller' : ''}`}
+                                className="kk-seat"
+                                style={{
+                                  gridColumn: `${Number(seat.x) - minX + 1} / span ${span}`,
+                                  ...palette,
+                                  boxShadow: isSelected ? `0 0 0 1px ${C.shell}, 0 0 12px ${C.kokum}66` : 'none',
+                                }}
+                              >
+                                {seat.accessible ? (
+                                  <span className="text-[10px] leading-none" aria-hidden="true">♿</span>
+                                ) : (
+                                  seat.seat_number
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              ))
             )}
-          </section>
-
-          <aside className="hidden lg:block lg:sticky lg:top-24">
-            <div className="kk-seat-card overflow-hidden rounded-3xl" style={{ background: COLORS.shell, color: COLORS.ink }}>
-              <div className="p-6" style={{ background: COLORS.mango }}>
-                <p className="text-xs font-bold uppercase tracking-[.22em]">Your ticket</p>
-                <h2 className="kk-seat-display mt-1 text-2xl font-bold">Booking summary</h2>
-                <p className="mt-1 text-sm" style={{ color: `${COLORS.ink}B8` }}>Review your seats before checkout.</p>
-              </div>
-              <div className="p-5 sm:p-6">
-                <div className="mb-4 flex items-center justify-between border-b border-dashed pb-4" style={{ borderColor: `${COLORS.ink}35` }}>
-                  <span className="text-sm" style={{ color: `${COLORS.ink}A0` }}>Selected seats</span>
-                  <span className="rounded-full px-3 py-1 text-xs font-bold text-white" style={{ background: COLORS.kokum }}>{selected.length}</span>
-                </div>
-
-                {selectedSeats.length ? (
-                  <div className="mb-5 flex flex-col gap-2">
-                    {selectedSeats.map((seat) => (
-                      <div key={seat.seat_id} className="flex items-center justify-between gap-3 rounded-xl p-3" style={{ background: '#E4DFD3' }}>
-                        <div className="min-w-0">
-                          <p className="truncate text-xs font-bold">{seat.category_name || 'Standard'}</p>
-                          <p className="mt-1 text-xs" style={{ color: `${COLORS.ink}9C` }}>Row {seat.row_label} · Seat {seat.seat_number}</p>
-                        </div>
-                        <span className="shrink-0 text-sm font-bold">{money(seat.price_minor)}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="mb-5 rounded-2xl border border-dashed px-4 py-7 text-center" style={{ borderColor: `${COLORS.ink}35` }}>
-                    <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full text-xl" style={{ background: '#E4DFD3' }}>⌑</div>
-                    <p className="text-sm font-semibold">Your seats go here</p>
-                    <p className="mt-1 text-xs" style={{ color: `${COLORS.ink}9C` }}>Select seats from the map to begin.</p>
-                  </div>
-                )}
-
-                {selectedByCategory.length > 0 && (
-                  <div className="mb-5 space-y-2">
-                    {selectedByCategory.map(([category, info]) => (
-                      <div key={category} className="flex justify-between gap-3 text-xs">
-                        <span style={{ color: `${COLORS.ink}A0` }}>{category} × {info.count}</span>
-                        <span className="font-semibold">{money(info.amount)}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <div className="border-t border-dashed pt-4" style={{ borderColor: `${COLORS.ink}35` }}>
-                  <div className="flex items-end justify-between gap-3">
-                    <div>
-                      <p className="text-xs" style={{ color: `${COLORS.ink}A0` }}>Total payable</p>
-                      <p className="kk-seat-display mt-1 text-3xl font-bold">{money(totalMinor)}</p>
-                    </div>
-                    <span className="pb-1 text-[10px] font-bold uppercase tracking-wider" style={{ color: COLORS.kokum }}>Incl. selected seats</span>
-                  </div>
-                  <button type="button" disabled={!selected.length} onClick={hold} className="kk-seat-cta mt-5 w-full rounded-xl px-5 py-4 text-sm font-bold text-white" style={{ background: COLORS.kokum }}>
-                    Continue to checkout <span className="ml-1">→</span>
-                  </button>
-                  <p className="mt-3 text-center text-[10px]" style={{ color: `${COLORS.ink}8A` }}>Seats are held when you continue to checkout.</p>
-                </div>
-              </div>
-              <div className="flex items-center justify-between border-t-2 border-dashed px-6 py-3 text-[10px] font-bold uppercase tracking-[.18em]" style={{ borderColor: `${COLORS.ink}30`, background: '#E4DFD3', color: `${COLORS.ink}8A` }}>
-                <span>Konkani Samudai</span><span>Enjoy the show ✦</span>
-              </div>
-            </div>
-          </aside>
+          </div>
         </div>
       </main>
 
-      {selected.length > 0 && (
-        <div className="fixed inset-x-0 bottom-0 z-50 border-t p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl lg:hidden" style={{ background: COLORS.shell, color: COLORS.ink, borderColor: `${COLORS.ink}20` }}>
-          <div className="mx-auto flex max-w-3xl items-center justify-between gap-4">
-            <div className="min-w-0">
-              <p className="text-xs" style={{ color: `${COLORS.ink}9C` }}>{selected.length} seat{selected.length === 1 ? '' : 's'} selected</p>
-              <p className="kk-seat-display truncate text-2xl font-bold">{money(totalMinor)}</p>
-              <p className="truncate text-[10px]" style={{ color: `${COLORS.ink}8A` }}>{selectedSeats.map((seat) => `${seat.row_label}-${seat.seat_number}`).join(', ')}</p>
+      {/* Legend + pay bar */}
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#EFEBE0]/[0.12] bg-[#071E23]/[0.96] backdrop-blur-xl">
+        <div className="hidden items-center justify-center gap-7 border-b border-[#EFEBE0]/[0.08] px-4 py-2 text-[11px] text-[#EFEBE0]/60 md:flex">
+          <Legend color="rgba(120,201,166,.9)" label="Available" />
+          <Legend color="rgba(147,166,168,.45)" label="Sold" filled />
+          <span className="inline-flex items-center gap-1.5">
+            <Legend color={C.mango} label="Bestseller" />
+            <span
+              className="material-symbols-outlined cursor-help text-[14px] text-[#EFEBE0]/35"
+              title="Most-loved seats in this screen, at the regular price."
+            >
+              info
+            </span>
+          </span>
+          <Legend color={C.kokum} label="Selected" filled />
+        </div>
+
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
+          <div className="min-w-0">
+            <p className="text-xs text-[#EFEBE0]/60">
+              {selected.length} {selected.length === 1 ? 'seat' : 'seats'} selected
+              <span className="hidden sm:inline"> · up to {limit}</span>
+            </p>
+            <p className="truncate text-[10px] text-[#EFEBE0]/35">
+              {selectedSeats.length
+                ? selectedSeats.map((seat) => `${seat.row_label}-${seat.seat_number}`).join(', ')
+                : 'Pick a seat from the plan above'}
+            </p>
+          </div>
+
+          <div className="flex shrink-0 items-center gap-3 sm:gap-4">
+            <div className="text-right">
+              <p className="text-[9px] font-bold uppercase tracking-[.14em] text-[#EFEBE0]/40">Total</p>
+              <p className="kk-display text-lg font-bold leading-tight sm:text-xl">
+                {selected.length ? rupees(totalMinor) : '—'}
+              </p>
             </div>
-            <button type="button" onClick={hold} className="kk-seat-cta shrink-0 rounded-xl px-5 py-3.5 text-sm font-bold text-white" style={{ background: COLORS.kokum }}>
-              Continue <span className="ml-1">→</span>
+            <button
+              type="button"
+              onClick={hold}
+              disabled={!selected.length || holding}
+              className="kk-pay min-w-[130px] rounded-lg px-5 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40 sm:min-w-[170px]"
+              style={{ background: C.kokum }}
+            >
+              {holding ? 'Holding seats…' : selected.length ? `Pay ${rupees(totalMinor)}` : 'Select seats'}
             </button>
+          </div>
+        </div>
+      </div>
+
+      {notice && (
+        <div
+          className="kk-toast fixed bottom-28 left-1/2 z-50 max-w-[90vw] -translate-x-1/2 rounded-lg px-4 py-2.5 text-center text-xs font-semibold shadow-xl"
+          style={{ background: C.shell, color: C.ink }}
+          role="status"
+        >
+          {notice}
+        </div>
+      )}
+
+      {/* How many seats? */}
+      {pickerOpen && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-[#071E23]/[0.82] px-4 py-6 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-label="How many seats?"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setPickerOpen(false);
+          }}
+        >
+          <div className="w-full max-w-2xl overflow-hidden rounded-2xl bg-[#EFEBE0] text-[#0A2A31] shadow-2xl">
+            <div className="relative px-6 pb-5 pt-6 sm:px-8">
+              <button
+                type="button"
+                onClick={() => setPickerOpen(false)}
+                aria-label="Close seat count"
+                className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full text-[#0A2A31]/50 transition hover:bg-[#0A2A31]/[0.08] hover:text-[#0A2A31]"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+
+              <h2 className="kk-display text-center text-2xl font-bold">How many seats?</h2>
+              <p className="mt-1 text-center text-xs text-[#0A2A31]/50">
+                {availableCount} seats free · pick up to {maxSelectable}
+              </p>
+
+              <div className="mt-4 flex justify-center">
+                <span
+                  className="flex h-16 w-16 items-center justify-center rounded-full"
+                  style={{ background: `${C.mango}22`, color: C.kokum }}
+                  aria-hidden="true"
+                >
+                  <span className="material-symbols-outlined text-[34px]">two_wheeler</span>
+                </span>
+              </div>
+
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-1">
+                {Array.from({ length: MAX_SEATS }, (_, i) => i + 1).map((n) => {
+                  const active = draft === n;
+                  const disabled = n > maxSelectable || n < selected.length;
+                  return (
+                    <button
+                      key={n}
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => setDraft(n)}
+                      aria-pressed={active}
+                      className={`kk-pill flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-25 ${
+                        active ? 'text-white' : 'text-[#0A2A31]/75 hover:bg-[#0A2A31]/[0.08]'
+                      }`}
+                      style={active ? { background: C.kokum } : undefined}
+                    >
+                      {n}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="mx-6 border-t border-dashed border-[#0A2A31]/20 sm:mx-8" />
+
+            <div className="overflow-x-auto px-6 py-4 sm:px-8">
+              <div className="flex min-w-max items-start justify-center gap-7">
+                {stats.map((stat) => {
+                  const tone = stat.status === 'FILLED'
+                    ? C.kokum
+                    : stat.status === 'ALMOST FULL'
+                      ? '#B8791A'
+                      : '#1E7A4E';
+                  return (
+                    <div key={stat.name} className="min-w-[84px] text-center">
+                      <p className="truncate text-[9px] font-bold uppercase tracking-[.1em] text-[#0A2A31]/55">
+                        {stat.name}
+                      </p>
+                      <p className="kk-display mt-1 text-base font-bold">{rupees(stat.price)}</p>
+                      <p className="mt-0.5 text-[9px] font-bold uppercase tracking-[.08em]" style={{ color: tone }}>
+                        {stat.status}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="mx-6 flex items-center gap-2 rounded bg-[#0A2A31]/5 px-3 py-2 text-[11px] text-[#0A2A31]/70 sm:mx-8">
+              <span className="h-3 w-3 shrink-0 rounded-[3px] border-2" style={{ borderColor: C.mango }} />
+              <span>
+                Book the <strong className="font-bold text-[#0A2A31]">Bestseller</strong> seats in this cinema at no extra cost!
+              </span>
+            </div>
+
+            <div className="p-6 pt-4 sm:px-8">
+              <button
+                type="button"
+                onClick={confirmCount}
+                className="kk-pay w-full rounded-lg py-3.5 text-sm font-bold text-white"
+                style={{ background: C.kokum }}
+              >
+                Select Seats
+              </button>
+            </div>
           </div>
         </div>
       )}

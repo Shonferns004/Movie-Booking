@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../models/observer_config.dart';
 import '../models/observer_event.dart';
 import '../services/gateway_bridge.dart';
+import '../services/realtime_service.dart';
 
 /// App-wide observer state. The Kotlin side is authoritative; this class only
 /// mirrors it and exposes the actions the screens need.
@@ -22,7 +23,6 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   String? _activeWindowError;
   bool _busy = false;
   bool _refreshingActiveWindow = false;
-  Timer? _poll;
 
   GatewayState? get state => _state;
   ObserverConfig get config => _state?.config ?? const ObserverConfig();
@@ -44,32 +44,27 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> start() async {
     await refresh();
-    _startPolling();
-  }
-
-  void _startPolling() {
-    _poll?.cancel();
-    // Keeps the dashboard honest while the app is in the foreground: the
-    // receiver can log events without the UI being involved.
-    _poll = Timer.periodic(const Duration(seconds: 8), (_) {
-      if (_busy) return;
-      refresh(quiet: true);
-    });
+    // Realtime instead of polling: the API pushes a topic when the database changed.
+    RealtimeService.instance.onEvent = (topic) {
+      if (topic == 'payments' || topic == 'seats') refresh(quiet: true);
+    };
+    RealtimeService.instance.onConnected = () => refresh(quiet: true);
+    await RealtimeService.instance.connect();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       refresh(quiet: true);
-      _startPolling();
-    } else if (state == AppLifecycleState.paused) {
-      _poll?.cancel();
+      RealtimeService.instance.connect();
     }
   }
 
   @override
   void dispose() {
-    _poll?.cancel();
+    RealtimeService.instance.onEvent = null;
+    RealtimeService.instance.onConnected = null;
+    RealtimeService.instance.disconnect();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }

@@ -14,7 +14,8 @@ import 'scanner_screen.dart';
 import 'scanner_shell.dart';
 import 'profile_screen.dart';
 import 'show_detail_screen.dart';
-import 'add_show_screen.dart' show AddShowSheet;
+import 'movie_planner_screen.dart';
+import '../services/realtime.dart';
 import 'theater_list_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -24,7 +25,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   List<String> _roles = [];
   String? _token;
 
@@ -50,12 +51,52 @@ class _HomeScreenState extends State<HomeScreen> {
   int _scannedCount = 0;
   bool _loading = true;
 
+  bool _refreshing = false;
+
   int _scannerTab = 0;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _load();
+
+    // Realtime: the server pushes a topic when Neon sees a committed change, so the
+    // screens refresh without polling.
+    RealtimeService.instance.onEvent = (topic) => _liveRefresh();
+    RealtimeService.instance.onConnected = _liveRefresh;
+    RealtimeService.instance.connect();
+  }
+
+  @override
+  void dispose() {
+    RealtimeService.instance.onEvent = null;
+    RealtimeService.instance.onConnected = null;
+    RealtimeService.instance.disconnect();
+    WidgetsBinding.instance.removeObserver(this);
+    _heroTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Coming back from the background is the moment stale data is most visible.
+    if (state == AppLifecycleState.resumed) _liveRefresh();
+  }
+
+  /// Silent background refresh: never shows a spinner and never throws.
+  Future<void> _liveRefresh() async {
+    if (_token == null || _refreshing || !mounted) return;
+    _refreshing = true;
+    try {
+      await _refresh();
+      await _loadTheatres(keepSelection: true);
+      await _loadAuditoriums();
+    } catch (_) {
+      // Keep the last good state on transient network errors.
+    } finally {
+      _refreshing = false;
+    }
   }
 
   Future<void> _load() async {
@@ -82,15 +123,24 @@ class _HomeScreenState extends State<HomeScreen> {
     await _loadCategories();
   }
 
-  Future<void> _loadTheatres() async {
+  Future<void> _loadTheatres({bool keepSelection = false}) async {
     if (_token == null) return;
     try {
       final t = await Api.getTheatres(_token!);
-      setState(() => _theatres = t);
-      if (t.isNotEmpty && _theatreId == null) {
-        _theatreId = t[0]['id'];
-        await _loadAuditoriums();
-      }
+      if (!mounted) return;
+      final ids = t.map((e) => e['id']?.toString()).toSet();
+      final lostSelection = _theatreId != null && !ids.contains(_theatreId);
+      setState(() {
+        _theatres = t;
+        // A theatre deleted from another device must not stay selected.
+        if (lostSelection) {
+          _theatreId = null;
+          _auditoriumId = null;
+          _auditoriums = [];
+        }
+        if (_theatreId == null && t.isNotEmpty) _theatreId = t[0]['id'];
+      });
+      if (!keepSelection) await _loadAuditoriums();
     } catch (_) {}
   }
 
@@ -98,11 +148,15 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_token == null || _theatreId == null) return;
     try {
       final a = await Api.getAuditoriums(_token!, _theatreId!);
-      setState(() => _auditoriums = a);
-      if (a.isNotEmpty && _auditoriumId == null) {
-        _auditoriumId = a[0]['id'];
-        await _loadSeats();
-      }
+      if (!mounted) return;
+      final ids = a.map((e) => e['id']?.toString()).toSet();
+      setState(() {
+        _auditoriums = a;
+        if (_auditoriumId == null || !ids.contains(_auditoriumId)) {
+          _auditoriumId = a.isEmpty ? null : a[0]['id'];
+        }
+      });
+      await _loadSeats();
     } catch (_) {}
   }
 
@@ -473,7 +527,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _startHeroTimer() {
-    _heroTimer?.cancel();
+    // Polling re-runs this every few seconds: keep the running timer instead of
+    // resetting the 5s carousel each time.
+    if (_heroTimer?.isActive == true) return;
     if (_ongoingShows.length <= 1) return;
     _heroTimer = Timer.periodic(const Duration(seconds: 5), (_) {
       if (!mounted || _ongoingShows.isEmpty) return;
@@ -489,12 +545,6 @@ class _HomeScreenState extends State<HomeScreen> {
     final price = double.tryParse(_priceCtrls[c['name']]?.text ?? '0') ?? 0;
     return sum + count * price;
   });
-
-  @override
-  void dispose() {
-    _heroTimer?.cancel();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -672,13 +722,16 @@ class _HomeScreenState extends State<HomeScreen> {
         Expanded(
           child: ElevatedButton(
             onPressed: () async {
-              await showModalBottomSheet(
-                context: context,
-                isScrollControlled: true,
-                backgroundColor: Colors.transparent,
-                builder: (_) => AddShowSheet(token: _token),
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => MoviePlannerScreen(token: _token),
+                ),
               );
-              if (mounted) await _refresh();
+              if (mounted) {
+                await _refresh();
+                await _loadTheatres();
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFD96B43),
@@ -716,12 +769,18 @@ class _HomeScreenState extends State<HomeScreen> {
         const SizedBox(width: 12),
         Expanded(
           child: ElevatedButton(
-            onPressed: () => showModalBottomSheet(
-              context: context,
-              isScrollControlled: true,
-              backgroundColor: Colors.transparent,
-              builder: (_) => TheaterListSheet(token: _token),
-            ),
+            onPressed: () async {
+              await showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (_) => TheaterListSheet(token: _token),
+              );
+              // The sheet can add or delete theatres: refresh as soon as it closes
+              // instead of waiting for the next poll tick.
+              await _loadTheatres();
+              await _refresh();
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF1A1A1E),
               foregroundColor: const Color(0xFFF5EFEB),

@@ -17,7 +17,7 @@ The Flutter UI is only a mirror of that state.
 `base` must be the payment gateway origin **including the `/youpi` prefix**, for example:
 
 ```
-https://movie-api.onrender.com/youpi
+https://movie-booking-1-fl6i.onrender.com/youpi
 ```
 
 Do not append `/api` and do not use the gateway's internal `:6100` port.

@@ -201,6 +201,44 @@ browser / app ──► Worker (API) ──HTTPS──► youpi-gateway.onrender
 Without `YOUPI_API_URL` the API answers with
 `503 payment gateway is not configured on this deployment: set YOUPI_API_URL ...`.
 
+## 8. Realtime (Neon Realtime → all apps)
+
+```
+Neon Postgres ──Realtime WS──► Node host (relay) ──HTTPS──► Worker DO ──WS──► apps
+```
+
+Neon's client SDK is JS/TS only (no Dart), and its WebSocket does **not** survive in the
+Workers runtime — but it works in Node. So the always-on Node host holds the single
+subscription and POSTs change events to the Worker, whose Durable Object
+(`RealtimeHub`) fans them out as `{ "type": "change", "topic": "..." }`:
+
+| Topic | Watches | Apps |
+| --- | --- | --- |
+| `catalog` | movies, theatres, auditoriums, shows | admin app, web client |
+| `seats` | seat holds, bookings, per-seat status | web seat picker, admin app |
+| `payments` | payments, tickets | pay/observer app, admin app |
+
+Events carry no rows — clients refetch the endpoints they already use. `WSS
+/api/v1/realtime` is the socket; `POST /api/v1/internal/realtime` is the relay's private
+publish endpoint (Bearer `INTERNAL_CRON_SECRET`).
+
+**The Node host needs:**
+
+```
+NEON_REALTIME_URL=https://<branch>.rt.c-8.<region>.aws.neon.tech
+NEON_REALTIME_SECRET=<branch secret from Console → Realtime → Copy secret>
+INTERNAL_CRON_SECRET=<same value as the Worker secret>
+# optional, defaults to the deployed Worker:
+REALTIME_RELAY_URL=https://movie-worker.<subdomain>.workers.dev/api/v1/internal/realtime
+```
+
+The relay starts automatically from `npm run start:gateway` (and from `npm start`).
+`GET /status` shows the live subscription count and the last topic received.
+
+**Enabling Neon Realtime** (once per branch): Console → **Postgres database** →
+**Realtime** → **Enable Realtime**. ⚠️ This turns on logical replication for the project
+and **suspends every compute once**; `wal_level` stays `logical` afterwards. Free in beta.
+
 ## Things to check before you rely on it
 
 - **Rate limiting** is an in-memory map, so it is per isolate on Workers. Use the

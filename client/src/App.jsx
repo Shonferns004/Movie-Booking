@@ -8,7 +8,6 @@ import Checkout from './pages/Checkout.jsx';
 import BookingConfirmation from './pages/BookingConfirmation.jsx';
 import MyTickets from './pages/MyTickets.jsx';
 import Login from './pages/Login.jsx';
-import api from './services/api.js';
 
 const NAV_LINKS = [
   { to: '/', label: 'Movies', end: true, icon: 'movie' },
@@ -51,6 +50,7 @@ function Nav() {
 
   function logout() {
     localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
     setToken(false);
     setMobileOpen(false);
     navigate('/', { replace: true });
@@ -167,13 +167,6 @@ function SiteFooter() {
 export default function App() {
   const { pathname } = useLocation();
   const pageRef = useRef(null);
-  useEffect(() => {
-    if (!localStorage.getItem('token')) {
-      api.post('/auth/login', { email: 'adminapp@movie.local', password: 'adminapp123' })
-        .then((r) => { if (r.data?.token) localStorage.setItem('token', r.data.token); })
-        .catch(() => {});
-    }
-  }, []);
   const isAuthRoute = pathname === '/login';
 
   useEffect(() => {

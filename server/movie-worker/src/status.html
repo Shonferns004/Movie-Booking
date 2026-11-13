@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Konkani Samudai — Backend Status</title>
+<style>
+  :root {
+    --ink: #0d0d0f;
+    --card: #1a1a1e;
+    --line: #2f2f37;
+    --text: #f5efeb;
+    --muted: #9e9890;
+    --accent: #d96b43;
+    --ok: #7fbf7f;
+    --warn: #e0b95a;
+    --bad: #e07a52;
+    --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; font-family: var(--font);
+    background: radial-gradient(1200px 600px at 15% -10%, #1b1b20 0%, var(--ink) 55%);
+    color: var(--text);
+  }
+  header {
+    display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between;
+    padding: 22px 28px; border-bottom: 1px solid var(--line);
+  }
+  h1 { margin: 0; font-size: 18px; letter-spacing: -0.2px; }
+  h1 span { color: var(--accent); }
+  .sub { color: var(--muted); font-size: 12px; margin-top: 4px; }
+  .actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  button {
+    font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+    padding: 9px 16px; border-radius: 10px; border: 1px solid var(--line);
+    background: transparent; color: var(--text); transition: all .15s ease;
+  }
+  button:hover { border-color: var(--accent); color: var(--accent); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.primary:hover { filter: brightness(1.08); color: #fff; }
+  button:disabled { opacity: .55; cursor: progress; }
+  main { padding: 24px 28px 40px; max-width: 1180px; margin: 0 auto; }
+  .grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(255px, 1fr)); }
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px;
+  }
+  .card h2 { margin: 0 0 10px; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+  .row { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; padding: 4px 0; }
+  .row .k { color: var(--muted); }
+  .row .v { font-variant-numeric: tabular-nums; text-align: right; }
+  .big { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; }
+  .pill { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
+  .dot.ok { background: var(--ok); box-shadow: 0 0 0 4px rgba(127,191,127,.14); }
+  .dot.bad { background: var(--bad); box-shadow: 0 0 0 4px rgba(224,122,82,.14); }
+  .dot.warn { background: var(--warn); }
+  .log {
+    margin-top: 14px; background: #131316; border: 1px solid var(--line); border-radius: 16px;
+    padding: 14px 16px; height: 230px; overflow: auto; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px; line-height: 1.65; color: #c9c4bd;
+  }
+  .log .t { color: #6f6a64; margin-right: 8px; }
+  .log .ok { color: var(--ok); }
+  .log .bad { color: var(--bad); }
+  .log .warn { color: var(--warn); }
+  .token { display: flex; gap: 8px; align-items: center; }
+  input {
+    font: inherit; font-size: 12px; padding: 8px 10px; border-radius: 9px;
+    border: 1px solid var(--line); background: #131316; color: var(--text); min-width: 190px;
+  }
+  input:focus { outline: none; border-color: var(--accent); }
+  .hint { color: var(--muted); font-size: 11px; margin-top: 8px; line-height: 1.5; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Konkani Samudai <span>· backend</span></h1>
+    <div class="sub" id="endpoint">—</div>
+  </div>
+  <div class="actions">
+    <div class="token">
+      <input id="adminToken" type="password" placeholder="admin token (for redeploy)" autocomplete="off" />
+      <button id="saveToken">Save</button>
+    </div>
+    <button id="refresh">Refresh</button>
+    <button id="redeploy" class="primary">Redeploy</button>
+  </div>
+</header>
+
+<main>
+  <div class="grid">
+    <div class="card">
+      <h2>API</h2>
+      <div class="pill"><span class="dot" id="apiDot"></span><span id="apiState">checking…</span></div>
+      <div class="row"><span class="k">Latency</span><span class="v" id="apiLatency">—</span></div>
+      <div class="row"><span class="k">Health</span><span class="v" id="apiHealth">—</span></div>
+      <div class="row"><span class="k">Last check</span><span class="v" id="apiChecked">—</span></div>
+    </div>
+
+    <div class="card">
+      <h2>Catalog</h2>
+      <div class="big" id="movieCount">—</div>
+      <div class="row"><span class="k">Movies</span><span class="v" id="moviesRow">—</span></div>
+      <div class="row"><span class="k">Theatres</span><span class="v" id="theatreCount">—</span></div>
+      <div class="row"><span class="k">Shows</span><span class="v" id="showCount">—</span></div>
+    </div>
+
+    <div class="card">
+      <h2>Payment gateway</h2>
+      <div class="pill"><span class="dot" id="gwDot"></span><span id="gwState">checking…</span></div>
+      <div class="row"><span class="k">Host</span><span class="v" id="gwHost">—</span></div>
+      <div class="row"><span class="k">Latency</span><span class="v" id="gwLatency">—</span></div>
+      <div class="row"><span class="k">Payment core</span><span class="v" id="gwCore">—</span></div>
+    </div>
+
+    <div class="card">
+      <h2>Realtime</h2>
+      <div class="pill"><span class="dot" id="rtDot"></span><span id="rtState">connecting…</span></div>
+      <div class="row"><span class="k">Topics</span><span class="v" id="rtTopics">—</span></div>
+      <div class="row"><span class="k">Events</span><span class="v" id="rtEvents">0</span></div>
+      <div class="row"><span class="k">Last event</span><span class="v" id="rtLast">—</span></div>
+    </div>
+  </div>
+
+  <div class="log" id="log"></div>
+  <div class="hint">
+    Root page · talks to <span id="baseHint">—</span>. Redeploy re-applies the newest uploaded
+    Worker version through the Cloudflare API (needs <code>CF_API_TOKEN</code> +
+    <code>CF_ACCOUNT_ID</code>); it does not build new code from git — use
+    <code>npx wrangler deploy</code> or CI for that.
+  </div>
+</main>
+
+<script>
+  // ---------------------------------------------------------------- configuration
+  // Served by the Worker at /status, so the API is same-origin. Opened from disk it
+  // falls back to the deployed origin.
+  const API_BASE = location.protocol === 'file:' ? 'https://movie-worker.konkani-samudai.workers.dev' : location.origin;
+  const REFRESH_MS = 15000;
+
+  const $ = (id) => document.getElementById(id);
+  const logEl = $('log');
+
+  $('endpoint').textContent = API_BASE.replace('https://', '');
+  $('baseHint').textContent = API_BASE.replace('https://', '');
+  $('gwHost').textContent = 'youpi-gateway';
+
+  function log(message, kind = '') {
+    const time = new Date().toLocaleTimeString();
+    const line = document.createElement('div');
+    line.innerHTML = `<span class="t">${time}</span><span class="${kind}">${escapeHtml(message)}</span>`;
+    logEl.appendChild(line);
+    logEl.scrollTop = logEl.scrollHeight;
+    while (logEl.childElementCount > 400) logEl.removeChild(logEl.firstChild);
+  }
+  const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const setDot = (id, kind) => { $(id).className = 'dot ' + (kind || ''); };
+  const time = (d = new Date()) => d.toLocaleTimeString();
+
+  // ---------------------------------------------------------------- admin token
+  $('adminToken').value = localStorage.getItem('adminToken') || '';
+  $('saveToken').onclick = () => {
+    localStorage.setItem('adminToken', $('adminToken').value.trim());
+    log('Admin token saved locally.', 'ok');
+  };
+
+  // ---------------------------------------------------------------- API checks
+  async function timed(url, options) {
+    const started = performance.now();
+    const res = await fetch(url, options);
+    return { res, ms: Math.round(performance.now() - started) };
+  }
+
+  async function checkApi() {
+    try {
+      const { res, ms } = await timed(`${API_BASE}/health`, { cache: 'no-store' });
+      const body = await res.json().catch(() => ({}));
+      $('apiLatency').textContent = `${ms} ms`;
+      $('apiHealth').textContent = body.service || '—';
+      $('apiChecked').textContent = time();
+      setDot('apiDot', res.ok ? 'ok' : 'bad');
+      $('apiState').textContent = res.ok ? `online · ${res.status}` : `error · ${res.status}`;
+      log(`GET /health → ${res.status} in ${ms} ms`, res.ok ? 'ok' : 'bad');
+    } catch (err) {
+      setDot('apiDot', 'bad');
+      $('apiState').textContent = 'unreachable';
+      log(`GET /health failed: ${err.message}`, 'bad');
+    }
+  }
+
+  async function checkCatalog() {
+    try {
+      const [movies, theatres, shows] = await Promise.all([
+        fetch(`${API_BASE}/api/v1/movies`, { cache: 'no-store' }).then((r) => r.json()).catch(() => []),
+        fetch(`${API_BASE}/api/v1/theatres`, { cache: 'no-store' }).then((r) => r.json()).catch(() => []),
+        fetch(`${API_BASE}/api/v1/shows`, { cache: 'no-store' }).then((r) => r.json()).catch(() => []),
+      ]);
+      $('movieCount').textContent = Array.isArray(movies) ? movies.length : '—';
+      $('moviesRow').textContent = Array.isArray(movies) ? 'ok' : 'error';
+      $('theatreCount').textContent = Array.isArray(theatres) ? theatres.length : '—';
+      $('showCount').textContent = Array.isArray(shows) ? shows.length : '—';
+    } catch (err) {
+      log(`Catalog check failed: ${err.message}`, 'bad');
+    }
+  }
+
+  async function checkGateway() {
+    try {
+      // Proxied through the API: the Render gateway sends no CORS headers of its own.
+      const { res } = await timed(`${API_BASE}/api/v1/status/gateway`, { cache: 'no-store' });
+      const body = await res.json().catch(() => ({}));
+      const ms = body.ms != null ? `${body.ms} ms` : '—';
+      $('gwLatency').textContent = ms;
+
+      if (body.ok) {
+        setDot('gwDot', 'ok');
+        $('gwState').textContent = 'online';
+        $('gwCore').textContent = body.service || '—';
+        log(`Gateway online · ${ms}`, 'ok');
+      } else if (res.status === 503) {
+        setDot('gwDot', 'warn');
+        $('gwState').textContent = 'not configured';
+        log('Gateway isn\'t configured (YOUPI_API_URL)', 'warn');
+      } else {
+        setDot('gwDot', 'bad');
+        $('gwState').textContent = 'unreachable (free tier may be waking up)';
+        $('gwCore').textContent = '—';
+        log(`Gateway unreachable · ${body.error || res.status}`, 'bad');
+      }
+    } catch (err) {
+      setDot('gwDot', 'bad');
+      $('gwState').textContent = 'unreachable';
+      log(`Gateway check failed: ${err.message}`, 'bad');
+    }
+  }
+
+  // ---------------------------------------------------------------- realtime
+  let socket = null;
+  let events = 0;
+  let retry = null;
+
+  function connectRealtime() {
+    const url = `${API_BASE.replace('https://', 'wss://')}/api/v1/realtime`;
+    try {
+      socket = new WebSocket(url);
+    } catch (err) {
+      log(`Realtime connect failed: ${err.message}`, 'bad');
+      return;
+    }
+
+    socket.onopen = () => {
+      setDot('rtDot', 'ok');
+      $('rtState').textContent = 'connected';
+      log('Realtime socket connected', 'ok');
+    };
+    socket.onmessage = (event) => {
+      let msg;
+      try { msg = JSON.parse(event.data); } catch { return; }
+      if (msg.type === 'ready') {
+        const topics = (msg.subscribed || []).join(', ') || 'none';
+        $('rtTopics').textContent = topics;
+        $('rtState').textContent = msg.realtime ? 'live' : 'connected (realtime off)';
+        setDot('rtDot', msg.realtime ? 'ok' : 'warn');
+        log(`Realtime ready · topics: ${topics}${msg.realtime ? '' : ' · Neon Realtime not configured yet'}`,
+          msg.realtime ? 'ok' : 'warn');
+        if (msg.errors?.length) log(`Realtime errors: ${msg.errors.join(' | ')}`, 'bad');
+      } else if (msg.type === 'change') {
+        events++;
+        $('rtEvents').textContent = events;
+        $('rtLast').textContent = time();
+        log(`Realtime change · ${msg.topic}`, 'ok');
+      }
+    };
+    socket.onclose = () => {
+      setDot('rtDot', '');
+      $('rtState').textContent = 'reconnecting…';
+      clearTimeout(retry);
+      retry = setTimeout(connectRealtime, 5000);
+    };
+    socket.onerror = () => {
+      setDot('rtDot', 'bad');
+      $('rtState').textContent = 'socket error';
+    };
+  }
+
+  // ---------------------------------------------------------------- redeploy
+  $('redeploy').onclick = async () => {
+    const token = ($('adminToken').value || '').trim();
+    if (!token) {
+      log('Paste the admin token first (ADMIN_TOKEN).', 'warn');
+      $('adminToken').focus();
+      return;
+    }
+    const button = $('redeploy');
+    button.disabled = true;
+    button.textContent = 'Redeploying…';
+    log('POST /api/v1/admin/redeploy …');
+    try {
+      const { res, ms } = await timed(`${API_BASE}/api/v1/admin/redeploy`, {
+        method: 'POST',
+        headers: { 'x-admin-token': token },
+      });
+      const body = await res.json().catch(() => ({}));
+      if (res.ok) {
+        log(`Redeploy ok (${ms} ms) · version ${body.versionId || '?'}`, 'ok');
+      } else {
+        const hint = body.hint ? ` · ${body.hint}` : '';
+        log(`Redeploy ${res.status}: ${body.error || 'failed'}${hint}`, 'bad');
+      }
+    } catch (err) {
+      log(`Redeploy failed: ${err.message}`, 'bad');
+    } finally {
+      button.disabled = false;
+      button.textContent = 'Redeploy';
+    }
+  };
+
+  // ---------------------------------------------------------------- boot
+  async function refreshAll() {
+    await Promise.allSettled([checkApi(), checkCatalog(), checkGateway()]);
+  }
+  $('refresh').onclick = () => { log('Manual refresh'); refreshAll(); };
+
+  refreshAll();
+  connectRealtime();
+  setInterval(refreshAll, REFRESH_MS);
+</script>
+</body>
+</html>

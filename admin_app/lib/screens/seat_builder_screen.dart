@@ -1010,7 +1010,16 @@ class _SeatBuilderScreenState extends State<SeatBuilderScreen> {
   }
 
   Future<void> _addAuditorium() async {
-    if (_theatreId == null) return;
+    if (_theatreId == null) {
+      if (mounted) {
+        AppToast.show(
+          context,
+          'Pick a theatre first.',
+          type: AppToastType.error,
+        );
+      }
+      return;
+    }
     final ctrl = TextEditingController();
     final ok = await showDialog<bool>(
       context: context,
@@ -1018,6 +1027,8 @@ class _SeatBuilderScreenState extends State<SeatBuilderScreen> {
         title: const Text('Add Auditorium'),
         content: TextField(
           controller: ctrl,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
           decoration: const InputDecoration(labelText: 'Name'),
         ),
         actions: [
@@ -1033,15 +1044,46 @@ class _SeatBuilderScreenState extends State<SeatBuilderScreen> {
       ),
     );
     if (ok != true) return;
+
+    final name = ctrl.text.trim();
+    if (name.isEmpty) {
+      if (mounted) {
+        AppToast.show(
+          context,
+          'Enter a screen name.',
+          type: AppToastType.error,
+        );
+      }
+      return;
+    }
+
     try {
-      await Api.createAuditorium(widget.token, _theatreId!, ctrl.text.trim());
+      await Api.createAuditorium(widget.token, _theatreId!, name);
       await _loadAuditoriums();
+      if (!mounted) return;
+      // Select the new screen so the builder opens straight into it.
+      final match = _auditoriums.where(
+        (a) => a is Map && a['name']?.toString() == name,
+      );
+      if (match.isNotEmpty) {
+        setState(() {
+          _auditoriumId = match.last['id']?.toString();
+          _view = 'auditoriums';
+        });
+      }
+      if (mounted) {
+        AppToast.show(
+          context,
+          'Screen "$name" added.',
+          type: AppToastType.success,
+        );
+      }
     } catch (e) {
       if (mounted) {
         final detail = e.toString().replaceFirst('Exception: ', '');
         AppToast.show(
           context,
-          'Could not add screen. $detail',
+          'Could not add screen. ${detail.length > 140 ? '${detail.substring(0, 140)}…' : detail}',
           type: AppToastType.error,
         );
       }

@@ -1,174 +1,137 @@
-
-import { useEffect, useState, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
 import api, { assetUrl } from '../services/api.js';
 
-gsap.registerPlugin(ScrollTrigger);
+const C = {
+  ink: '#0A2A31',
+  tide: '#123E47',
+  shell: '#EFEBE0',
+  kokum: '#C2305E',
+  mango: '#F4B63F',
+  green: '#78C9A6',
+  muted: '#93A6A8',
+};
 
-const FALLBACK_POSTER =
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuBOo5aPBJ7vdVsyiAG9pfkMVnbOJYOVjsyddb_wdpsXPO4tgUUifaP9nMyjEo-fKxK_ZjauieUWHBTRdqvu8Q4CcOErASg1hSKV9obttLqrrs6jTlTsxDnxRJLtWEC4hmHH1qRKkwdlvckJI1x8oqYkdtQp6GDkqg9I2cHnbuZMEXP4XfOWNlSml_xs9RBxGEFaj-pYqP9suJE5VFC4RFuakypp44Chxara4FwGIgRyLVZSH5AUU610lQ';
+const WEEKDAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+
+const TIME_FILTERS = [
+  { key: 'all', label: 'All shows' },
+  { key: 'morning', label: 'Morning' },
+  { key: 'afternoon', label: 'Afternoon' },
+  { key: 'evening', label: 'Evening' },
+  { key: 'night', label: 'Night' },
+];
 
 const STYLES = `
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,900&family=Public+Sans:wght@400;500;600;700&display=swap');
+.kk-md { font-family: 'Public Sans', system-ui, sans-serif; }
+.kk-display { font-family: 'Fraunces', Georgia, serif; }
 
-.md-display { font-family: 'Fraunces', Georgia, serif; }
-.md-body { font-family: 'Public Sans', system-ui, sans-serif; }
+.kk-date { transition: background-color .18s ease, color .18s ease, border-color .18s ease, transform .18s ease, box-shadow .18s ease; }
+.kk-date:not(:disabled):hover { background-color: rgba(239, 235, 224, .07); }
+.kk-date.is-active { background-color: #C2305E; border-color: #C2305E; color: #fff; box-shadow: 0 10px 26px rgba(194, 48, 94, .3); }
 
-.md-backdrop {
-  animation: md-backdrop-in 1.2s ease-out both;
-}
-@keyframes md-backdrop-in {
-  from { opacity: 0; transform: scale(1.3); }
-  to { opacity: .25; transform: scale(1.1); }
-}
+.kk-time { transition: background-color .18s ease, border-color .18s ease, transform .18s ease, box-shadow .18s ease; }
+.kk-time:not(.is-disabled):hover { transform: translateY(-2px); background-color: rgba(239, 235, 224, .08); box-shadow: 0 10px 22px rgba(0, 0, 0, .22); }
 
-.md-poster {
-  animation: md-poster-in .9s cubic-bezier(.2,.8,.2,1) both;
-}
-@keyframes md-poster-in {
-  from { opacity: 0; transform: translateY(20px) rotate(-2deg); }
-  to { opacity: 1; transform: translateY(0) rotate(0); }
-}
+.kk-filter { transition: background-color .18s ease, color .18s ease, border-color .18s ease; }
+.kk-filter:not(.is-active):hover { background-color: rgba(239, 235, 224, .07); }
 
-.md-ticket {
-  transition: transform .3s ease, border-color .3s ease, box-shadow .3s ease;
-}
-.md-ticket:hover {
-  transform: translateY(-5px);
-  border-color: rgba(244,182,63,.6);
-  box-shadow: 0 20px 45px rgba(0,0,0,.24);
-}
-
-.md-book {
-  position: relative;
-  overflow: hidden;
-  transition: background-color .2s ease, transform .2s ease;
-}
-.md-book:hover {
-  background-color: #a82651;
-  transform: translateY(-2px);
-}
-.md-book::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,.35) 50%, transparent 65%);
-  transform: translateX(-120%);
-  transition: transform .7s ease;
-}
-.md-book:hover::after { transform: translateX(120%); }
-
-.md-reveal {
-  opacity: 0;
-  transform: translateY(22px);
-}
-.md-divider {
-  border-top: 2px dashed rgba(10,42,49,.38);
-}
+.kk-reveal { animation: kk-fade-up .5s ease both; }
+@keyframes kk-fade-up { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .md-backdrop, .md-poster { animation: none !important; }
-  .md-ticket, .md-book { transition: none !important; }
+  .kk-date, .kk-time, .kk-filter { transition: none !important; }
+  .kk-reveal { animation: none !important; }
 }
 `;
 
-function formatShowtime(value) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return { date: 'Date unavailable', time: 'Time unavailable' };
+const pad2 = (n) => String(n).padStart(2, '0');
 
-  return {
-    date: date.toLocaleDateString(undefined, {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    }),
-    time: date.toLocaleTimeString(undefined, {
-      hour: 'numeric',
-      minute: '2-digit',
-    }),
-  };
+function startOfDay(value) {
+  const d = new Date(value);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
-function Meta({ children }) {
-  return (
-    <span className="inline-flex items-center rounded-full border border-[#0A2A31]/20 px-3 py-1 text-xs font-semibold text-[#0A2A31]/75">
-      {children}
-    </span>
+function dateKey(value) {
+  const d = new Date(value);
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+function timeLabel(value) {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '--:--';
+  return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+}
+
+function prettyDate(value) {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return 'Date unavailable';
+  return d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
+function runtimeLabel(minutes) {
+  const total = Number(minutes);
+  if (!Number.isFinite(total) || total <= 0) return '';
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  return [h ? `${h}h` : '', m ? `${m}m` : ''].filter(Boolean).join(' ');
+}
+
+function timeBucket(value) {
+  const hour = new Date(value).getHours();
+  if (hour < 12) return 'morning';
+  if (hour < 17) return 'afternoon';
+  if (hour < 21) return 'evening';
+  return 'night';
+}
+
+function showState(show) {
+  const total = Number(show.seat_count) || 0;
+  const booked = Number(show.booked_count) || 0;
+  const held = Number(show.held_count) || 0;
+  const status = String(show.status || '').toLowerCase();
+  if (['cancelled', 'completed', 'closed'].includes(status)) return 'sold';
+  if (total > 0 && booked >= total) return 'sold';
+  if (total > 0 && (booked + held) / total >= 0.55) return 'fast';
+  return 'open';
+}
+
+function Showtime({ show }) {
+  const state = showState(show);
+  const color = state === 'open' ? C.green : state === 'fast' ? C.mango : C.muted;
+  const disabled = state === 'sold';
+
+  const body = (
+    <>
+      <span className="block text-[13px] font-semibold leading-tight">{timeLabel(show.starts_at)}</span>
+      <span className="mt-0.5 block whitespace-nowrap text-[9px] font-semibold uppercase tracking-[.12em] opacity-70">
+        {show.auditorium_name || 'Standard'}
+      </span>
+    </>
   );
-}
 
-function ShowTicket({ show, index }) {
-  const { date, time } = formatShowtime(show.starts_at);
-  const status = show.status || 'Scheduled';
-  const available = ['scheduled', 'active'].includes(status.toLowerCase());
+  if (disabled) {
+    return (
+      <span
+        className="kk-time is-disabled inline-flex min-w-[118px] flex-col items-center rounded-md border px-3 py-2 opacity-40"
+        style={{ borderColor: `${color}55`, color }}
+        title="Sold out"
+      >
+        {body}
+      </span>
+    );
+  }
 
   return (
-    <article
-      className="md-ticket overflow-hidden rounded-2xl border border-[#EFEBE0]/15 bg-[#123E47]"
-      style={{ animationDelay: `${index * 80}ms` }}
+    <Link
+      to={`/shows/${show.id}/seats`}
+      className="kk-time inline-flex min-w-[118px] flex-col items-center rounded-md border px-3 py-2"
+      style={{ borderColor: `${color}99`, color }}
+      title={`${state === 'fast' ? 'Fast filling · ' : ''}${show.auditorium_name || 'Standard'}`}
     >
-      <div className="flex items-center justify-between gap-3 px-5 pt-5">
-        <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[.16em] text-[#EFEBE0]/60">
-          <span className="h-2 w-2 rounded-full bg-[#F4B63F]" />
-          Screening {String(index + 1).padStart(2, '0')}
-        </span>
-        <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${
-          available
-            ? 'bg-[#F4B63F]/15 text-[#F4B63F]'
-            : 'bg-[#EFEBE0]/10 text-[#EFEBE0]/65'
-        }`}>
-          {status}
-        </span>
-      </div>
-
-      <div className="px-5 pb-5 pt-5">
-        <p className="text-xs font-medium text-[#EFEBE0]/55">SCREENING DATE</p>
-        <p className="md-display mt-1 text-xl font-bold text-[#EFEBE0]">
-          {date}
-        </p>
-
-        <div className="mt-4 flex items-center gap-3">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#0A2A31] text-[#F4B63F]">
-            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="9" />
-              <path d="M12 7v5l3 2" />
-            </svg>
-          </div>
-          <div>
-            <p className="text-xs text-[#EFEBE0]/55">STARTS AT</p>
-            <p className="md-display text-2xl font-bold text-[#F4B63F]">{time}</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="md-divider" />
-
-      <div className="flex items-center justify-between gap-3 bg-[#EFEBE0] p-4">
-        <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-[.15em] text-[#0A2A31]/55">
-            Your next movie night
-          </p>
-          <p className="md-display mt-1 text-sm font-bold text-[#0A2A31]">
-            {available ? 'Choose your seats' : 'Booking may be unavailable'}
-          </p>
-        </div>
-        {available ? (
-          <Link
-            to={`/shows/${show.id}/seats`}
-            className="md-book shrink-0 rounded-xl bg-[#C2305E] px-4 py-3 text-sm font-bold text-white"
-          >
-            Select seats <span aria-hidden="true">↗</span>
-          </Link>
-        ) : (
-          <span className="shrink-0 rounded-xl bg-[#0A2A31]/10 px-3 py-2 text-xs font-semibold text-[#0A2A31]/60">
-            Unavailable
-          </span>
-        )}
-      </div>
-    </article>
+      {body}
+    </Link>
   );
 }
 
@@ -180,7 +143,9 @@ export default function MovieDetails() {
   const [showsLoading, setShowsLoading] = useState(false);
   const [movieError, setMovieError] = useState(false);
   const [showsError, setShowsError] = useState(false);
-  const pageRef = useRef(null);
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [timeFilter, setTimeFilter] = useState('all');
+  const pickedDateRef = useRef(false);
 
   useEffect(() => {
     let active = true;
@@ -190,6 +155,9 @@ export default function MovieDetails() {
     setMovieLoading(true);
     setMovieError(false);
     setShowsError(false);
+    setSelectedDate(null);
+    setTimeFilter('all');
+    pickedDateRef.current = false;
 
     api.get(`/movies/${id}`)
       .then((r) => {
@@ -207,7 +175,7 @@ export default function MovieDetails() {
   }, [id]);
 
   useEffect(() => {
-    if (!movie) return;
+    if (!movie) return undefined;
 
     let active = true;
     setShowsLoading(true);
@@ -228,45 +196,90 @@ export default function MovieDetails() {
     return () => { active = false; };
   }, [movie]);
 
+  const dateOptions = useMemo(() => {
+    const withShows = new Map();
+    for (const show of shows) {
+      const d = new Date(show.starts_at);
+      if (Number.isNaN(d.getTime())) continue;
+      const key = dateKey(d);
+      if (!withShows.has(key)) withShows.set(key, { key, date: startOfDay(d), count: 0 });
+      withShows.get(key).count += 1;
+    }
+
+    const days = new Map();
+    const today = startOfDay(new Date());
+    for (let i = 0; i < 7; i += 1) {
+      const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i);
+      const key = dateKey(d);
+      const found = withShows.get(key);
+      days.set(key, { key, date: d, count: found?.count || 0, hasShows: Boolean(found) });
+    }
+    // Keep any screening that falls outside the current week visible too.
+    for (const [key, value] of withShows) {
+      if (!days.has(key)) days.set(key, { ...value, hasShows: true });
+    }
+    return [...days.values()].sort((a, b) => a.date - b.date);
+  }, [shows]);
+
   useEffect(() => {
-    if (!movie || !pageRef.current) return;
+    if (!dateOptions.length) return;
+    if (pickedDateRef.current && dateOptions.some((d) => d.key === selectedDate)) return;
+    const first = dateOptions.find((d) => d.hasShows) || dateOptions[0];
+    setSelectedDate(first.key);
+  }, [dateOptions, selectedDate]);
 
-    const ctx = gsap.context(() => {
-      const reduceMotion = window.matchMedia(
-        '(prefers-reduced-motion: reduce)'
-      ).matches;
+  const dayShows = useMemo(
+    () => shows.filter((show) => selectedDate && dateKey(show.starts_at) === selectedDate),
+    [shows, selectedDate]
+  );
 
-      if (reduceMotion) {
-        gsap.set('.md-reveal', { opacity: 1, y: 0 });
-        return;
+  const filterCounts = useMemo(() => {
+    const counts = { all: dayShows.length, morning: 0, afternoon: 0, evening: 0, night: 0 };
+    for (const show of dayShows) counts[timeBucket(show.starts_at)] += 1;
+    return counts;
+  }, [dayShows]);
+
+  const filteredShows = useMemo(
+    () => (timeFilter === 'all'
+      ? dayShows
+      : dayShows.filter((show) => timeBucket(show.starts_at) === timeFilter)),
+    [dayShows, timeFilter]
+  );
+
+  const theatres = useMemo(() => {
+    const map = new Map();
+    for (const show of filteredShows) {
+      const key = show.theatre_name || 'Cinema';
+      if (!map.has(key)) {
+        map.set(key, { key, name: key, auditoriums: new Set(), shows: [] });
       }
+      const group = map.get(key);
+      if (show.auditorium_name) group.auditoriums.add(show.auditorium_name);
+      group.shows.push(show);
+    }
+    return [...map.values()]
+      .map((group) => ({
+        ...group,
+        auditoriums: [...group.auditoriums],
+        shows: [...group.shows].sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at)),
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [filteredShows]);
 
-      gsap.fromTo(
-        '.md-hero',
-        { opacity: 0, y: 24 },
-        { opacity: 1, y: 0, duration: 0.75, ease: 'power3.out' }
-      );
-
-      gsap.to('.md-reveal', {
-        opacity: 1,
-        y: 0,
-        duration: 0.65,
-        stagger: 0.12,
-        ease: 'power3.out',
-        delay: 0.2,
-      });
-    }, pageRef);
-
-    return () => ctx.revert();
-  }, [movie, shows]);
+  const genres = useMemo(() => {
+    const raw = movie?.genre;
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw.filter(Boolean);
+    return String(raw).split(/[,/|]/).map((g) => g.trim()).filter(Boolean);
+  }, [movie]);
 
   if (movieLoading) {
     return (
-      <div className="md-body flex min-h-screen items-center justify-center bg-[#0A2A31] px-4 text-[#EFEBE0]">
+      <div className="kk-md flex min-h-screen items-center justify-center bg-[#0A2A31] px-4 text-[#EFEBE0]">
         <style>{STYLES}</style>
         <div className="w-full max-w-sm text-center">
           <div className="mx-auto h-16 w-16 animate-pulse rounded-2xl bg-[#123E47]" />
-          <p className="md-display mt-5 text-xl font-bold">Preparing your screening...</p>
+          <p className="kk-display mt-5 text-xl font-bold">Preparing your screening...</p>
           <p className="mt-2 text-sm text-[#EFEBE0]/55">A little movie magic is on its way.</p>
         </div>
       </div>
@@ -275,10 +288,10 @@ export default function MovieDetails() {
 
   if (movieError || !movie) {
     return (
-      <div className="md-body flex min-h-screen flex-col items-center justify-center bg-[#0A2A31] px-5 text-center text-[#EFEBE0]">
+      <div className="kk-md flex min-h-screen flex-col items-center justify-center bg-[#0A2A31] px-5 text-center text-[#EFEBE0]">
         <style>{STYLES}</style>
         <p className="text-xs font-bold uppercase tracking-[.2em] text-[#F4B63F]">404 · Film unavailable</p>
-        <h1 className="md-display mt-3 text-3xl font-bold">We couldn't find this film.</h1>
+        <h1 className="kk-display mt-3 text-3xl font-bold">We couldn't find this film.</h1>
         <p className="mt-3 max-w-md text-sm text-[#EFEBE0]/65">
           It may have been removed or the link may be incorrect.
         </p>
@@ -289,86 +302,98 @@ export default function MovieDetails() {
     );
   }
 
-  const poster = assetUrl(movie.thumbnail_url) || FALLBACK_POSTER;
+  const posterPath = movie.thumbnail_url
+    || (Array.isArray(movie.media) ? movie.media.find((item) => item.media_type === 'poster')?.url : '')
+    || '';
+  const poster = assetUrl(posterPath);
+  const activeDate = dateOptions.find((d) => d.key === selectedDate);
+  const totalShows = shows.length;
 
   return (
-    <div ref={pageRef} className="md-body min-h-screen overflow-hidden bg-[#0A2A31] text-[#EFEBE0]">
+    <div className="kk-md min-h-screen bg-[#0A2A31] text-[#EFEBE0]">
       <style>{STYLES}</style>
 
-      {/* Cinematic backdrop */}
-      <section className="relative isolate overflow-hidden">
-        <img
-          src={poster}
-          alt=""
-          aria-hidden="true"
-          className="md-backdrop pointer-events-none absolute inset-0 -z-20 h-full w-full object-cover blur-3xl"
-        />
-        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-[#0A2A31]/70 via-[#0A2A31]/85 to-[#0A2A31]" />
+      {/* Movie header */}
+      <section className="relative overflow-hidden border-b border-[#EFEBE0]/10">
+        {poster && (
+          <img
+            src={poster}
+            alt=""
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover opacity-20 blur-3xl"
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0A2A31]/70 via-[#0A2A31]/90 to-[#0A2A31]" />
 
-        <div className="mx-auto max-w-6xl px-4 pb-12 pt-6 sm:px-6 sm:pb-20 sm:pt-10">
+        <div className="relative mx-auto max-w-6xl px-4 pb-8 pt-6 sm:px-6">
           <Link
             to="/"
-            className="inline-flex items-center gap-2 rounded-full border border-[#EFEBE0]/20 bg-[#0A2A31]/40 px-4 py-2 text-sm font-semibold text-[#EFEBE0]/80 backdrop-blur transition hover:border-[#F4B63F]/60 hover:text-[#F4B63F]"
+            className="inline-flex items-center gap-2 rounded-full border border-[#EFEBE0]/15 bg-[#0A2A31]/40 px-4 py-2 text-xs font-semibold text-[#EFEBE0]/75 backdrop-blur transition hover:border-[#F4B63F]/60 hover:text-[#F4B63F]"
           >
             <span aria-hidden="true">←</span> All movies
           </Link>
 
-          <div className="md-hero mt-8 grid items-center gap-8 sm:mt-12 sm:gap-12 md:grid-cols-[minmax(220px,320px)_1fr]">
-            {/* Movie poster */}
-            <div className="md-poster relative mx-auto w-full max-w-[250px] sm:max-w-[300px] md:mx-0">
-              <div className="absolute -inset-3 rounded-3xl border border-dashed border-[#F4B63F]/30" />
-              <img
-                src={poster}
-                alt={`Poster for ${movie.title}`}
-                className="relative aspect-[3/4] w-full rounded-2xl object-cover shadow-2xl shadow-black/50"
-              />
-              <div className="absolute bottom-3 left-3 flex flex-wrap gap-2">
-                <span className="rounded-md bg-[#F4B63F] px-2.5 py-1 text-xs font-black text-[#0A2A31]">
-                  {movie.certification || 'UA'}
-                </span>
-                {movie.language && (
-                  <span className="rounded-md border border-white/30 bg-[#0A2A31]/70 px-2.5 py-1 text-xs font-semibold text-white backdrop-blur">
-                    {movie.language}
-                  </span>
-                )}
-              </div>
+          <div className="mt-6 flex flex-col gap-5 sm:mt-8 sm:flex-row sm:items-end sm:gap-7">
+            <div className="relative w-28 shrink-0 sm:w-36">
+              {poster ? (
+                <img
+                  src={poster}
+                  alt={`Poster for ${movie.title}`}
+                  className="aspect-[3/4] w-full rounded-xl object-cover shadow-2xl shadow-black/50 ring-1 ring-white/10"
+                />
+              ) : (
+                <div className="flex aspect-[3/4] w-full items-center justify-center rounded-xl bg-[#123E47] p-3 text-center text-[10px] font-bold uppercase tracking-widest text-[#EFEBE0]/70">
+                  Konkani Cinema
+                </div>
+              )}
             </div>
 
-            {/* Movie information */}
-            <div className="min-w-0">
-              <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[.22em] text-[#F4B63F]">
-                <span className="h-px w-8 bg-[#F4B63F]" />
-                The big-screen experience
-              </p>
-
-              <h1 className="md-display mt-5 text-4xl font-black leading-[1.05] tracking-tight sm:text-5xl lg:text-7xl">
+            <div className="min-w-0 flex-1">
+              <h1 className="kk-display text-3xl font-black leading-tight tracking-tight sm:text-4xl lg:text-5xl">
                 {movie.title}
               </h1>
 
-              <div className="mt-5 flex flex-wrap gap-2">
-                {movie.genre && <Meta>{movie.genre}</Meta>}
-                {movie.duration_minutes && <Meta>{movie.duration_minutes} minutes</Meta>}
-                {movie.language && <Meta>{movie.language}</Meta>}
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                {runtimeLabel(movie.duration_minutes) && (
+                  <span className="rounded-full border border-[#EFEBE0]/20 px-3 py-1 text-xs font-medium text-[#EFEBE0]/75">
+                    Movie runtime: {runtimeLabel(movie.duration_minutes)}
+                  </span>
+                )}
+                <span className="rounded border border-[#EFEBE0]/30 px-2 py-0.5 text-xs font-bold text-[#EFEBE0]/85">
+                  {movie.certification || 'UA'}
+                </span>
+                {movie.language && (
+                  <span className="rounded-full border border-[#EFEBE0]/20 px-3 py-1 text-xs font-medium text-[#EFEBE0]/75">
+                    {movie.language}
+                  </span>
+                )}
+                {genres.map((genre) => (
+                  <span
+                    key={genre}
+                    className="rounded-full border border-[#EFEBE0]/15 px-3 py-1 text-xs font-medium text-[#EFEBE0]/60"
+                  >
+                    {genre}
+                  </span>
+                ))}
               </div>
 
-              <div className="mt-7 max-w-2xl">
-                <p className="text-xs font-bold uppercase tracking-[.18em] text-[#EFEBE0]/50">
-                  The story
+              {movie.synopsis && (
+                <p className="mt-4 max-w-3xl text-sm leading-7 text-[#EFEBE0]/70">
+                  {movie.synopsis}
                 </p>
-                <p className="mt-3 text-sm leading-7 text-[#EFEBE0]/80 sm:text-base sm:leading-8">
-                  {movie.synopsis || 'The story awaits. More details coming soon.'}
-                </p>
-              </div>
+              )}
 
-              <div className="mt-8 flex flex-wrap items-center gap-4">
+              <div className="mt-5 flex flex-wrap items-center gap-3">
                 <a
                   href="#showtimes"
-                  className="md-book inline-flex items-center gap-3 rounded-xl bg-[#C2305E] px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-black/20"
+                  className="inline-flex items-center gap-2 rounded-lg bg-[#C2305E] px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-black/20 transition hover:bg-[#a82651]"
                 >
-                  Explore showtimes <span aria-hidden="true">↓</span>
+                  Book tickets <span aria-hidden="true">↓</span>
                 </a>
-                <span className="text-xs text-[#EFEBE0]/55">
-                  Find your show. Pick your seats. Enjoy the film.
+                <span className="text-xs text-[#EFEBE0]/50">
+                  {totalShows > 0
+                    ? `${totalShows} ${totalShows === 1 ? 'show' : 'shows'} scheduled`
+                    : 'Showtimes will appear here'}
                 </span>
               </div>
             </div>
@@ -376,121 +401,197 @@ export default function MovieDetails() {
         </div>
       </section>
 
-      {/* Showtimes */}
-      <main id="showtimes" className="mx-auto max-w-6xl px-4 pb-20 sm:px-6">
-        <section className="md-reveal border-t border-[#EFEBE0]/15 pt-8 sm:pt-10">
-          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[.2em] text-[#C2305E]">
-                Find your screening
-              </p>
-              <h2 className="md-display mt-2 text-3xl font-bold sm:text-4xl">
-                Showtimes<span className="text-[#F4B63F]">.</span>
-              </h2>
-              <p className="mt-2 text-sm text-[#EFEBE0]/60">
-                Choose a screening and reserve your seats.
-              </p>
+      {/* Date + filters */}
+      <div className="sticky top-[72px] z-30 border-b border-[#EFEBE0]/10 bg-[#0A2A31]/95 backdrop-blur-xl">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <div className="flex items-center gap-3 overflow-x-auto py-2.5">
+            <div className="flex shrink-0 items-stretch gap-1">
+              {dateOptions.map((day) => {
+                const active = day.key === selectedDate;
+                return (
+                  <button
+                    key={day.key}
+                    type="button"
+                    disabled={!day.hasShows}
+                    onClick={() => {
+                      pickedDateRef.current = true;
+                      setSelectedDate(day.key);
+                    }}
+                    aria-pressed={active}
+                    className={`kk-date flex min-w-[62px] shrink-0 flex-col items-center rounded-lg border px-2.5 py-1.5 disabled:cursor-not-allowed disabled:opacity-35 ${active ? 'is-active' : ''}`}
+                    style={{ borderColor: active ? C.kokum : 'rgba(239,235,224,.14)' }}
+                  >
+                    <span className="text-[9px] font-bold uppercase tracking-[.12em] opacity-70">
+                      {WEEKDAYS[day.date.getDay()]}
+                    </span>
+                    <span className="kk-display text-lg font-bold leading-tight">{day.date.getDate()}</span>
+                    <span className="text-[9px] font-bold uppercase tracking-[.12em] opacity-70">
+                      {MONTHS[day.date.getMonth()]}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
 
-            <div className="inline-flex w-fit items-center gap-2 rounded-full border border-[#EFEBE0]/15 bg-[#123E47] px-4 py-2 text-xs font-semibold text-[#EFEBE0]/75">
-              <span className="h-2 w-2 rounded-full bg-[#F4B63F]" />
-              {showsLoading ? 'Loading screenings...' : `${shows.length} ${shows.length === 1 ? 'screening' : 'screenings'}`}
+            <span className="mx-1 h-8 w-px shrink-0 bg-[#EFEBE0]/[0.12]" aria-hidden="true" />
+
+            <div className="flex shrink-0 items-center gap-1">
+              {TIME_FILTERS.map((filter) => {
+                const active = filter.key === timeFilter;
+                return (
+                  <button
+                    key={filter.key}
+                    type="button"
+                    onClick={() => setTimeFilter(filter.key)}
+                    aria-pressed={active}
+                    className={`kk-filter shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold ${
+                      active
+                        ? 'is-active bg-[#EFEBE0] text-[#0A2A31]'
+                        : 'border border-[#EFEBE0]/15 text-[#EFEBE0]/65'
+                    }`}
+                  >
+                    {filter.label}
+                    <span className={`ml-1.5 text-[10px] ${active ? 'text-[#0A2A31]/60' : 'text-[#EFEBE0]/40'}`}>
+                      {filterCounts[filter.key]}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {showsError ? (
-            <div className="mt-8 rounded-2xl border border-[#C2305E]/40 bg-[#123E47] p-6">
-              <h3 className="md-display text-xl font-bold">Showtimes couldn't load.</h3>
-              <p className="mt-2 text-sm text-[#EFEBE0]/65">
-                Please check your connection and try again.
-              </p>
-              <button
-                onClick={() => {
-                  setShowsError(false);
-                  setShowsLoading(true);
-                  api.get('/shows', { params: { movieId: movie.id } })
-                    .then((r) => setShows(Array.isArray(r.data) ? r.data : []))
-                    .catch((e) => {
-                      console.error(e);
-                      setShowsError(true);
-                    })
-                    .finally(() => setShowsLoading(false));
-                }}
-                className="mt-4 rounded-lg bg-[#C2305E] px-4 py-2 text-sm font-bold text-white"
-              >
-                Try again
-              </button>
-            </div>
-          ) : showsLoading && shows.length === 0 ? (
-            <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {[1, 2, 3].map((n) => (
-                <div key={n} className="h-64 animate-pulse rounded-2xl bg-[#123E47]" />
-              ))}
-            </div>
-          ) : shows.length > 0 ? (
-            <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {shows.map((show, index) => (
-                <ShowTicket key={show.id} show={show} index={index} />
-              ))}
-            </div>
-          ) : (
-            <div className="mt-8 overflow-hidden rounded-2xl border border-dashed border-[#EFEBE0]/20 bg-[#123E47]/60 px-6 py-12 text-center sm:py-16">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#0A2A31] text-[#F4B63F]">
-                <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <rect x="3" y="5" width="18" height="16" rx="2" />
-                  <path d="M16 3v4M8 3v4M3 11h18" />
-                </svg>
-              </div>
-              <h3 className="md-display mt-5 text-2xl font-bold">No screenings just yet.</h3>
-              <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#EFEBE0]/60">
-                There are no scheduled shows for this film at the moment. Check back soon for upcoming screenings.
-              </p>
-              <Link
-                to="/"
-                className="mt-6 inline-flex rounded-xl border border-[#F4B63F]/40 px-5 py-3 text-sm font-semibold text-[#F4B63F] transition hover:bg-[#F4B63F] hover:text-[#0A2A31]"
-              >
-                Browse other movies
-              </Link>
-            </div>
-          )}
-        </section>
+          <div className="flex items-center justify-between gap-3 pb-2 text-[10px] font-semibold uppercase tracking-[.14em] text-[#EFEBE0]/45">
+            <span>
+              {activeDate ? `${prettyDate(activeDate.date)} · ${filteredShows.length} ${filteredShows.length === 1 ? 'show' : 'shows'}` : 'No date selected'}
+            </span>
+            <span className="hidden items-center gap-4 sm:flex">
+              <span className="inline-flex items-center gap-1.5">
+                <i className="h-2 w-2 rounded-full" style={{ background: C.green }} /> Available
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <i className="h-2 w-2 rounded-full" style={{ background: C.mango }} /> Fast filling
+              </span>
+            </span>
+          </div>
+        </div>
+      </div>
 
-        {/* Brand promise strip */}
-        <section className="md-reveal mt-16 grid gap-4 border-t border-[#EFEBE0]/15 pt-8 sm:grid-cols-3">
-          {[
-            {
-              icon: '◷',
-              title: 'Your time, your show',
-              desc: 'Find a screening that fits your schedule.',
-            },
-            {
-              icon: '▦',
-              title: 'Choose your seats',
-              desc: 'Select your preferred seats before checkout.',
-            },
-            {
-              icon: '✦',
-              title: 'Made for movie lovers',
-              desc: 'Settle in and enjoy the big-screen experience.',
-            },
-          ].map((item) => (
-            <div key={item.title} className="rounded-xl bg-[#123E47]/60 p-5">
-              <span className="md-display text-3xl text-[#F4B63F]">{item.icon}</span>
-              <h3 className="md-display mt-3 text-lg font-bold">{item.title}</h3>
-              <p className="mt-2 text-sm leading-6 text-[#EFEBE0]/60">{item.desc}</p>
+      {/* Theatres */}
+      <main id="showtimes" className="mx-auto max-w-6xl px-4 pb-20 pt-7 sm:px-6">
+        <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[.2em] text-[#C2305E]">Select your screening</p>
+            <h2 className="kk-display mt-1.5 text-2xl font-bold sm:text-3xl">
+              Showtimes<span className="text-[#F4B63F]">.</span>
+            </h2>
+          </div>
+          <span className="inline-flex items-center gap-2 rounded-full border border-[#EFEBE0]/15 bg-[#123E47] px-4 py-2 text-xs font-semibold text-[#EFEBE0]/75">
+            <span className="h-2 w-2 rounded-full bg-[#F4B63F]" />
+            {showsLoading ? 'Loading screenings...' : `${theatres.length} ${theatres.length === 1 ? 'cinema' : 'cinemas'}`}
+          </span>
+        </div>
+
+        {showsError ? (
+          <div className="rounded-2xl border border-[#C2305E]/40 bg-[#123E47] p-6">
+            <h3 className="kk-display text-xl font-bold">Showtimes couldn't load.</h3>
+            <p className="mt-2 text-sm text-[#EFEBE0]/65">Please check your connection and try again.</p>
+            <button
+              type="button"
+              onClick={() => {
+                setShowsError(false);
+                setShowsLoading(true);
+                api.get('/shows', { params: { movieId: movie.id } })
+                  .then((r) => setShows(Array.isArray(r.data) ? r.data : []))
+                  .catch((e) => {
+                    console.error(e);
+                    setShowsError(true);
+                  })
+                  .finally(() => setShowsLoading(false));
+              }}
+              className="mt-4 rounded-lg bg-[#C2305E] px-4 py-2 text-sm font-bold text-white"
+            >
+              Try again
+            </button>
+          </div>
+        ) : showsLoading && shows.length === 0 ? (
+          <div className="grid gap-4 lg:grid-cols-2">
+            {[1, 2].map((n) => (
+              <div key={n} className="h-44 animate-pulse rounded-2xl bg-[#123E47]" />
+            ))}
+          </div>
+        ) : theatres.length > 0 ? (
+          <div className="grid gap-4 lg:grid-cols-2">
+            {theatres.map((theatre, index) => (
+              <article
+                key={theatre.key}
+                className="kk-reveal rounded-2xl border border-[#EFEBE0]/[0.12] bg-[#123E47]/85 p-5 shadow-lg shadow-black/10 sm:p-6"
+                style={{ animationDelay: `${index * 70}ms` }}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <h3 className="truncate text-base font-semibold sm:text-lg">{theatre.name}</h3>
+                    <p className="mt-1 truncate text-xs text-[#EFEBE0]/50">
+                      {theatre.auditoriums.join(' · ') || 'Screening room'}
+                    </p>
+                    <p className="mt-1.5 text-[11px] font-semibold text-[#78C9A6]">Cancellation available</p>
+                  </div>
+                  <span className="material-symbols-outlined shrink-0 text-[#EFEBE0]/35" aria-hidden="true">
+                    favorite_border
+                  </span>
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {theatre.shows.map((show) => (
+                    <Showtime key={show.id} show={show} />
+                  ))}
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-dashed border-[#EFEBE0]/20 bg-[#123E47]/50 px-6 py-14 text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#0A2A31] text-[#F4B63F]">
+              <span className="material-symbols-outlined">event_busy</span>
             </div>
-          ))}
+            <h3 className="kk-display mt-4 text-2xl font-bold">No shows here yet.</h3>
+            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#EFEBE0]/60">
+              {timeFilter !== 'all'
+                ? 'No screenings match this time of day. Try another filter or date.'
+                : 'There are no screenings for this date. Pick another date above.'}
+            </p>
+            {timeFilter !== 'all' && (
+              <button
+                type="button"
+                onClick={() => setTimeFilter('all')}
+                className="mt-5 rounded-lg border border-[#F4B63F]/40 px-4 py-2 text-sm font-semibold text-[#F4B63F] transition hover:bg-[#F4B63F] hover:text-[#0A2A31]"
+              >
+                Show all times
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* About */}
+        <section className="mt-12 border-t border-[#EFEBE0]/15 pt-8">
+          <h2 className="kk-display text-2xl font-bold">About the movie</h2>
+          <p className="mt-3 max-w-3xl text-sm leading-7 text-[#EFEBE0]/65">
+            {movie.synopsis || 'The story awaits. More details coming soon.'}
+          </p>
+          <div className="mt-5 flex flex-wrap gap-2 text-xs text-[#EFEBE0]/55">
+            {runtimeLabel(movie.duration_minutes) && <span>Runtime {runtimeLabel(movie.duration_minutes)}</span>}
+            {movie.language && <span>· {movie.language}</span>}
+            {movie.certification && <span>· {movie.certification}</span>}
+            {genres.length > 0 && <span>· {genres.join(', ')}</span>}
+          </div>
         </section>
       </main>
 
-      <footer className="bg-[#071E23]">
-        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-7 text-xs text-[#EFEBE0]/50 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <span className="md-display text-base font-bold text-[#EFEBE0]">
+      <footer className="border-t border-[#EFEBE0]/10 bg-[#071E23]">
+        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-6 text-xs text-[#EFEBE0]/50 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <span className="kk-display text-base font-bold text-[#EFEBE0]">
             Konkani Samudai<span className="text-[#F4B63F]">.</span>
           </span>
-          <Link to="/" className="transition hover:text-[#F4B63F]">
-            Back to all movies ↑
-          </Link>
+          <Link to="/" className="transition hover:text-[#F4B63F]">Back to all movies ↑</Link>
         </div>
       </footer>
     </div>

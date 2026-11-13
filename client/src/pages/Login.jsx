@@ -82,7 +82,9 @@ export default function Login() {
         await api.post('/auth/register', { email, password, displayName: displayName || undefined });
       }
       const r = await api.post('/auth/login', { email, password });
-      localStorage.setItem('token', r.data.token);
+      // Keep the refresh token too, so the session survives reloads and expiry.
+      localStorage.setItem('token', r.data.accessToken || r.data.token);
+      if (r.data.refreshToken) localStorage.setItem('refreshToken', r.data.refreshToken);
       navigate('/');
     } catch (err) {
       setError(err.response?.data?.error || err.message || 'Unable to sign in. Please try again.');
@@ -150,7 +152,7 @@ export default function Login() {
               <form className="kk-auth-fields" onSubmit={submitCredentials} role="tabpanel" aria-labelledby="tab-email">
                 {error && <div className="kk-auth-error" role="alert">{error}</div>}
                 {isRegister && <div><label className="kk-auth-label" htmlFor="display-name-input">Full name</label><div className="kk-auth-inputwrap"><input className="kk-auth-field" id="display-name-input" onChange={(e) => setDisplayName(e.target.value)} placeholder="Your name" type="text" autoComplete="name" value={displayName} /></div></div>}
-                <div><label className="kk-auth-label" htmlFor="email-input">Email address</label><div className="kk-auth-inputwrap"><input className="kk-auth-field" id="email-input" onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" type="email" autoComplete="email" required value={email} /></div></div>
+                <div><label className="kk-auth-label" htmlFor="email-input">Email address</label><div className="kk-auth-inputwrap"><input className="kk-auth-field" id="email-input" onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" type="text" inputMode="email" autoComplete="username" autoCapitalize="none" required value={email} /></div></div>
                 <div>
                   <div className="kk-auth-label"><label htmlFor="password-input">Password</label><button className="kk-auth-forgot" type="button" onClick={() => setError('Password reset is not configured on this screen. Please contact support.')}>Forgot password?</button></div>
                   <div className="kk-auth-inputwrap"><input className="kk-auth-field" id="password-input" onChange={(e) => setPassword(e.target.value)} placeholder="Enter your password" type={showPassword ? 'text' : 'password'} autoComplete={isRegister ? 'new-password' : 'current-password'} required value={password} /><button className="kk-auth-iconbtn" onClick={() => setShowPassword((v) => !v)} type="button" aria-label={showPassword ? 'Hide password' : 'Show password'}>{showPassword ? '◉' : '◎'}</button></div>

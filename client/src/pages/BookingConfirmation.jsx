@@ -80,7 +80,7 @@ export default function BookingConfirmation() {
           <h1 className="mt-4 font-serif text-2xl">Booking unavailable</h1>
           <p className="mt-3 text-sm leading-6 text-[#EFEBE0]/65">{error}</p>
           <button onClick={() => window.location.reload()} className="mt-6 rounded-xl bg-[#C2305E] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#d34470]">Try again</button>
-          <div><Link to="/" className="mt-4 inline-block text-sm text-[#F4B63F] hover:underline">Back to movies</Link></div>
+          <div><Link to="/" className="mt-4 inline-block text-sm text-[#F4B63F]">Back to movies</Link></div>
         </div>
       </main>
     );

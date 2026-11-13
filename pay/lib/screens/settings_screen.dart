@@ -352,7 +352,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     autocorrect: false,
                     style: const TextStyle(fontSize: 13),
                     decoration: const InputDecoration(
-                      hintText: 'http://192.168.0.151:4000/youpi',
+                      hintText: 'https://movie-booking-1-fl6i.onrender.com/youpi',
                     ),
                     validator: (value) {
                       final text = value?.trim() ?? '';

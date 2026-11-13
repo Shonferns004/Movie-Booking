@@ -184,9 +184,8 @@ export default function MyTickets() {
 
   useEffect(() => {
     if (!token) {
-      api.post('/auth/login', { email: 'adminapp@movie.local', password: 'adminapp123' })
-        .then((r) => { if (r.data?.token) { localStorage.setItem('token', r.data.token); window.location.reload(); } })
-        .catch(() => setLoading(false));
+      // No token: show the sign-in prompt instead of trying a hardcoded account.
+      setLoading(false);
       return;
     }
     let stop = false;

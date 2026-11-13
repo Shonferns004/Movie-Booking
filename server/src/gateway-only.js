@@ -2,6 +2,7 @@ import express from 'express';
 import { env } from './config/env.js';
 import { startYoupiGateway } from './payments/youpi/gateway.js';
 import { youpiGatewayMiddleware } from './payments/youpi/mount.js';
+import { startRealtimeRelay, stopRealtimeRelay } from './realtime/relay.js';
 
 /**
  * Gateway-only host (Render).
@@ -40,12 +41,15 @@ if (!gateway) {
 app.listen(env.API_PORT, '0.0.0.0', () => {
   console.log(`[gateway-only] listening on http://0.0.0.0:${env.API_PORT}`);
   console.log(`[gateway-only] core=${gateway.corePort} portal=${gateway.portalPort} admin=${gateway.adminPort ?? '-'}`);
+  // Realtime relay: one Neon subscription here, events pushed to the Worker.
+  startRealtimeRelay();
 });
 
 for (const signal of ['SIGTERM', 'SIGINT']) {
   process.on(signal, async () => {
     console.log(`[gateway-only] ${signal} received, shutting down`);
     try {
+      stopRealtimeRelay();
       await gateway.close?.();
     } finally {
       process.exit(0);

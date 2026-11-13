@@ -49,6 +49,22 @@ services:
       - key: YOUPI_WEBHOOK_URL
         sync: false
 
+      # --- Realtime relay -------------------------------------------------------
+      # This service holds the one Neon Realtime subscription and pushes change
+      # events to the Worker (the Durable Object fans them out to the apps).
+      - key: NEON_REALTIME_URL
+        sync: false
+      - key: NEON_REALTIME_SECRET
+        sync: false
+      - key: NEON_REALTIME_DB
+        value: neondb
+      # Must match the Worker's INTERNAL_CRON_SECRET.
+      - key: INTERNAL_CRON_SECRET
+        sync: false
+      # Optional: defaults to the deployed Worker's internal endpoint.
+      - key: REALTIME_RELAY_URL
+        sync: false
+
       # Merchant / UPI settings (must match the Worker's values).
       - key: YOUPI_UPI_ID
         value: 7506419340-1@naviaxis

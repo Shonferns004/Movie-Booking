@@ -1,5 +1,6 @@
-import { Fragment, useEffect, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import api, { assetUrl } from '../services/api.js';
+import { useRealtime } from '../services/realtime.js';
 import { Link } from 'react-router-dom';
 
 const FALLBACK_POSTER =
@@ -312,9 +313,13 @@ export default function Home() {
   const [paused, setPaused] = useState(false);
   const railRef = useRef(null);
 
-  useEffect(() => {
+  const loadMovies = useCallback(() => {
     api.get('/movies').then((r) => setMovies(r.data)).catch(console.error);
   }, []);
+
+  useEffect(() => { loadMovies(); }, [loadMovies]);
+  // Realtime: refresh when the catalog changes anywhere (another admin, another device).
+  useRealtime(['catalog'], loadMovies);
 
   // Keep the active thumbnail visible inside the rail (horizontal only)
   useEffect(() => {

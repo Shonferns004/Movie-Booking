@@ -20,6 +20,26 @@
 	"upload_source_maps": true,
 
 	/**
+	 * Realtime: one Durable Object holds the single Neon Realtime subscription and
+	 * fans changes out to the admin/customer apps over a WebSocket.
+	 * https://developers.cloudflare.com/durable-objects/
+	 */
+	"durable_objects": {
+		"bindings": [
+			{
+				"name": "REALTIME",
+				"class_name": "RealtimeHub"
+			}
+		]
+	},
+	"exports": {
+		"RealtimeHub": {
+			"type": "durable-object",
+			"storage": "sqlite"
+		}
+	},
+
+	/**
 	 * `iconv-lite@0.4` (via body-parser → raw-body) stubs its stream modules for
 	 * browser bundles, which is what Wrangler builds, but Workers still look like Node
 	 * to it - so it calls the stubbed module and fails at startup with
@@ -29,6 +49,14 @@
 	"alias": {
 		"iconv-lite": "./src/iconv-lite-shim.cjs"
 	},
+
+	/** Import the status dashboard as a text module so /status needs no assets host. */
+	"rules": [
+		{
+			"type": "Text",
+			"globs": ["**/*.html"]
+		}
+	],
 
 	/**
 	 * Maintenance tick (seat-hold expiry, movie publishing, email outbox) that used to
@@ -78,7 +106,17 @@
 		// Neon Object Storage. Fill in the branch endpoint + bucket name:
 		//   curl "https://console.neon.tech/api/v2/projects/{project}/branches/{branch}/storage"
 		// The access key / secret are secrets: `wrangler secret put NEON_STORAGE_ACCESS_KEY_ID`
-		"NEON_STORAGE_REGION": "us-east-2"
+		"NEON_STORAGE_REGION": "us-east-2",
+		// Render-hosted YouPI gateway (see render.gateway.yaml / DEPLOY_CLOUDFLARE.md).
+		"YOUPI_API_URL": "https://movie-booking-1-fl6i.onrender.com/youpi",
+		"YOUPI_PUBLIC_BASE_URL": "https://movie-booking-1-fl6i.onrender.com",
+		// Public frontend origin: used for CORS, checkout return links and embeds.
+		// localhost variants are always allowed by app-core.js.
+		"APP_BASE_URL": "https://konkani-samudai.vercel.app",
+		"YOUPI_FRAME_ANCESTORS": "https://konkani-samudai.vercel.app,http://localhost:5175",
+		// Used by the status page's Redeploy button (the API token itself is a secret).
+		"CF_ACCOUNT_ID": "49f60c9c6c70f933b5e462499f16d5bc",
+		"CF_SCRIPT_NAME": "movie-worker"
 		// "NEON_STORAGE_ENDPOINT": "https://br-xxxx.storage.c-8.us-east-2.aws.neon.tech",
 		// "NEON_STORAGE_BUCKET": "movie-posters",
 		// "NEON_STORAGE_PUBLIC_URL": "https://br-xxxx.storage.c-8.us-east-2.aws.neon.tech/movie-posters",

@@ -54,8 +54,17 @@ export const env = {
   YOUPI_UPI_ID: process.env.YOUPI_UPI_ID || "",
   YOUPI_PAYEE_NAME: process.env.YOUPI_PAYEE_NAME || "",
   YOUPI_WEBHOOK_SECRET: process.env.YOUPI_WEBHOOK_SECRET || "",
-  // Also used by the API's CORS allow-list.
-  YOUPI_FRAME_ANCESTORS: process.env.YOUPI_FRAME_ANCESTORS || "",
+  // Also used by the API's CORS allow-list. When it is not set, allow the customer
+  // app (APP_BASE_URL) and the local dev origins to embed the checkout page.
+  YOUPI_FRAME_ANCESTORS:
+    process.env.YOUPI_FRAME_ANCESTORS
+    || [
+      process.env.APP_BASE_URL,
+      "http://localhost:5173",
+      "http://localhost:5175",
+      "http://127.0.0.1:5173",
+      "http://127.0.0.1:5175",
+    ].filter(Boolean).join(","),
 
   // --- Email ----------------------------------------------------------------
   // console = log only. Workers has no SMTP sockets, so keep it on `console` there.
@@ -91,4 +100,15 @@ export const env = {
     process.env.NEON_STORAGE_SECRET_ACCESS_KEY ||
     "nsk_live_db672a45c1ddfa6711f1068de6a9a3a4c7adf60b8e252b02b5723a99900877f7",
   NEON_STORAGE_PUBLIC_URL: process.env.NEON_STORAGE_PUBLIC_URL || "",
+
+  // --- Neon Realtime (live queries) ---
+  // Enabled per branch in the Neon Console. The secret stays server-side: the Worker
+  // holds the subscription and pushes changes to the apps.
+  NEON_REALTIME_URL: process.env.NEON_REALTIME_URL || "",
+  NEON_REALTIME_SECRET: process.env.NEON_REALTIME_SECRET || "",
+  NEON_REALTIME_DB: process.env.NEON_REALTIME_DB || "neondb",
+  // Where the Node relay posts change events (the Worker's internal realtime endpoint).
+  REALTIME_RELAY_URL:
+    process.env.REALTIME_RELAY_URL ||
+    "https://movie-worker.konkani-samudai.workers.dev/api/v1/internal/realtime",
 };

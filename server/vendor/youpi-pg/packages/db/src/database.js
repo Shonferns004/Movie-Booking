@@ -22,6 +22,22 @@ export function isPostgresUrl(url) {
 }
 
 /**
+ * `node:sqlite` binds only null, number, bigint, string and Uint8Array. Repositories
+ * pass booleans (is_active, is_merchant_enabled, ...) and sometimes undefined, so
+ * normalise them the way the Postgres client already does.
+ * @param {any[]} params
+ * @returns {any[]}
+ */
+function toSqliteParams(params = []) {
+  return params.map((value) => {
+    if (typeof value === 'boolean') return value ? 1 : 0;
+    if (value === undefined) return null;
+    if (value instanceof Date) return value.toISOString();
+    return value;
+  });
+}
+
+/**
  * Checks if core tables exist and executes migrations if not yet initialized.
  * @param {Database | import('./postgres-client.js').PostgresDatabase} db
  */
@@ -140,7 +156,7 @@ export class Database {
     if (this.dialect === 'postgres') return this.pg.execute(sql, params);
     const normalized = this.normalizeSql(sql);
     const stmt = this.db.prepare(normalized);
-    return stmt.run(...params);
+    return stmt.run(...toSqliteParams(params));
   }
 
   run(sql, params = []) {
@@ -157,7 +173,7 @@ export class Database {
     if (this.dialect === 'postgres') return this.pg.query(sql, params);
     const normalized = this.normalizeSql(sql);
     const stmt = this.db.prepare(normalized);
-    return stmt.all(...params);
+    return stmt.all(...toSqliteParams(params));
   }
 
   /**
@@ -170,7 +186,7 @@ export class Database {
     if (this.dialect === 'postgres') return this.pg.queryOne(sql, params);
     const normalized = this.normalizeSql(sql);
     const stmt = this.db.prepare(normalized);
-    const res = stmt.get(...params);
+    const res = stmt.get(...toSqliteParams(params));
     return res !== undefined ? res : null;
   }
 
