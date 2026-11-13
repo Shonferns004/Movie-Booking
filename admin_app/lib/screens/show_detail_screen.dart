@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -24,6 +24,8 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
   List<dynamic> _bookings = [];
   List<Widget>? _seatRows;
   Map<String, dynamic>? _show;
+  late String _showId;
+  List<dynamic> _siblingShows = [];
   bool _seatsLoading = true;
   bool _bookingsLoading = true;
   bool _savingShow = false;
@@ -69,6 +71,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
   @override
   void initState() {
     super.initState();
+    _showId = widget.showId;
     _tabs = TabController(
       length: 3,
       vsync: this,
@@ -88,7 +91,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
       _seatRows = null;
     });
     try {
-      final data = await Api.getShowSeats(widget.token!, widget.showId);
+      final data = await Api.getShowSeats(widget.token!, _showId);
       if (!mounted) return;
       setState(() {
         _seats = data['seats'] ?? [];
@@ -110,7 +113,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
       final all = await Api.getBookings(widget.token!);
       if (!mounted) return;
       setState(() {
-        _bookings = all.where((b) => b['show_id'] == widget.showId).toList();
+        _bookings = all.where((b) => b['show_id'] == _showId).toList();
         _bookingsLoading = false;
       });
     } catch (e) {
@@ -121,6 +124,52 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
     await _loadCategories();
     await _loadMovieDetails();
     await _loadVenueOptions();
+    await _loadSiblingShows();
+  }
+
+  /// All shows of this movie, so the screen can offer "Show 1 / Show 2" switching.
+  Future<void> _loadSiblingShows() async {
+    final token = widget.token;
+    final movieId = _show?['movie_id']?.toString();
+    if (token == null || token.isEmpty || movieId == null) return;
+    try {
+      final all = await Api.getShows(token);
+      final mine = all
+          .where((s) => s is Map && s['movie_id']?.toString() == movieId)
+          .toList()
+        ..sort(
+          (a, b) => '${a['starts_at']}'.compareTo('${b['starts_at']}'),
+        );
+      if (mounted) setState(() => _siblingShows = mine);
+    } catch (_) {
+      // Switching is a convenience; the current show stays usable without it.
+    }
+  }
+
+  /// How many distinct theatres this movie runs in. When it is more than one, the
+  /// chip has to name the theatre or two "Screen 1" chips look identical.
+  int get _siblingTheatreCount => _siblingShows
+      .map((s) => s is Map ? (s['theatre_name'] ?? '').toString() : '')
+      .where((name) => name.isNotEmpty)
+      .toSet()
+      .length;
+
+  String _showChipLabel(dynamic show) {
+    final theatre = (show['theatre_name'] ?? '').toString();
+    final screen = (show['auditorium_name'] ?? '').toString();
+    var venue = screen.isEmpty ? theatre : screen;
+    if (venue.isEmpty) venue = 'Screen';
+    if (_siblingTheatreCount > 1 && theatre.isNotEmpty && screen.isNotEmpty) {
+      venue = '$theatre · $screen';
+    }
+
+    final raw = show['starts_at']?.toString();
+    final date = raw == null ? null : DateTime.tryParse(raw)?.toLocal();
+    if (date == null) return venue;
+    final hour = date.hour % 12 == 0 ? 12 : date.hour % 12;
+    final minute = date.minute.toString().padLeft(2, '0');
+    final suffix = date.hour < 12 ? 'AM' : 'PM';
+    return '$venue · ${date.day}/${date.month} $hour:$minute $suffix';
   }
 
   Future<void> _loadCategories() async {
@@ -328,7 +377,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
     if (_deletingShow) return;
     setState(() => _deletingShow = true);
     try {
-      await Api.deleteShow(widget.token!, widget.showId);
+      await Api.deleteShow(widget.token!, _showId);
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
@@ -354,16 +403,59 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
             color: Color(0xFFF5EFEB),
           ),
         ),
-        bottom: TabBar(
-          controller: _tabs,
-          labelColor: const Color(0xFFF5EFEB),
-          unselectedLabelColor: const Color(0xFF9E9890),
-          indicatorColor: const Color(0xFFD96B43),
-          tabs: const [
-            Tab(text: 'Seats'),
-            Tab(text: 'Collection'),
-            Tab(text: 'Edit Show'),
-          ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(100),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_siblingShows.length > 1)
+                SizedBox(
+                  height: 48,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.fromLTRB(12, 2, 12, 6),
+                    itemCount: _siblingShows.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 8),
+                    itemBuilder: (ctx, i) {
+                      final sibling = _siblingShows[i];
+                      final id = sibling['id']?.toString();
+                      final selected = id == _showId;
+                      return ChoiceChip(
+                        selected: selected,
+                        label: Text(
+                          _showChipLabel(sibling),
+                          style: const TextStyle(fontSize: 11),
+                        ),
+                        labelStyle: TextStyle(
+                          color: selected
+                              ? const Color(0xFF121214)
+                              : const Color(0xFFF5EFEB),
+                        ),
+                        selectedColor: const Color(0xFFD96B43),
+                        backgroundColor: const Color(0xFF1A1A1E),
+                        side: const BorderSide(color: Color(0xFF2F2F37)),
+                        onSelected: (_) {
+                          if (id == null || id == _showId) return;
+                          setState(() => _showId = id);
+                          _load();
+                        },
+                      );
+                    },
+                  ),
+                ),
+              TabBar(
+                controller: _tabs,
+                labelColor: const Color(0xFFF5EFEB),
+                unselectedLabelColor: const Color(0xFF9E9890),
+                indicatorColor: const Color(0xFFD96B43),
+                tabs: const [
+                  Tab(text: 'Seats'),
+                  Tab(text: 'Collection'),
+                  Tab(text: 'Edit Show'),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
       body: SafeArea(
@@ -931,20 +1023,20 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
         ? amount.toStringAsFixed(0)
         : amount.toStringAsFixed(2);
     final code = (currency ?? 'INR').toUpperCase();
-    final symbol = code.isEmpty || code == 'INR' ? '₹' : '$code ';
+    final symbol = code.isEmpty || code == 'INR' ? 'â‚¹' : '$code ';
     return '$symbol$text';
   }
 
   String _formatDateTime(dynamic value) {
     final raw = value?.toString();
-    if (raw == null || raw.isEmpty) return '—';
+    if (raw == null || raw.isEmpty) return 'â€”';
     final date = DateTime.tryParse(raw)?.toLocal();
     if (date == null) return raw;
     final hour = date.hour % 12 == 0 ? 12 : date.hour % 12;
     final minute = date.minute.toString().padLeft(2, '0');
     final suffix = date.hour >= 12 ? 'PM' : 'AM';
     return '${date.day.toString().padLeft(2, '0')}-'
-        '${date.month.toString().padLeft(2, '0')}-${date.year} · '
+        '${date.month.toString().padLeft(2, '0')}-${date.year} Â· '
         '$hour:$minute $suffix';
   }
 
@@ -1787,7 +1879,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
               fontWeight: FontWeight.w600,
               color: const Color(0xFFF5EFEB),
             ),
-            decoration: _editInputDecoration('0', prefixText: '₹ '),
+            decoration: _editInputDecoration('0', prefixText: 'â‚¹ '),
           ),
         ),
       ],
@@ -2179,7 +2271,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
     final token = widget.token;
     if (token == null || token.isEmpty) return;
     try {
-      final data = await Api.getShowSeats(token, widget.showId);
+      final data = await Api.getShowSeats(token, _showId);
       if (!mounted) return;
       final previousAuditorium = _originalAuditoriumId;
       setState(() {
@@ -2405,7 +2497,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
     setState(() => _savingShow = true);
     var showSaved = false;
     try {
-      await Api.updateShow(token, widget.showId, payload);
+      await Api.updateShow(token, _showId, payload);
       showSaved = true;
       if (!mounted) return;
       setState(() {
@@ -2620,11 +2712,11 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
         previous = current;
         continue;
       }
-      result.add(start == previous ? start : '$start–$previous');
+      result.add(start == previous ? start : '$startâ€“$previous');
       start = current;
       previous = current;
     }
-    result.add(start == previous ? start : '$start–$previous');
+    result.add(start == previous ? start : '$startâ€“$previous');
     return result;
   }
 
@@ -2931,14 +3023,14 @@ class _SeatTypeSummary {
     this.currency,
   });
 
-  String get rowsLabel => rows.join(' · ');
+  String get rowsLabel => rows.join(' Â· ');
 
   String get priceLabel {
     final min = minPriceMinor;
     if (min == null) return '';
     final code = (currency ?? 'INR').toUpperCase();
     final symbol = code == 'INR'
-        ? '₹'
+        ? 'â‚¹'
         : (currency?.isNotEmpty == true ? '${currency!} ' : '');
     String amount(int minor) {
       final value = minor / 100;
@@ -2949,7 +3041,7 @@ class _SeatTypeSummary {
 
     final max = maxPriceMinor;
     if (max == null || max == min) return '$symbol${amount(min)}';
-    return '$symbol${amount(min)}–${amount(max)}';
+    return '$symbol${amount(min)}â€“${amount(max)}';
   }
 }
 
@@ -2978,3 +3070,4 @@ class _Legend extends StatelessWidget {
     );
   }
 }
+

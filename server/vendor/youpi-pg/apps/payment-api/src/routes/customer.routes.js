@@ -240,9 +240,26 @@ export function registerCustomerRoutes(server, ctx) {
     let dispatchResult = { success: true, delivered: false, simulated: true };
     const displayName = existingUser?.name || name || '';
 
+    // Merchants can customise the WhatsApp message in the admin panel. Placeholders are
+    // replaced here so the template never reaches the browser.
+    const merchant = ctx.merchantRepo?.getDefault
+      ? ctx.merchantRepo.getDefault()
+      : ctx.merchantRepo?.findById?.('00000000-0000-0000-0000-000000000001');
+    const branding = merchant?.branding || {};
+    const otpTemplate = typeof branding.otpMessage === 'string' ? branding.otpMessage.trim() : '';
+
     if (berry) {
       try {
-        dispatchResult = await berry.sendOtp(cleanMobile, otpCode, displayName);
+        if (otpTemplate) {
+          const appName = branding.appName || merchant?.businessName || 'Konkani Samudai';
+          const message = otpTemplate
+            .replaceAll('{otp}', otpCode)
+            .replaceAll('{name}', displayName || 'there')
+            .replaceAll('{appName}', appName);
+          dispatchResult = await berry.sendMessage(cleanMobile, message);
+        } else {
+          dispatchResult = await berry.sendOtp(cleanMobile, otpCode, displayName);
+        }
       } catch (err) {
         console.warn(`[CustomerAuth] WhatsApp dispatch notice: ${err.message}`);
       }

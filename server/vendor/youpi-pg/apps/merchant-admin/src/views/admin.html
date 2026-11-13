@@ -1571,6 +1571,11 @@
                       Title / App Name</label>
                     <input id="settingAppName" type="text" value="YOUPI PG" placeholder="e.g. YOUPI Pay"
                       style="width:100%;" oninput="updateLiveWhiteLabelPreview()" />
+                    <label
+                      style="font-size:0.78rem; color:var(--text-muted); display:flex; align-items:center; gap:0.35rem; cursor:pointer; margin-top:0.4rem;">
+                      <input type="checkbox" id="settingHideAppName" onchange="updateLiveWhiteLabelPreview()" />
+                      <span>Hide this gateway title on checkout</span>
+                    </label>
                   </div>
                 </div>
                 <div>
@@ -3274,6 +3279,20 @@
                 style="display:none;">🔌 Disconnect</button>
               <button class="btn btn-secondary" onclick="fetchWhatsAppStatus(true)">🔄 Check Status</button>
             </div>
+
+            <div style="margin-top:1rem; border-top:1px solid var(--border); padding-top:1rem;">
+              <label style="display:block; font-size:0.82rem; font-weight:700; margin-bottom:0.35rem;">OTP Message
+                (WhatsApp)</label>
+              <textarea id="settingOtpMessage" rows="5"
+                placeholder="Default: Your Konkani Samudai verification code is {otp}"
+                style="width:100%; font-family:monospace; font-size:0.82rem; resize:vertical;"></textarea>
+              <div style="font-size:0.72rem; color:var(--text-muted); margin-top:0.35rem; line-height:1.5;">
+                Placeholders: <code>{otp}</code> · <code>{name}</code> · <code>{appName}</code>. Leave blank to use the
+                built-in message.
+              </div>
+              <button type="button" class="btn btn-success" style="margin-top:0.6rem;"
+                onclick="saveMerchantBrandingAndToggles()">Save OTP message</button>
+            </div>
           </div>
         </div>
       </div>
@@ -4669,6 +4688,7 @@
       const hideSubbanner = document.getElementById('settingHideSubbanner')?.checked;
       const hideTimeSavingBanner = document.getElementById('settingHideTimeSavingBanner')?.checked;
       const hidePoweredBy = document.getElementById('settingHidePoweredBy')?.checked;
+      const hideAppName = document.getElementById('settingHideAppName')?.checked;
       const footerGuarantee = document.getElementById('settingFooterGuarantee')?.value.trim();
 
       const headerEl = document.getElementById('mockupHeader');
@@ -4702,14 +4722,18 @@
       const trustBadgeTextEl = document.getElementById('mockupTrustBadgeText');
       if (trustBadgeBox) {
         trustBadgeBox.style.display = hideTrustBadge ? 'none' : 'inline-flex';
-        if (trustBadgeTextEl) trustBadgeTextEl.textContent = trustBadgeText || `${appName} Verified Business`;
+        if (trustBadgeTextEl) {
+          trustBadgeTextEl.textContent = trustBadgeText || (hideAppName ? 'Verified Business' : `${appName} Verified Business`);
+        }
       }
 
       const subbannerBox = document.getElementById('mockupSubbanner');
       const subbannerTextEl = document.getElementById('mockupSubbannerText');
       if (subbannerBox) {
         subbannerBox.style.display = hideSubbanner ? 'none' : 'flex';
-        if (subbannerTextEl) subbannerTextEl.textContent = subbannerText || `Verified & Protected by ${appName}`;
+        if (subbannerTextEl) {
+          subbannerTextEl.textContent = subbannerText || (hideAppName ? 'Verified & Protected' : `Verified & Protected by ${appName}`);
+        }
       }
 
       const timeBanner = document.getElementById('mockupTimeSavingBanner');
@@ -4718,13 +4742,13 @@
       const guaranteeEl = document.getElementById('mockupFooterGuarantee');
       if (guaranteeEl) {
         if (footerGuarantee) guaranteeEl.textContent = footerGuarantee;
-        else if (hidePoweredBy) guaranteeEl.textContent = '100% Payment Protection & Security';
+        else if (hidePoweredBy || hideAppName) guaranteeEl.textContent = '100% Payment Protection & Security';
         else guaranteeEl.textContent = `100% Payment Protection by ${appName}`;
       }
 
       const legalEl = document.getElementById('mockupLegalDisclaimer');
       if (legalEl) {
-        if (hidePoweredBy) legalEl.innerHTML = `Secured by 256-Bit Bank Encryption &bull; Privacy &amp; Terms`;
+        if (hidePoweredBy || hideAppName) legalEl.innerHTML = `Secured by 256-Bit Bank Encryption &bull; Privacy &amp; Terms`;
         else legalEl.innerHTML = `Secured by ${appName} &amp; 256-Bit Bank Encryption &bull; Privacy Notice`;
       }
 
@@ -4766,6 +4790,8 @@
           setVal('settingWebhookSecret', mData.webhookSecret);
 
           setVal('settingAppName', branding.appName || 'YOUPI PG');
+          setCheck('settingHideAppName', branding.hideAppName);
+          setVal('settingOtpMessage', branding.otpMessage);
           setVal('settingLogoUrl', branding.logoUrl);
           setVal('settingSidebarNotice', branding.sidebarNotice);
           setVal('settingFooterGuarantee', branding.footerGuarantee);
@@ -5020,6 +5046,8 @@
       const hideSubbanner = document.getElementById('settingHideSubbanner')?.checked || false;
       const hideTimeSavingBanner = document.getElementById('settingHideTimeSavingBanner')?.checked || false;
       const hidePoweredBy = document.getElementById('settingHidePoweredBy')?.checked || false;
+      const hideAppName = document.getElementById('settingHideAppName')?.checked || false;
+      const otpMessage = (document.getElementById('settingOtpMessage')?.value || '').trim();
       const cardCounterInstructions = document.getElementById('settingCardCounterInstructions')?.value.trim() || '';
       const termsUrl = document.getElementById('settingTermsUrl')?.value.trim() || '';
 
@@ -5067,6 +5095,8 @@
               hideSubbanner,
               hideTimeSavingBanner,
               hidePoweredBy,
+              hideAppName,
+              otpMessage: otpMessage || null,
               sidebarNotice: sidebarNotice || null,
               footerGuarantee: footerGuarantee || null,
               counterInstructions: counterInstructions || null,

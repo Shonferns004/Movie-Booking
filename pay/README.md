@@ -22,6 +22,22 @@ https://movie-booking-1-fl6i.onrender.com/youpi
 
 Do not append `/api` and do not use the gateway's internal `:6100` port.
 
+## Live updates
+
+The UI refreshes instantly when the API pushes a `payments` change over
+`WSS /api/v1/realtime`. The socket points at the deployed Worker by default; point it
+at another API host at build time when needed:
+
+```bash
+flutter build apk --release \
+  --dart-define=REALTIME_BASE_URL=https://api.example.com
+```
+
+Realtime is best-effort. Local-only changes (SMS received, queued, rejected when no
+checkout is live) do not create a database row, so the app also polls every 30 seconds
+and refreshes when it returns to the foreground. The header shows **LIVE UPDATES** while
+the socket is open and **AUTO-REFRESH** while it is reconnecting.
+
 ## Pairing a phone
 
 1. Open `{base-without-/api}/admin` (for Render: `https://<service>.onrender.com/youpi/admin`)

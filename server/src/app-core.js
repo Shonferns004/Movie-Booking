@@ -92,6 +92,11 @@ export function createApp({
       // dashboard is meant to be opened straight from disk.
       if (origin === 'null') return callback(null, true);
       if (allowedOrigins.has(origin)) return callback(null, true);
+      // Vite moves to the next free port in development; allow any localhost port
+      // instead of failing with a confusing CORS 403.
+      if (env.NODE_ENV !== 'production' && /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin)) {
+        return callback(null, true);
+      }
       // A rejected origin is a client error, not a server failure: 403 keeps it out of
       // the 5xx error metrics instead of surfacing as "Internal server error".
       const error = new Error(`CORS origin not allowed: ${origin}`);

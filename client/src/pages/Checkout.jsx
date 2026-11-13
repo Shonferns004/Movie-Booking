@@ -86,6 +86,14 @@ export default function Checkout() {
   const location = useLocation();
   const navigate = useNavigate();
 
+  const [account] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('user') || 'null');
+    } catch {
+      return null;
+    }
+  });
+
   const [hold] = useState(() => {
     if (location.state) return location.state;
     try {
@@ -105,9 +113,9 @@ export default function Checkout() {
   });
   const contextMatches = Boolean(holdContext && hold?.holdId && holdContext.holdId === hold.holdId);
 
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [mobile, setMobile] = useState('');
+  const [name, setName] = useState(account?.displayName || account?.name || '');
+  const [email, setEmail] = useState(account?.email || '');
+  const [mobile, setMobile] = useState(account?.mobile || '');
   const [editingContact, setEditingContact] = useState(false);
   const [offersOpen, setOffersOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -258,10 +266,24 @@ export default function Checkout() {
   }
 
   async function openPaymentModal(activeOrder, activeBooking) {
+    // If the visitor signed in with WhatsApp OTP, hand the verified customer session to
+    // the checkout page so it does not ask for the same number again.
+    let checkoutUrl = activeOrder.checkoutUrl;
+    try {
+      const customerToken = localStorage.getItem('youpiCustomerToken');
+      if (checkoutUrl && customerToken) {
+        const url = new URL(checkoutUrl);
+        url.searchParams.set('customerToken', customerToken);
+        checkoutUrl = url.toString();
+      }
+    } catch {
+      // Keep the plain checkout URL if it cannot be parsed.
+    }
+
     const options = {
       key: activeOrder.merchantKey,
       paymentId: activeOrder.paymentId,
-      checkoutUrl: activeOrder.checkoutUrl,
+      checkoutUrl,
       orderId: activeOrder.orderId,
       amount: activeOrder.amount,
       currency: activeOrder.currency,

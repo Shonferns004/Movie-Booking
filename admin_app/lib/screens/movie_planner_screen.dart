@@ -26,12 +26,33 @@ class _Plan {
   String? auditoriumId;
   DateTime date;
   TimeOfDay time;
-  final TextEditingController price = TextEditingController(text: '250');
+
+  /// One price field per seat category (Standard, Premium, Recliner, …).
+  final Map<String, TextEditingController> prices = {};
 
   DateTime get startsAt =>
       DateTime(date.year, date.month, date.day, time.hour, time.minute);
 
-  void dispose() => price.dispose();
+  /// Creates the price fields for the categories once they are known.
+  void ensurePrices(List<dynamic> categories, {Map<String, String>? seed}) {
+    for (final category in categories) {
+      final id = category is Map ? category['id']?.toString() : null;
+      if (id == null) continue;
+      prices.putIfAbsent(
+        id,
+        () => TextEditingController(text: seed?[id] ?? '250'),
+      );
+    }
+  }
+
+  Map<String, String> snapshotPrices() =>
+      prices.map((key, controller) => MapEntry(key, controller.text));
+
+  void dispose() {
+    for (final controller in prices.values) {
+      controller.dispose();
+    }
+  }
 }
 
 class _MoviePlannerScreenState extends State<MoviePlannerScreen> {
@@ -54,6 +75,7 @@ class _MoviePlannerScreenState extends State<MoviePlannerScreen> {
 
   bool _loading = true;
   bool _saving = false;
+  String _progress = '';
   String? _error;
 
   @override
@@ -99,6 +121,9 @@ class _MoviePlannerScreenState extends State<MoviePlannerScreen> {
           for (final plan in _plans) {
             plan.theatreId ??= first;
           }
+        }
+        for (final plan in _plans) {
+          plan.ensurePrices(_categories);
         }
         _loading = false;
       });
@@ -183,7 +208,7 @@ class _MoviePlannerScreenState extends State<MoviePlannerScreen> {
           ? const TimeOfDay(hour: 18, minute: 0)
           : TimeOfDay(hour: (previous.time.hour + 3) % 24, minute: previous.time.minute),
     );
-    if (previous != null) next.price.text = previous.price.text;
+    if (previous != null) next.ensurePrices(_categories, seed: previous.snapshotPrices());
     setState(() => _plans.add(next));
     if (next.theatreId != null) _loadAuditoriums(next.theatreId!);
   }
@@ -234,11 +259,38 @@ class _MoviePlannerScreenState extends State<MoviePlannerScreen> {
         _toast('Every show needs a theatre and a screen.', isError: true);
         return;
       }
-      final price = double.tryParse(plan.price.text.trim());
-      if (price == null || price <= 0) {
-        _toast('Enter a valid ticket price for every show.', isError: true);
+    }
+
+    if (_categories.isEmpty) {
+      _toast('No seat categories found. Add them in Seat Builder first.', isError: true);
+      return;
+    }
+
+    // Price per category, per show: Standard, Premium, Recliner, …
+    final planPrices = <_Plan, List<Map<String, dynamic>>>{};
+    for (final plan in _plans) {
+      final priced = <Map<String, dynamic>>[];
+      for (final category in _categories) {
+        final id = category is Map ? category['id']?.toString() : null;
+        if (id == null) continue;
+        final raw = plan.prices[id]?.text.trim() ?? '';
+        final value = double.tryParse(raw);
+        final name = category['name']?.toString() ?? 'Seat';
+        if (value == null || value <= 0) {
+          _toast('Enter a valid $name price for every show.', isError: true);
+          return;
+        }
+        priced.add({
+          'categoryId': id,
+          'amountMinor': (value * 100).round(),
+          'currency': 'INR',
+        });
+      }
+      if (priced.isEmpty) {
+        _toast('Enter at least one ticket price.', isError: true);
         return;
       }
+      planPrices[plan] = priced;
     }
 
     setState(() => _saving = true);
@@ -267,14 +319,21 @@ class _MoviePlannerScreenState extends State<MoviePlannerScreen> {
       }
 
       for (final plan in _plans) {
-        final price = double.parse(plan.price.text.trim());
-        final amountMinor = (price * 100).round();
+        final prices = planPrices[plan]!;
+        final amountMinor = prices
+            .map((p) => p['amountMinor'] as int)
+            .reduce((a, b) => a < b ? a : b);
         final start = plan.startsAt;
         final end = start.add(Duration(minutes: duration));
         final closes = start.subtract(const Duration(minutes: 15));
         final now = DateTime.now();
         final opensAt = now.isBefore(closes) ? now : start;
         final closesAt = now.isBefore(closes) ? closes : start;
+
+        if (mounted) {
+          setState(() => _progress =
+              'Creating show ${createdShows + failures.length + 1} of ${_plans.length}…');
+        }
 
         final theatreName = _theatres
             .firstWhere(
@@ -293,13 +352,7 @@ class _MoviePlannerScreenState extends State<MoviePlannerScreen> {
             'bookingClosesAt': closesAt.toIso8601String(),
             'status': 'scheduled',
             'defaultPriceMinor': amountMinor,
-            'prices': _categories
-                .map((c) => {
-                      'categoryId': c['id'],
-                      'amountMinor': amountMinor,
-                      'currency': 'INR',
-                    })
-                .toList(),
+            'prices': prices,
           });
           createdShows++;
         } catch (e) {
@@ -353,7 +406,12 @@ class _MoviePlannerScreenState extends State<MoviePlannerScreen> {
         _toast('Could not create the movie. $detail', isError: true);
       }
     } finally {
-      if (mounted) setState(() => _saving = false);
+      if (mounted) {
+        setState(() {
+          _saving = false;
+          _progress = '';
+        });
+      }
     }
   }
 
@@ -484,7 +542,7 @@ class _MoviePlannerScreenState extends State<MoviePlannerScreen> {
                     ),
                     child: Text(
                       _saving
-                          ? 'Creating…'
+                          ? (_progress.isEmpty ? 'Creating movie…' : _progress)
                           : 'Create movie & ${_plans.length} show${_plans.length == 1 ? '' : 's'}',
                       style: const TextStyle(fontWeight: FontWeight.w700),
                     ),
@@ -646,18 +704,55 @@ class _MoviePlannerScreenState extends State<MoviePlannerScreen> {
             ],
           ),
           const SizedBox(height: 10),
-          TextField(
-            controller: plan.price,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            style: TextStyle(fontSize: 13, color: sand),
-            decoration: InputDecoration(
-              labelText: 'Ticket price (₹)',
-              labelStyle: TextStyle(fontSize: 12, color: muted),
-              isDense: true,
-              prefixText: '₹ ',
-              prefixStyle: TextStyle(color: muted, fontSize: 13),
+          Text(
+            'TICKET PRICES',
+            style: TextStyle(
+              fontSize: 9,
+              letterSpacing: 1.2,
+              fontWeight: FontWeight.w700,
+              color: muted,
             ),
           ),
+          if (_categories.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                'No seat categories yet — add them in Seat Builder.',
+                style: TextStyle(fontSize: 11, color: muted),
+              ),
+            )
+          else
+            ..._categories.map((category) {
+              final id = category is Map ? category['id']?.toString() : null;
+              if (id == null) return const SizedBox.shrink();
+              final controller = plan.prices[id];
+              if (controller == null) return const SizedBox.shrink();
+              return Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        category['name']?.toString() ?? 'Seat',
+                        style: TextStyle(fontSize: 12, color: sand),
+                      ),
+                    ),
+                    SizedBox(
+                      width: 120,
+                      child: TextField(
+                        controller: controller,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        style: TextStyle(fontSize: 13, color: sand),
+                        decoration: const InputDecoration(
+                          isDense: true,
+                          prefixText: '₹ ',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
         ],
       ),
     );

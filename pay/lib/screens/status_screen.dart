@@ -47,6 +47,7 @@ class StatusScreen extends StatelessWidget {
                 snapshot?.config ?? const ObserverConfig(),
                 snapshot?.smsPermission ?? false,
               ),
+              live: state.realtimeConnected,
             ),
             const SizedBox(height: 18),
             if (snapshot == null) ...[
@@ -132,16 +133,16 @@ class StatusScreen extends StatelessWidget {
                       label: 'Auth',
                       value: state.config.paired
                           ? (state.config.shortDeviceId.isEmpty
-                              ? 'Paired device'
-                              : 'Device ${state.config.shortDeviceId}')
+                                ? 'Paired device'
+                                : 'Device ${state.config.shortDeviceId}')
                           : (state.config.maskedToken.isEmpty
-                              ? 'Missing'
-                              : state.config.maskedToken),
+                                ? 'Missing'
+                                : state.config.maskedToken),
                       valueColor: state.config.paired
                           ? AppColors.accent2
                           : state.config.observerToken.isEmpty
-                              ? AppColors.danger
-                              : AppColors.muted,
+                          ? AppColors.danger
+                          : AppColors.muted,
                     ),
                     DetailRow(
                       label: 'Watch list',
@@ -156,8 +157,8 @@ class StatusScreen extends StatelessWidget {
                           child: Text(
                             state.config.isConfigured
                                 ? (state.config.paired
-                                    ? 'Paired mode — the gateway resolves the merchant account.'
-                                    : 'Tap the card to re-check against the gateway.')
+                                      ? 'Paired mode — the gateway resolves the merchant account.'
+                                      : 'Tap the card to re-check against the gateway.')
                                 : 'Add the gateway URL, then pair this phone or paste an observer token.',
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
@@ -264,9 +265,10 @@ class StatusScreen extends StatelessWidget {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.tone});
+  const _Header({required this.tone, required this.live});
 
   final (String, PillTone) tone;
+  final bool live;
 
   @override
   Widget build(BuildContext context) {
@@ -280,14 +282,30 @@ class _Header extends StatelessWidget {
             children: [
               Text(
                 'KONKANI SAMUDAI',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.6,
-                    ),
+                style: Theme.of(context).textTheme.titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w800, letterSpacing: 0.6),
               ),
-              Text(
-                'SMS PAYMENT OBSERVER',
-                style: Theme.of(context).textTheme.labelSmall,
+              const SizedBox(height: 3),
+              Row(
+                children: [
+                  Container(
+                    width: 5,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: live ? AppColors.success : AppColors.faint,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    live ? 'LIVE UPDATES' : 'AUTO-REFRESH',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      fontSize: 9.5,
+                      letterSpacing: 1,
+                      color: live ? AppColors.muted : AppColors.faint,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -318,35 +336,45 @@ class _HeroCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              _StatusGlyph(running: running, configured: config.isConfigured),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Observer',
-                        style: Theme.of(context).textTheme.labelSmall),
-                    const SizedBox(height: 4),
                     Text(
-                      running ? 'Running' : (config.isConfigured ? 'Paused' : 'Not set up'),
+                      'Observer',
+                      style: Theme.of(context).textTheme.labelSmall,
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      running
+                          ? 'Running'
+                          : (config.isConfigured ? 'Paused' : 'Not set up'),
                       style: Theme.of(context).textTheme.displaySmall,
                     ),
                   ],
                 ),
               ),
-              Switch(
-                value: config.enabled && config.isConfigured,
-                onChanged: config.isConfigured ? (_) => onToggle() : null,
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Switch(
+                  value: config.enabled && config.isConfigured,
+                  onChanged: config.isConfigured ? (_) => onToggle() : null,
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 8),
           Text(
             running
                 ? 'Listening for incoming credit SMS and forwarding them to the payment gateway.'
                 : 'Tap the switch once the gateway and SMS permissions are configured.',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: running ? AppColors.success : AppColors.muted,
-                ),
+              color: running ? AppColors.success : AppColors.muted,
+            ),
           ),
           if (!config.isConfigured) ...[
             const SizedBox(height: 14),
@@ -366,25 +394,60 @@ class _HeroCard extends StatelessWidget {
                   value: '${stats.forwarded}',
                   label: 'Forwarded',
                   color: AppColors.success,
+                  boxed: true,
                 ),
               ),
+              const SizedBox(width: 8),
               Expanded(
                 child: StatTile(
                   value: '${stats.pending}',
                   label: 'Waiting',
                   color: AppColors.warning,
+                  boxed: true,
                 ),
               ),
+              const SizedBox(width: 8),
               Expanded(
                 child: StatTile(
                   value: '${stats.failed}',
                   label: 'Failed',
                   color: AppColors.danger,
+                  boxed: true,
                 ),
               ),
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Flat status tile in the hero card. No gradients, just a tinted glyph.
+class _StatusGlyph extends StatelessWidget {
+  const _StatusGlyph({required this.running, required this.configured});
+
+  final bool running;
+  final bool configured;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = running
+        ? AppColors.success
+        : (configured ? AppColors.warning : AppColors.faint);
+
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        color: AppColors.bgSoft,
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
+      ),
+      child: Icon(
+        running ? Icons.sensors_rounded : Icons.sensors_off_rounded,
+        size: 22,
+        color: color,
       ),
     );
   }
@@ -410,7 +473,10 @@ class _LiveCheckoutCard extends StatelessWidget {
           ? Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('No live checkout', style: Theme.of(context).textTheme.titleMedium),
+                Text(
+                  'No live checkout',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
                 const SizedBox(height: 5),
                 Text(
                   state.activeWindowError ??
@@ -432,25 +498,27 @@ class _LiveCheckoutCard extends StatelessWidget {
                           ),
                         )
                       : tokenless
-                          ? const StatusPill(
-                              label: 'Resolved by gateway',
-                              tone: PillTone.info,
-                            )
-                          : OutlinedButton.icon(
-                              onPressed: state.config.isConfigured
-                                  ? state.refreshActiveWindow
-                                  : null,
-                              icon: const Icon(Icons.refresh_rounded, size: 17),
-                              label: const Text('Check now'),
-                            ),
+                      ? const StatusPill(
+                          label: 'Resolved by gateway',
+                          tone: PillTone.info,
+                        )
+                      : OutlinedButton.icon(
+                          onPressed: state.config.isConfigured
+                              ? state.refreshActiveWindow
+                              : null,
+                          icon: const Icon(Icons.refresh_rounded, size: 17),
+                          label: const Text('Check now'),
+                        ),
                 ),
               ],
             )
           : Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Live payments',
-                    style: Theme.of(context).textTheme.labelSmall),
+                Text(
+                  'Live payments',
+                  style: Theme.of(context).textTheme.labelSmall,
+                ),
                 const SizedBox(height: 10),
                 for (final session in sessions.take(4))
                   Padding(
@@ -459,7 +527,9 @@ class _LiveCheckoutCard extends StatelessWidget {
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.success.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(7),
@@ -542,14 +612,14 @@ class _EventRow extends StatelessWidget {
   final VoidCallback onTap;
 
   (Color, String) get _accent => switch (event.status) {
-        EventStatus.sent => (
-            event.isRejected ? AppColors.warning : AppColors.success,
-            event.isRejected ? 'Rejected' : 'Sent',
-          ),
-        EventStatus.failed => (AppColors.danger, 'Failed'),
-        EventStatus.pending => (AppColors.warning, 'Waiting'),
-        EventStatus.ignored => (AppColors.faint, 'Skipped'),
-      };
+    EventStatus.sent => (
+      event.isRejected ? AppColors.warning : AppColors.success,
+      event.isRejected ? 'Rejected' : 'Sent',
+    ),
+    EventStatus.failed => (AppColors.danger, 'Failed'),
+    EventStatus.pending => (AppColors.warning, 'Waiting'),
+    EventStatus.ignored => (AppColors.faint, 'Skipped'),
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -612,7 +682,10 @@ class _EventRow extends StatelessWidget {
               children: [
                 Text(
                   relativeTime(event.receivedAtDate),
-                  style: const TextStyle(fontSize: 10.5, color: AppColors.faint),
+                  style: const TextStyle(
+                    fontSize: 10.5,
+                    color: AppColors.faint,
+                  ),
                 ),
                 const SizedBox(height: 3),
                 Text(
@@ -647,18 +720,25 @@ class _PlatformError extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.error_outline_rounded,
-                  size: 18, color: AppColors.danger),
+              const Icon(
+                Icons.error_outline_rounded,
+                size: 18,
+                color: AppColors.danger,
+              ),
               const SizedBox(width: 8),
               Expanded(
-                child: Text('Bridge unavailable',
-                    style: Theme.of(context).textTheme.titleMedium),
+                child: Text(
+                  'Bridge unavailable',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
               ),
             ],
           ),
           const SizedBox(height: 8),
-          Text(state.platformError ?? 'Unknown error',
-              style: Theme.of(context).textTheme.bodySmall),
+          Text(
+            state.platformError ?? 'Unknown error',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
           const SizedBox(height: 12),
           OutlinedButton.icon(
             onPressed: state.refresh,
@@ -681,7 +761,10 @@ class _Footnote extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('HOW IT VERIFIES', style: Theme.of(context).textTheme.labelSmall),
+          Text(
+            'HOW IT VERIFIES',
+            style: Theme.of(context).textTheme.labelSmall,
+          ),
           const SizedBox(height: 8),
           Text(
             'Every message is parsed for an amount and a bank reference. The gateway '

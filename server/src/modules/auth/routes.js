@@ -8,6 +8,8 @@ const router = Router();
 const registerSchema = z.object({ email: z.string().email(), password: z.string().min(6), displayName: z.string().optional() });
 const loginSchema = z.object({ email: z.string().min(1), password: z.string() });
 const refreshSchema = z.object({ refreshToken: z.string().min(1) });
+const otpSendSchema = z.object({ mobile: z.string().min(10).max(20) });
+const otpVerifySchema = z.object({ mobile: z.string().min(10).max(20), otp: z.string().min(4).max(8) });
 
 router.post('/register', validate(registerSchema), async (req, res, next) => {
   try {
@@ -27,6 +29,19 @@ router.post('/refresh', validate(refreshSchema), async (req, res, next) => {
   try {
     const result = await auth.refreshSession(req.body.refreshToken);
     res.json(result);
+  } catch (e) { next(e); }
+});
+
+// WhatsApp OTP sign-in, using the same gateway/customer identity as checkout.
+router.post('/otp/send', validate(otpSendSchema), async (req, res, next) => {
+  try {
+    res.json(await auth.sendLoginOtp(req.body));
+  } catch (e) { next(e); }
+});
+
+router.post('/otp/verify', validate(otpVerifySchema), async (req, res, next) => {
+  try {
+    res.json(await auth.verifyLoginOtp(req.body));
   } catch (e) { next(e); }
 });
 

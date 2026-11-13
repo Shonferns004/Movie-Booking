@@ -869,7 +869,7 @@ class _SaveBar extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 14),
       decoration: const BoxDecoration(
-        color: Color(0xF2050816),
+        color: AppColors.bgSoft,
         border: Border(top: BorderSide(color: AppColors.border)),
       ),
       child: Row(

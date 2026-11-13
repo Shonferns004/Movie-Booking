@@ -93,16 +93,25 @@ export async function createShow(data) {
     const versionId = aud.rows[0].active_layout_version_id;
     if (!versionId) throw badRequest('auditorium has no active layout');
 
-    const seats = await client.query('SELECT id, category_id FROM seats WHERE layout_version_id=$1', [versionId]);
-    for (const s of seats.rows) {
-      const priceRes = await client.query(
-        `SELECT amount_minor FROM show_seat_prices WHERE show_id=$1 AND (seat_id=$2 OR (seat_id IS NULL AND category_id=$3)) ORDER BY seat_id NULLS LAST LIMIT 1`,
-        [show.id, s.id, s.category_id]);
-      const amt = priceRes.rows.length ? priceRes.rows[0].amount_minor : (data.defaultPriceMinor || 15000);
-      await client.query(
-        'INSERT INTO show_seats (show_id, seat_id, status, price_minor, currency) VALUES ($1,$2,$3,$4,$5)',
-        [show.id, s.id, 'available', amt, 'INR']);
-    }
+    // One statement instead of two queries per seat: a 300-seat screen used to take
+    // hundreds of round trips (minutes over Hyperdrive), now it is a single INSERT.
+    await client.query(
+      `INSERT INTO show_seats (show_id, seat_id, status, price_minor, currency)
+       SELECT $1, s.id, 'available',
+              COALESCE(
+                (SELECT p.amount_minor
+                   FROM show_seat_prices p
+                  WHERE p.show_id = $1
+                    AND (p.seat_id = s.id OR (p.seat_id IS NULL AND p.category_id = s.category_id))
+                  ORDER BY p.seat_id NULLS LAST
+                  LIMIT 1),
+                $2
+              ),
+              'INR'
+         FROM seats s
+        WHERE s.layout_version_id = $3`,
+      [show.id, data.defaultPriceMinor || 15000, versionId],
+    );
     return show;
   });
 }

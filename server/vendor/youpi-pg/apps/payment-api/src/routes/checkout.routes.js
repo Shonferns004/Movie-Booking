@@ -156,6 +156,7 @@ function sanitizePublicBranding(raw = {}) {
     footerGuarantee: raw.footerGuarantee || undefined,
     trustBadgeText: raw.trustBadgeText || undefined,
     hideTrustBadge: raw.hideTrustBadge !== undefined ? Boolean(raw.hideTrustBadge) : undefined,
+    hideAppName: raw.hideAppName !== undefined ? Boolean(raw.hideAppName) : undefined,
     subbannerText: raw.subbannerText || undefined,
     hideSubbanner: raw.hideSubbanner !== undefined ? Boolean(raw.hideSubbanner) : undefined,
     hidePoweredBy: raw.hidePoweredBy !== undefined ? Boolean(raw.hidePoweredBy) : undefined,

@@ -6,21 +6,17 @@ enum PillTone { active, idle, error, info }
 
 /// Compact state indicator: coloured dot + uppercase label.
 class StatusPill extends StatelessWidget {
-  const StatusPill({
-    super.key,
-    required this.label,
-    this.tone = PillTone.idle,
-  });
+  const StatusPill({super.key, required this.label, this.tone = PillTone.idle});
 
   final String label;
   final PillTone tone;
 
   Color get _color => switch (tone) {
-        PillTone.active => AppColors.success,
-        PillTone.idle => AppColors.muted,
-        PillTone.error => AppColors.danger,
-        PillTone.info => AppColors.accent2,
-      };
+    PillTone.active => AppColors.success,
+    PillTone.idle => AppColors.muted,
+    PillTone.error => AppColors.danger,
+    PillTone.info => AppColors.accent2,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -105,20 +101,20 @@ class CheckRow extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           if (granted)
-            const Icon(Icons.check_circle_rounded,
-                size: 20, color: AppColors.success)
+            const Icon(
+              Icons.check_circle_rounded,
+              size: 20,
+              color: AppColors.success,
+            )
           else
-            TextButton(
-              onPressed: onGrant,
-              child: const Text('Grant'),
-            ),
+            TextButton(onPressed: onGrant, child: const Text('Grant')),
         ],
       ),
     );
   }
 }
 
-/// Rounded brand mark: gradient tile with the gateway glyph.
+/// Rounded brand mark: a flat accent tile with the gateway glyph.
 class BrandMark extends StatelessWidget {
   const BrandMark({super.key, this.size = 40});
 
@@ -131,24 +127,10 @@ class BrandMark extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(size * 0.3),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.accent, AppColors.accent2],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.accent.withValues(alpha: 0.35),
-            blurRadius: 18,
-            offset: const Offset(0, 6),
-          ),
-        ],
+        color: AppColors.accent,
+        border: Border.all(color: AppColors.accent2.withValues(alpha: 0.45)),
       ),
-      child: Icon(
-        Icons.sms_rounded,
-        size: size * 0.5,
-        color: Colors.white,
-      ),
+      child: Icon(Icons.sms_rounded, size: size * 0.5, color: Colors.white),
     );
   }
 }

@@ -14,7 +14,7 @@ void main() {
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.light,
-      systemNavigationBarColor: Color(0xFF0B1020),
+      systemNavigationBarColor: AppColors.bgSoft,
       systemNavigationBarIconBrightness: Brightness.light,
     ),
   );
@@ -58,22 +58,21 @@ class _AppShellState extends State<AppShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _Backdrop(
-        child: IndexedStack(
-          index: _index,
-          children: [
-            StatusScreen(
-              onOpenLog: () => _goTo(1),
-              onOpenSettings: () => _goTo(2),
-              onOpenTestDialog: () => showTestSendSheet(context),
-            ),
-            const LogScreen(),
-            const SettingsScreen(),
-          ],
-        ),
+      body: IndexedStack(
+        index: _index,
+        children: [
+          StatusScreen(
+            onOpenLog: () => _goTo(1),
+            onOpenSettings: () => _goTo(2),
+            onOpenTestDialog: () => showTestSendSheet(context),
+          ),
+          const LogScreen(),
+          const SettingsScreen(),
+        ],
       ),
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
+          color: AppColors.bgSoft,
           border: Border(top: BorderSide(color: AppColors.border)),
         ),
         child: NavigationBar(
@@ -96,61 +95,6 @@ class _AppShellState extends State<AppShell> {
               label: 'Settings',
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Two soft accent blobs behind the content, mirroring the web client's
-/// ambient background without paying for a blur filter.
-class _Backdrop extends StatelessWidget {
-  const _Backdrop({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Positioned(
-          left: -150,
-          top: -170,
-          child: _Blob(
-            size: 400,
-            color: AppColors.accent.withValues(alpha: 0.20),
-          ),
-        ),
-        Positioned(
-          right: -160,
-          bottom: -190,
-          child: _Blob(
-            size: 380,
-            color: AppColors.accent2.withValues(alpha: 0.13),
-          ),
-        ),
-        Positioned.fill(child: child),
-      ],
-    );
-  }
-}
-
-class _Blob extends StatelessWidget {
-  const _Blob({required this.size, required this.color});
-
-  final double size;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: RadialGradient(
-          colors: [color, color.withValues(alpha: 0)],
-          stops: const [0, 1],
         ),
       ),
     );

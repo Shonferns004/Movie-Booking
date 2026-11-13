@@ -29,20 +29,13 @@ class AppCard extends StatelessWidget {
     final decoration = BoxDecoration(
       borderRadius: radius,
       border: Border.all(
-        color: borderColor ??
-            (highlight ? AppColors.accent.withValues(alpha: 0.45) : AppColors.border),
+        color:
+            borderColor ??
+            (highlight
+                ? AppColors.accent.withValues(alpha: 0.55)
+                : AppColors.border),
       ),
-      gradient: highlight
-          ? LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                AppColors.accent.withValues(alpha: 0.22),
-                AppColors.accent2.withValues(alpha: 0.07),
-              ],
-            )
-          : null,
-      color: highlight ? null : AppColors.surface,
+      color: highlight ? AppColors.surfaceRaised : AppColors.surface,
     );
 
     final content = Padding(padding: padding, child: child);
@@ -56,11 +49,7 @@ class AppCard extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         borderRadius: radius,
-        child: InkWell(
-          borderRadius: radius,
-          onTap: onTap,
-          child: content,
-        ),
+        child: InkWell(borderRadius: radius, onTap: onTap, child: content),
       ),
     );
   }
@@ -133,10 +122,7 @@ class DetailRow extends StatelessWidget {
               ),
             ),
           ),
-          if (trailing != null) ...[
-            const SizedBox(width: 6),
-            trailing!,
-          ],
+          if (trailing != null) ...[const SizedBox(width: 6), trailing!],
         ],
       ),
     );
@@ -149,15 +135,17 @@ class StatTile extends StatelessWidget {
     required this.value,
     required this.label,
     required this.color,
+    this.boxed = false,
   });
 
   final String value;
   final String label;
   final Color color;
+  final bool boxed;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    final content = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
@@ -173,9 +161,23 @@ class StatTile extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           label.toUpperCase(),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: Theme.of(context).textTheme.labelSmall,
         ),
       ],
+    );
+
+    if (!boxed) return content;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 11, 12, 10),
+      decoration: BoxDecoration(
+        color: AppColors.bgSoft,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: content,
     );
   }
 }

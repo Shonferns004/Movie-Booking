@@ -51,6 +51,8 @@ function Nav() {
   function logout() {
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
+    localStorage.removeItem('user');
+    localStorage.removeItem('youpiCustomerToken');
     setToken(false);
     setMobileOpen(false);
     navigate('/', { replace: true });

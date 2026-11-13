@@ -159,7 +159,7 @@ class _LogScreenState extends State<LogScreen> {
   void _showDetail(BuildContext context, ObserverEvent event) {
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: const Color(0xFF0E1424),
+      backgroundColor: AppColors.bgSoft,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),

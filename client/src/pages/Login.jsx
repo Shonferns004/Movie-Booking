@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../services/api.js';
 
@@ -44,7 +44,10 @@ export default function Login() {
   const [mode, setMode] = useState('phone');
   const [mobile, setMobile] = useState('');
   const [whatsappOptin, setWhatsappOptin] = useState(true);
-  const [otpState, setOtpState] = useState('idle');
+  const [otp, setOtp] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpMessage, setOtpMessage] = useState('');
+  const [cooldown, setCooldown] = useState(0);
   const [mobileError, setMobileError] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -59,18 +62,75 @@ export default function Login() {
     setError('');
   }
 
-  function triggerOtpDemo() {
-    if (!mobile || mobile.trim().length < 10) {
+  useEffect(() => {
+    if (cooldown <= 0) return undefined;
+    const timer = setTimeout(() => setCooldown((value) => value - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [cooldown]);
+
+  function resetPhoneFlow() {
+    setOtpSent(false);
+    setOtp('');
+    setOtpMessage('');
+    setCooldown(0);
+    setError('');
+  }
+
+  async function sendOtp() {
+    if (submitting) return;
+    if (!/^\d{10}$/.test(mobile)) {
       setMobileError(true);
       mobileRef.current?.focus();
       setTimeout(() => setMobileError(false), 1500);
       return;
     }
-    setOtpState('sending');
-    setTimeout(() => {
-      setOtpState('sent');
-      setTimeout(() => setOtpState('idle'), 3000);
-    }, 1200);
+
+    setError('');
+    setSubmitting(true);
+    try {
+      const response = await api.post('/auth/otp/send', { mobile });
+      setOtpSent(true);
+      setCooldown(30);
+      if (response.data?.devOtp) {
+        setOtp(String(response.data.devOtp));
+        setOtpMessage(`Development OTP: ${response.data.devOtp}`);
+      } else {
+        setOtp('');
+        setOtpMessage(`We sent a 6-digit code to +91 ${mobile} on WhatsApp.`);
+      }
+    } catch (err) {
+      setError(err.response?.data?.error || err.message || 'Could not send the OTP. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function verifyOtp() {
+    if (submitting) return;
+    if (!/^\d{4,8}$/.test(otp.trim())) {
+      setError('Enter the OTP you received on WhatsApp.');
+      return;
+    }
+
+    setError('');
+    setSubmitting(true);
+    try {
+      const response = await api.post('/auth/otp/verify', { mobile, otp: otp.trim() });
+      const data = response.data;
+      localStorage.setItem('token', data.accessToken || data.token);
+      if (data.refreshToken) localStorage.setItem('refreshToken', data.refreshToken);
+      if (data.user) {
+        localStorage.setItem('user', JSON.stringify({ ...data.user, mobile: data.mobile || data.user.mobile }));
+      }
+      if (data.youpiCustomerToken) {
+        localStorage.setItem('youpiCustomerToken', data.youpiCustomerToken);
+      }
+      navigate('/');
+    } catch (err) {
+      setError(err.response?.data?.error || err.message || 'Invalid OTP. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   async function submitCredentials(e) {
@@ -85,6 +145,7 @@ export default function Login() {
       // Keep the refresh token too, so the session survives reloads and expiry.
       localStorage.setItem('token', r.data.accessToken || r.data.token);
       if (r.data.refreshToken) localStorage.setItem('refreshToken', r.data.refreshToken);
+      if (r.data.user) localStorage.setItem('user', JSON.stringify(r.data.user));
       navigate('/');
     } catch (err) {
       setError(err.response?.data?.error || err.message || 'Unable to sign in. Please try again.');
@@ -130,23 +191,41 @@ export default function Login() {
 
             {phoneTabActive ? (
               <div className="kk-auth-fields" role="tabpanel" aria-labelledby="tab-phone">
+                {error && <div className="kk-auth-error" role="alert">{error}</div>}
                 <div>
-                  <label className="kk-auth-label" htmlFor="mobile-input"><span>Registered mobile number</span><small>OTP sign-in</small></label>
+                  <label className="kk-auth-label" htmlFor="mobile-input"><span>Registered mobile number</span><small>WhatsApp OTP</small></label>
                   <div className="kk-auth-inputwrap" style={mobileError ? { borderColor: '#C2305E', boxShadow: '0 0 0 3px rgba(194,48,94,.12)' } : undefined}>
                     <div className="kk-auth-prefix"><span aria-hidden="true">🇮🇳</span><span>+91</span></div>
-                    <input className="kk-auth-field" id="mobile-input" maxLength={10} onChange={(e) => setMobile(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="98765 43210" ref={mobileRef} type="tel" inputMode="numeric" autoComplete="tel-national" value={mobile} aria-invalid={mobileError} />
+                    <input className="kk-auth-field" id="mobile-input" maxLength={10} onChange={(e) => setMobile(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="98765 43210" ref={mobileRef} type="tel" inputMode="numeric" autoComplete="tel-national" value={mobile} aria-invalid={mobileError} disabled={otpSent} />
                     <button className="kk-auth-iconbtn" onClick={() => mobileRef.current?.focus()} title="Focus mobile number" type="button" aria-label="Focus mobile number">⌗</button>
                   </div>
                   {mobileError && <p style={{ color: '#C2305E', fontSize: 11, margin: '7px 0 0' }}>Enter a valid 10-digit mobile number.</p>}
                 </div>
+
+                {otpSent && (
+                  <div>
+                    <label className="kk-auth-label" htmlFor="otp-input"><span>Enter the 6-digit OTP</span><small>Sent on WhatsApp</small></label>
+                    <div className="kk-auth-inputwrap">
+                      <input className="kk-auth-field" id="otp-input" maxLength={6} onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="123456" type="text" inputMode="numeric" autoComplete="one-time-code" value={otp} />
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginTop: 8 }}>
+                      <button className="kk-auth-link" onClick={resetPhoneFlow} type="button">Change number</button>
+                      <button className="kk-auth-link" onClick={sendOtp} type="button" disabled={cooldown > 0 || submitting}>
+                        {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend OTP'}
+                      </button>
+                    </div>
+                    {otpMessage && <p style={{ fontSize: 10, color: '#84908a', lineHeight: 1.5, margin: '7px 0 0' }}>{otpMessage}</p>}
+                  </div>
+                )}
+
                 <label className="kk-auth-check">
                   <input checked={whatsappOptin} onChange={(e) => setWhatsappOptin(e.target.checked)} type="checkbox" />
                   <span><strong>Send booking confirmations over WhatsApp</strong><small>Receive movie passes and booking links through WhatsApp. You can change this preference anytime.</small></span>
                 </label>
-                <button className="kk-auth-primary" disabled={otpState !== 'idle'} onClick={triggerOtpDemo} type="button">
-                  {otpState === 'sending' ? '◌  Sending OTP…' : otpState === 'sent' ? '✓  Demo OTP request complete' : <>Send login OTP <span aria-hidden="true">→</span></>}
+                <button className="kk-auth-primary" disabled={submitting} onClick={otpSent ? verifyOtp : sendOtp} type="button">
+                  {submitting ? '◌  Please wait…' : otpSent ? <>Verify &amp; sign in <span aria-hidden="true">→</span></> : <>Send login OTP <span aria-hidden="true">→</span></>}
                 </button>
-                <p style={{ fontSize: 10, color: '#84908a', lineHeight: 1.55, margin: '-4px 0 0' }}>Phone sign-in is shown as a UI demo in this screen.</p>
+                <p style={{ fontSize: 10, color: '#84908a', lineHeight: 1.55, margin: '-4px 0 0' }}>Your verified number is used for payment too, so checkout won’t ask for it again.</p>
               </div>
             ) : (
               <form className="kk-auth-fields" onSubmit={submitCredentials} role="tabpanel" aria-labelledby="tab-email">

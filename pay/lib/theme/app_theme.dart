@@ -5,29 +5,30 @@ import 'package:flutter/material.dart';
 class AppColors {
   const AppColors._();
 
-  static const bg = Color(0xFF050816);
-  static const bgSoft = Color(0xFF0B1020);
-  static const text = Color(0xFFF1F5F9);
+  static const bg = Color(0xFF070B14);
+  static const bgSoft = Color(0xFF0B1120);
+  static const text = Color(0xFFF5F7FA);
   static const muted = Color(0xFF94A3B8);
   static const faint = Color(0xFF64748B);
 
-  static const border = Color(0x1FFFFFFF); // white @ 12%
-  static const surface = Color(0x0DFFFFFF); // white @ 5%
-  static const surfaceStrong = Color(0x14FFFFFF); // white @ 8%
+  static const border = Color(0xFF223049);
+  static const surface = Color(0xFF0F1728);
+  static const surfaceStrong = Color(0xFF152036);
+  static const surfaceRaised = Color(0xFF121C30);
 
-  static const accent = Color(0xFF8B5CF6);
-  static const accent2 = Color(0xFF22D3EE);
+  static const accent = Color(0xFF7C6CF2);
+  static const accent2 = Color(0xFF38BDF8);
   static const accent3 = Color(0xFFF472B6);
 
   static const success = Color(0xFF34D399);
-  static const danger = Color(0xFFFB7185);
+  static const danger = Color(0xFFF87171);
   static const warning = Color(0xFFFBBF24);
 }
 
 class AppTheme {
   const AppTheme._();
 
-  static const radius = 18.0;
+  static const radius = 16.0;
 
   static ThemeData get dark {
     const scheme = ColorScheme.dark(
@@ -99,11 +100,17 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.surface,
+        fillColor: AppColors.bgSoft,
         hintStyle: const TextStyle(color: AppColors.faint, fontSize: 13.5),
         labelStyle: const TextStyle(color: AppColors.muted, fontSize: 12.5),
-        floatingLabelStyle: const TextStyle(color: AppColors.accent2, fontSize: 12.5),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
+        floatingLabelStyle: const TextStyle(
+          color: AppColors.accent2,
+          fontSize: 12.5,
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 15,
+        ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: AppColors.border),
@@ -153,24 +160,33 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          textStyle: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600),
+          textStyle: const TextStyle(
+            fontSize: 13.5,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: AppColors.accent2,
-          textStyle: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600),
+          textStyle: const TextStyle(
+            fontSize: 13.5,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: const Color(0xFF141A2C),
-        contentTextStyle: const TextStyle(color: AppColors.text, fontSize: 13.5),
+        backgroundColor: AppColors.surfaceStrong,
+        contentTextStyle: const TextStyle(
+          color: AppColors.text,
+          fontSize: 13.5,
+        ),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: const Color(0xF20B1020),
-        indicatorColor: AppColors.accent.withValues(alpha: 0.22),
+        backgroundColor: AppColors.bgSoft,
+        indicatorColor: AppColors.accent.withValues(alpha: 0.18),
         height: 66,
         elevation: 0,
         labelTextStyle: WidgetStateProperty.resolveWith(
@@ -192,7 +208,7 @@ class AppTheme {
         ),
       ),
       dialogTheme: DialogThemeData(
-        backgroundColor: const Color(0xFF0E1424),
+        backgroundColor: AppColors.surfaceRaised,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         titleTextStyle: const TextStyle(
@@ -205,6 +221,22 @@ class AppTheme {
           height: 1.45,
           color: AppColors.muted,
         ),
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: AppColors.bgSoft,
+        surfaceTintColor: Colors.transparent,
+        modalBackgroundColor: AppColors.bgSoft,
+        modalBarrierColor: Color(0xB3000000),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+      ),
+      progressIndicatorTheme: const ProgressIndicatorThemeData(
+        color: AppColors.accent2,
+      ),
+      listTileTheme: const ListTileThemeData(
+        iconColor: AppColors.accent2,
+        textColor: AppColors.text,
       ),
     );
   }

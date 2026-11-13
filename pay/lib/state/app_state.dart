@@ -22,7 +22,14 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   String? _platformError;
   String? _activeWindowError;
   bool _busy = false;
+  bool _refreshing = false;
   bool _refreshingActiveWindow = false;
+  Timer? _poll;
+
+  /// Realtime gives instant updates, but it only fires when a database row
+  /// changes. A slow poll keeps local-only changes (SMS received, queued,
+  /// rejected) visible even when the socket is down.
+  static const Duration _pollInterval = Duration(seconds: 30);
 
   GatewayState? get state => _state;
   ObserverConfig get config => _state?.config ?? const ObserverConfig();
@@ -44,32 +51,71 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> start() async {
     await refresh();
-    // Realtime instead of polling: the API pushes a topic when the database changed.
-    RealtimeService.instance.onEvent = (topic) {
-      if (topic == 'payments' || topic == 'seats') refresh(quiet: true);
+    final realtime = RealtimeService.instance;
+    realtime.onEvent = (topic) {
+      // The observer only shows payment/ticket state.
+      if (topic == 'payments') refresh(quiet: true);
     };
-    RealtimeService.instance.onConnected = () => refresh(quiet: true);
-    await RealtimeService.instance.connect();
+    realtime.onConnected = () => refresh(quiet: true);
+    realtime.onConnectionChanged = (_) => notifyListeners();
+    // Start the fallback timer before the handshake: a slow or blocked socket
+    // must never leave the dashboard without updates.
+    _startPolling();
+    await realtime.connect();
   }
+
+  void _startPolling() {
+    _poll?.cancel();
+    _poll = Timer.periodic(_pollInterval, (_) {
+      if (_busy || _refreshing) return;
+      refresh(quiet: true);
+    });
+  }
+
+  void _stopPolling() {
+    _poll?.cancel();
+    _poll = null;
+  }
+
+  /// True while the instant-update socket is open. When false the dashboard
+  /// still updates, but only on the fallback poll, resume, or manual refresh.
+  bool get realtimeConnected => RealtimeService.instance.isConnected;
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      refresh(quiet: true);
-      RealtimeService.instance.connect();
+    switch (state) {
+      case AppLifecycleState.resumed:
+        _startPolling();
+        refresh(quiet: true);
+        // Replace the socket after a pause: mobile networks often leave the
+        // old connection half-open, which looks connected but receives nothing.
+        RealtimeService.instance.reconnect();
+        break;
+      case AppLifecycleState.paused:
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.detached:
+        _stopPolling();
+        RealtimeService.instance.disconnect();
+        break;
+      case AppLifecycleState.inactive:
+        break;
     }
   }
 
   @override
   void dispose() {
+    _stopPolling();
     RealtimeService.instance.onEvent = null;
     RealtimeService.instance.onConnected = null;
+    RealtimeService.instance.onConnectionChanged = null;
     RealtimeService.instance.disconnect();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
   Future<void> refresh({bool quiet = false}) async {
+    if (_refreshing) return;
+    _refreshing = true;
     if (!quiet) {
       _busy = true;
       notifyListeners();
@@ -82,6 +128,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     } on MissingPluginException {
       _platformError = 'The native SMS bridge is unavailable on this device.';
     } finally {
+      _refreshing = false;
       _busy = false;
       notifyListeners();
     }
@@ -128,11 +175,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     } on PlatformException catch (error) {
       final message = error.message ?? error.code;
       _platformError = message;
-      return PairDeviceResult(
-        ok: false,
-        httpStatus: 0,
-        message: message,
-      );
+      return PairDeviceResult(ok: false, httpStatus: 0, message: message);
     } finally {
       _busy = false;
       notifyListeners();
@@ -200,7 +243,10 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     required String text,
     required String sender,
   }) async {
-    final result = await _bridge.sendTestObservation(text: text, sender: sender);
+    final result = await _bridge.sendTestObservation(
+      text: text,
+      sender: sender,
+    );
     await refresh(quiet: true);
     return result;
   }
@@ -235,11 +281,8 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
 /// `InheritedNotifier` avoids pulling in a state-management package for what
 /// is a single observable object.
 class AppScope extends InheritedNotifier<AppState> {
-  const AppScope({
-    super.key,
-    required AppState state,
-    required super.child,
-  }) : super(notifier: state);
+  const AppScope({super.key, required AppState state, required super.child})
+    : super(notifier: state);
 
   static AppState of(BuildContext context) {
     final scope = context.dependOnInheritedWidgetOfExactType<AppScope>();
