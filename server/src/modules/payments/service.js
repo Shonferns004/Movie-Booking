@@ -80,6 +80,14 @@ async function confirmBookingAfterPayment(client, bookingId, paymentId) {
      VALUES ($1,$2,$3,'pending')`,
     ['booking_confirmed', booking.contact_email || 'customer@movie.local', JSON.stringify({ bookingReference: booking.booking_reference })]);
 
+  // WhatsApp ticket PDF, processed by the maintenance tick when a mobile is known.
+  if (booking.contact_mobile) {
+    await client.query(
+      `INSERT INTO email_outbox (event_type, recipient, template_data, status)
+       VALUES ($1,$2,$3,'pending')`,
+      ['ticket_whatsapp', booking.contact_mobile, JSON.stringify({ bookingReference: booking.booking_reference })]);
+  }
+
   await client.query('INSERT INTO audit_logs (actor_id, action, entity_type, entity_id) VALUES ($1,$2,$3,$4)',
     [null, 'booking_confirmed', 'booking', bookingId]);
 

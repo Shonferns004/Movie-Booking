@@ -45,13 +45,37 @@ export async function processOutbox() {
       `SELECT * FROM email_outbox WHERE status IN ('pending','retry') AND next_attempt_at <= now() ORDER BY created_at LIMIT 10 FOR UPDATE SKIP LOCKED`);
     for (const msg of rows) {
       try {
-        if (transporter) {
+        let providerMessageId = `console-${Date.now()}`;
+
+        if (msg.event_type === 'ticket_whatsapp') {
+          // Generate + send the PDF on the gateway host, which owns the WhatsApp socket.
+          const base = String(env.YOUPI_API_URL || '').replace(/\/$/, '');
+          if (!base) throw new Error('YOUPI_API_URL is not configured');
+          const response = await fetch(`${base}/api/v1/internal/whatsapp/ticket`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Internal-Token': env.INTERNAL_CRON_SECRET || '',
+            },
+            body: JSON.stringify({
+              bookingReference: msg.template_data?.bookingReference,
+              mobile: msg.recipient,
+            }),
+            signal: AbortSignal.timeout(25000),
+          });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok || data.success === false) {
+            throw new Error(data.error || data.message || `WhatsApp ticket failed (${response.status})`);
+          }
+          providerMessageId = data.id || `whatsapp-${Date.now()}`;
+        } else if (transporter) {
           await transporter.sendMail({ from: env.EMAIL_FROM, to: msg.recipient, subject: msg.event_type, text: JSON.stringify(msg.template_data) });
         } else {
           console.log('[email:console]', msg.event_type, msg.recipient, msg.template_data);
         }
+
         await client.query("UPDATE email_outbox SET status='sent', attempt_count=attempt_count+1, updated_at=now(), provider_message_id=$1 WHERE id=$2",
-          [`console-${Date.now()}`, msg.id]);
+          [providerMessageId, msg.id]);
         sent += 1;
       } catch (err) {
         const attempts = msg.attempt_count + 1;

@@ -24,6 +24,15 @@ services:
     startCommand: npm run start:gateway
     healthCheckPath: /health
     autoDeploy: true
+    # WhatsApp linked-device credentials (vendor/youpi-pg/data/berry_auth) and the
+    # gateway's .secrets live on disk, NOT in Neon. On the free plan that disk is
+    # ephemeral, so every restart/deploy disconnects WhatsApp and requires re-pairing.
+    # On a paid instance, add a disk to keep the session:
+    #
+    # disk:
+    #   name: youpi-data
+    #   mountPath: /opt/render/project/src/server/vendor/youpi-pg/data
+    #   sizeGB: 1
     envVars:
       - key: NODE_VERSION
         value: 24.22.1
@@ -80,6 +89,10 @@ services:
         sync: false
       - key: YOUPI_CLIENT_API_BASE
         value: /youpi
+      # WhatsApp provider. Baileys stores its linked-device state in Neon
+      # (`youpi.wa_auth`), so it survives restarts. Set to `berry` to use the old one.
+      - key: WHATSAPP_PROVIDER
+        value: baileys
       - key: YOUPI_ALLOW_ADMIN
         value: true
       - key: YOUPI_ADMIN_ENABLED

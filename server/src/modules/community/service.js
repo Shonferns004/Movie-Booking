@@ -147,7 +147,7 @@ export async function createEvent(data) {
       data.venue || null,
       data.blurb || null,
       Array.isArray(data.tags) ? data.tags : [],
-      data.accent || '#F5B841',
+      data.accent || '#F5C542',
       JSON.stringify(asTiers(data.tiers)),
       data.published !== false,
       data.sortOrder ?? null,

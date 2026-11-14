@@ -151,7 +151,22 @@ export function startYoupiGateway() {
     const { createPaymentApp } = await import(vendorUrl('apps', 'payment-api', 'src', 'index.js'));
     const { CheckoutServer } = await import(vendorUrl('apps', 'checkout-portal', 'src', 'server.js'));
 
-    const core = createPaymentApp();
+    // WhatsApp provider: Baileys keeps its linked-device state in Neon, so Render
+    // restarts/deploys no longer force a re-pair. Set WHATSAPP_PROVIDER=berry to use
+    // the old Berry implementation.
+    let whatsappService = null;
+    const whatsappProvider = String(process.env.WHATSAPP_PROVIDER || 'baileys').toLowerCase();
+    if (whatsappProvider !== 'berry') {
+      try {
+        const { createBaileysService } = await import('./whatsapp-baileys.js');
+        whatsappService = await createBaileysService();
+        console.log('[YOUPI] WhatsApp provider: Baileys (auth state in Neon)');
+      } catch (error) {
+        console.warn('[YOUPI] Baileys unavailable, falling back to Berry:', error.message);
+      }
+    }
+
+    const core = createPaymentApp(null, whatsappService ? { whatsappBerryService: whatsappService } : {});
     await new Promise((resolve, reject) => {
       core.rawServer.once('error', reject);
       core.rawServer.listen(gatewayEnv.YOUPI_GATEWAY_API_PORT, '127.0.0.1', resolve);
@@ -203,6 +218,7 @@ export function startYoupiGateway() {
       observerPort: observer ? observer.port : null,
       gmailPort: gmail ? gmail.port : null,
       close: async () => {
+        if (whatsappService) await whatsappService.close();
         if (gmail) await gmail.close();
         if (observer) await observer.close();
         if (admin) await admin.close();

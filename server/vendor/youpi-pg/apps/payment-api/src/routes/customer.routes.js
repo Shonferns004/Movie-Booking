@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { HttpServer } from '../server.js';
 import { normalizeEmail, normalizeMobile, isValidEmail, isValidMobile, isValidPassword, safeEqual } from '@youpi/common';
+import { buildTicketPdf } from '../services/ticket-pdf.js';
 
 /** Wrong guesses tolerated per issued OTP challenge. */
 const OTP_MAX_ATTEMPTS = 5;
@@ -659,5 +660,92 @@ export function registerCustomerRoutes(server, ctx) {
 
   server.get('/api/v1/customer/tickets/:id/stream', async (req, res) => {
     HttpServer.json(res, 404, { error: 'Feature not available' });
+  });
+
+  // POST /api/v1/internal/whatsapp/ticket
+  // Internal: the movie API calls this after a booking is confirmed. Builds the ticket
+  // PDF and sends it with the linked WhatsApp device (Baileys).
+  server.post('/api/v1/internal/whatsapp/ticket', async (req, res) => {
+    const expected = process.env.INTERNAL_CRON_SECRET || process.env.INTERNAL_SERVICE_TOKEN || '';
+    const presented = req.headers['x-internal-token']
+      || String(req.headers['authorization'] || '').replace(/^Bearer\s+/i, '');
+    if (!expected || !safeEqual(String(presented || ''), expected)) {
+      HttpServer.json(res, 401, { error: 'Unauthorized' });
+      return;
+    }
+
+    const body = await HttpServer.parseBody(req).catch(() => ({}));
+    const reference = String(body.bookingReference || body.reference || '').trim();
+    if (!reference) {
+      HttpServer.json(res, 400, { error: 'bookingReference is required' });
+      return;
+    }
+
+    try {
+      const booking = ctx.db.queryOne(
+        `SELECT b.*, s.starts_at, m.title AS movie_title, m.language, m.certification,
+                t.name AS theatre_name, a.name AS auditorium_name
+           FROM public.bookings b
+           JOIN public.shows s ON s.id = b.show_id
+           JOIN public.movies m ON m.id = s.movie_id
+           JOIN public.auditoriums a ON a.id = s.auditorium_id
+           JOIN public.theatres t ON t.id = a.theatre_id
+          WHERE b.booking_reference = ?`,
+        [reference],
+      );
+      if (!booking) {
+        HttpServer.json(res, 404, { error: 'booking not found' });
+        return;
+      }
+      if (String(booking.status || '').toLowerCase() !== 'confirmed') {
+        HttpServer.json(res, 409, { error: `booking is ${booking.status}` });
+        return;
+      }
+
+      const seats = ctx.db.query(
+        'SELECT seat_label, category_name, price_minor FROM public.booking_seats WHERE booking_id = ? ORDER BY seat_label',
+        [booking.id],
+      );
+      const tickets = ctx.db.query(
+        `SELECT t.ticket_reference, bs.seat_label, bs.category_name
+           FROM public.tickets t
+           JOIN public.booking_seats bs ON bs.id = t.booking_seat_id
+          WHERE t.booking_id = ? ORDER BY bs.seat_label`,
+        [booking.id],
+      );
+      if (!tickets.length) {
+        HttpServer.json(res, 409, { error: 'booking has no issued tickets' });
+        return;
+      }
+
+      const mobile = String(body.mobile || booking.contact_mobile || '').trim();
+      if (!mobile) {
+        HttpServer.json(res, 422, { error: 'booking has no contact mobile' });
+        return;
+      }
+
+      const sender = ctx.whatsappBerryService;
+      if (!sender || typeof sender.sendDocument !== 'function') {
+        HttpServer.json(res, 501, { error: 'WhatsApp document sending is not available' });
+        return;
+      }
+
+      const pdf = await buildTicketPdf({ booking, seats, tickets });
+      const result = await sender.sendDocument(
+        mobile,
+        pdf,
+        `tickets-${booking.booking_reference}.pdf`,
+        `Your Konkani Samudai tickets for ${booking.movie_title || 'the show'} are attached. Booking ${booking.booking_reference}.`,
+      );
+
+      if (!result || result.delivered === false || result.success === false) {
+        HttpServer.json(res, 502, { success: false, error: result?.message || 'WhatsApp delivery failed' });
+        return;
+      }
+      HttpServer.json(res, 200, { success: true, id: result.id || null, status: result.status || 'CONNECTED' });
+    } catch (error) {
+      console.error('[ticket-whatsapp] failed:', error);
+      HttpServer.json(res, 500, { success: false, error: error.message });
+    }
   });
 }

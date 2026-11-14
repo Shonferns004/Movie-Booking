@@ -5,12 +5,12 @@ import { QRCodeSVG } from 'qrcode.react';
 import api, { assetUrl } from '../services/api.js';
 
 const COLORS = {
-  ink: '#0A2A31',
-  tide: '#123E47',
-  shell: '#EFEBE0',
-  kokum: '#C2305E',
-  mango: '#F4B63F',
-  deep: '#071E23',
+  ink: '#131315',
+  tide: '#1B1B1D',
+  shell: '#E5E1E4',
+  kokum: '#F5C542',
+  mango: '#F5C542',
+  deep: '#131315',
 };
 
 const FALLBACK_POSTER =
@@ -39,18 +39,18 @@ function statusLabel(status) {
 }
 
 function statusStyle(status) {
-  if (status === 'confirmed') return { background: '#C2305E', color: '#FFFFFF' };
-  if (status === 'pending') return { background: '#F4B63F', color: '#0A2A31' };
-  if (status === 'cancelled') return { background: '#5B3B43', color: '#EFEBE0' };
-  if (status === 'expired') return { background: '#123E47', color: '#EFEBE0' };
-  return { background: '#123E47', color: '#EFEBE0' };
+  if (status === 'confirmed') return { background: '#F5C542', color: '#FFFFFF' };
+  if (status === 'pending') return { background: '#F5C542', color: '#131315' };
+  if (status === 'cancelled') return { background: '#4A403C', color: '#E5E1E4' };
+  if (status === 'expired') return { background: '#1B1B1D', color: '#E5E1E4' };
+  return { background: '#1B1B1D', color: '#E5E1E4' };
 }
 
 function ticketStatusStyle(status) {
-  if (status === 'issued') return { color: '#C2305E' };
-  if (status === 'checked_in') return { color: '#287D63' };
-  if (status === 'cancelled') return { color: '#A82651' };
-  return { color: '#587075' };
+  if (status === 'issued') return { color: '#F5C542' };
+  if (status === 'checked_in') return { color: '#A9BAA5' };
+  if (status === 'cancelled') return { color: '#C49517' };
+  return { color: '#A9A29E' };
 }
 
 function MetaCell({ icon, label, value, tone = 'kokum' }) {
@@ -80,10 +80,10 @@ function TicketCard({ booking }) {
             onError={(e) => { if (e.currentTarget.src !== FALLBACK_POSTER) e.currentTarget.src = FALLBACK_POSTER; }}
             src={assetUrl(booking.thumbnail_url) || FALLBACK_POSTER}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#071E23] via-[#071E23]/30 to-transparent md:bg-gradient-to-r md:from-transparent md:via-[#071E23]/15 md:to-[#123E47]" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#131315] via-[#131315]/30 to-transparent md:bg-gradient-to-r md:from-transparent md:via-[#131315]/15 md:to-[#1B1B1D]" />
           <span className="absolute left-4 top-4 rounded-full px-3 py-1.5 text-[10px] font-bold tracking-[.14em]" style={statusStyle(status)}>{statusLabel(status)}</span>
           <div className="absolute bottom-4 left-4 right-4">
-            <span className="inline-flex rounded-lg px-3 py-2 text-xs font-semibold backdrop-blur-md" style={{ background: '#071E23D9', color: COLORS.shell }}>
+            <span className="inline-flex rounded-lg px-3 py-2 text-xs font-semibold backdrop-blur-md" style={{ background: '#131315D9', color: COLORS.shell }}>
               ◷ {show.date} · {show.time}
             </span>
           </div>
@@ -120,7 +120,7 @@ function TicketCard({ booking }) {
               </div>
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {seats.map((seat) => (
-                  <div key={seat.seat_label} className="flex min-w-0 items-center gap-3 rounded-2xl border border-dashed p-3" style={{ borderColor: `${COLORS.ink}2B`, background: '#E4DFD3' }}>
+                  <div key={seat.seat_label} className="flex min-w-0 items-center gap-3 rounded-2xl border border-dashed p-3" style={{ borderColor: `${COLORS.ink}2B`, background: '#D7D2CC' }}>
                     {seat.ticket_reference && (
                       <div className="shrink-0 rounded-lg bg-white p-1.5">
                         <QRCodeSVG value={seat.ticket_reference} size={64} />
@@ -147,12 +147,12 @@ function TicketCard({ booking }) {
             <p className="text-xs opacity-65">✓ Digital QR entry at the gate</p>
             <div className="flex flex-wrap gap-2">
               <Link className="kk-ticket-link rounded-xl border px-4 py-2.5 text-center text-xs font-bold" style={{ borderColor: `${COLORS.ink}40`, color: COLORS.ink }} to={`/booking/${booking.booking_reference}`}>Open gate pass ↗</Link>
-              <Link className="kk-ticket-primary rounded-xl px-4 py-2.5 text-center text-xs font-bold text-white" style={{ background: COLORS.kokum }} to={`/booking/${booking.booking_reference}`}>View tickets →</Link>
+              <Link className="kk-ticket-primary rounded-xl px-4 py-2.5 text-center text-xs font-bold text-[#131315]" style={{ background: COLORS.kokum }} to={`/booking/${booking.booking_reference}`}>View tickets →</Link>
             </div>
           </div>
         </div>
       </div>
-      <div className="kk-ticket-perf flex items-center justify-between gap-3 border-t-2 border-dashed px-5 py-3 text-[9px] font-bold uppercase tracking-[.2em]" style={{ borderColor: `${COLORS.ink}30`, background: '#E4DFD3', color: `${COLORS.ink}8A` }}>
+      <div className="kk-ticket-perf flex items-center justify-between gap-3 border-t-2 border-dashed px-5 py-3 text-[9px] font-bold uppercase tracking-[.2em]" style={{ borderColor: `${COLORS.ink}30`, background: '#D7D2CC', color: `${COLORS.ink}8A` }}>
         <span>Konkani Samudai · Member wallet</span>
         <span>Keep your QR ready ✦</span>
       </div>
@@ -223,7 +223,7 @@ export default function MyTickets() {
   ];
 
   if (!token) {
-    return <div className="min-h-screen bg-[#0A2A31] flex items-center justify-center text-[#EFEBE0]">Logging in...</div>;
+    return <Navigate to="/login" replace />;
   }
 
   return (
@@ -232,10 +232,10 @@ export default function MyTickets() {
         @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,900&family=Public+Sans:wght@400;500;600;700&display=swap');
         .kk-wallet{font-family:'Public Sans',system-ui,sans-serif}
         .kk-ticket-display{font-family:'Fraunces',Georgia,serif}
-        .kk-wallet-card{background:${COLORS.tide};border:1px solid rgba(239,235,224,.1);box-shadow:0 12px 36px rgba(0,0,0,.15)}
+        .kk-wallet-card{background:${COLORS.tide};border:1px solid rgba(229, 225, 228,.1);box-shadow:0 12px 36px rgba(0,0,0,.15)}
         .kk-ticket-card{background:${COLORS.shell};color:${COLORS.ink};box-shadow:0 20px 55px rgba(0,0,0,.22);transition:transform .25s ease,box-shadow .25s ease}
         .kk-ticket-card:hover{transform:translateY(-2px);box-shadow:0 26px 65px rgba(0,0,0,.28)}
-        .kk-ticket-meta{background:#E4DFD3}
+        .kk-ticket-meta{background:#D7D2CC}
         .kk-ticket-link,.kk-ticket-primary{transition:transform .2s ease,filter .2s ease}
         .kk-ticket-link:hover,.kk-ticket-primary:hover{transform:translateY(-1px);filter:brightness(1.05)}
         .kk-wallet-tab{transition:background .2s ease,color .2s ease,transform .2s ease}
@@ -263,7 +263,7 @@ export default function MyTickets() {
               </div>
             </div>
             <div className="flex items-center gap-2 rounded-full border px-3 py-2 text-xs" style={{ borderColor: `${COLORS.shell}24`, background: `${COLORS.tide}80`, color: `${COLORS.shell}C9` }}>
-              <span className="h-2 w-2 rounded-full" style={{ background: '#67C69A' }} />
+              <span className="h-2 w-2 rounded-full" style={{ background: '#BBCBB6' }} />
               Digital QR entry
             </div>
           </div>
@@ -313,7 +313,7 @@ export default function MyTickets() {
                   ? 'Try another filter to see your other Konkani Samudai bookings.'
                   : 'Book a show and your digital pass with individual gate QR codes will appear here.'}
               </p>
-              <Link to="/movies" className="mt-6 rounded-xl px-5 py-3 text-sm font-bold text-white" style={{ background: COLORS.kokum }}>Browse movies →</Link>
+              <Link to="/movies" className="mt-6 rounded-xl px-5 py-3 text-sm font-bold text-[#131315]" style={{ background: COLORS.kokum }}>Browse movies →</Link>
             </div>
           )}
 
