@@ -16,7 +16,9 @@ services:
     name: youpi-gateway
     runtime: node
     plan: free
-    region: singapore
+    # Keep this in the same region as your Neon project. The gateway database bridge
+    # is synchronous, so cross-region latency can stall health checks and cause 502s.
+    region: ohio
     rootDir: server
     buildCommand: npm ci && npm run build
     startCommand: npm run start:gateway

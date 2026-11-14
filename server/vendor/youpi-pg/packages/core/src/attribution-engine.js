@@ -263,9 +263,14 @@ export class AttributionEngine {
       // Invariant Check 2: Exact Amount Match (in integer paise)
       const isAmountMatch = currentSession.amountPaise === normalizedObs.amountPaise;
 
+      // The verification pipeline resolved this session by its unique amount and
+      // passed its id, so a payment that arrived while the session was QUEUED is
+      // valid. Only non-targeted observations fall back to the slot-time heuristic.
+      const isExplicitlyTargeted = Boolean(normalizedObs.rawPayload?.targetSessionId);
+
       // Invariant Check 3: Temporal Window (with 5-minute clock skew tolerance, strictly preventing hijacking of prior expired sessions)
       let isPriorExpiredSession = false;
-      if (currentSession.slotAcquiredAt && normalizedObs.observedAt < currentSession.slotAcquiredAt) {
+      if (!isExplicitlyTargeted && currentSession.slotAcquiredAt && normalizedObs.observedAt < currentSession.slotAcquiredAt) {
         const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
         const recentExpired = this.sessionRepo.findRecentlyExpiredOrFailed(
           normalizedObs.receivingAccountId,
@@ -274,9 +279,11 @@ export class AttributionEngine {
         isPriorExpiredSession = recentExpired.some(s => s.amountPaise === normalizedObs.amountPaise);
       }
 
-      const slotStart = currentSession.slotAcquiredAt
-        ? new Date(currentSession.slotAcquiredAt.getTime() - 300000)
-        : new Date(currentSession.createdAt.getTime() - 300000);
+      const slotStart = isExplicitlyTargeted
+        ? new Date(currentSession.createdAt.getTime() - 300000)
+        : (currentSession.slotAcquiredAt
+          ? new Date(currentSession.slotAcquiredAt.getTime() - 300000)
+          : new Date(currentSession.createdAt.getTime() - 300000));
 
       const isTimeValid = !isPriorExpiredSession && (normalizedObs.observedAt >= slotStart);
 

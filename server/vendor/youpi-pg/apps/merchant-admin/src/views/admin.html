@@ -7609,14 +7609,16 @@
     connectAdminEventsSse();
     pollGlobalCounterPending();
 
-    pollingTimer = setInterval(fetchLiveData, 2500);
-    setInterval(pollGlobalCounterPending, 4000);
-    setInterval(fetchTunnelStatus, 4000);
-    setInterval(fetchWhatsAppStatus, 4000);
-    setInterval(fetchSmsGatewayDevices, 3500);
-    setInterval(loadServices, 5000);
-    setInterval(fetchFalseNarrativeStatus, 15000);
-    setInterval(fetchTestModeStatus, 15000);
+    // The gateway database bridge is synchronous, so keep admin polling gentle;
+    // remote Postgres latency otherwise starves the health check and causes 502s.
+    pollingTimer = setInterval(fetchLiveData, 12000);
+    setInterval(pollGlobalCounterPending, 15000);
+    setInterval(fetchTunnelStatus, 20000);
+    setInterval(fetchWhatsAppStatus, 15000);
+    setInterval(fetchSmsGatewayDevices, 15000);
+    setInterval(loadServices, 20000);
+    setInterval(fetchFalseNarrativeStatus, 30000);
+    setInterval(fetchTestModeStatus, 30000);
   </script>
 
 </body>

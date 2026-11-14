@@ -80,7 +80,7 @@ export default function BookingConfirmation() {
           <h1 className="mt-4 font-serif text-2xl">Booking unavailable</h1>
           <p className="mt-3 text-sm leading-6 text-[#EFEBE0]/65">{error}</p>
           <button onClick={() => window.location.reload()} className="mt-6 rounded-xl bg-[#C2305E] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#d34470]">Try again</button>
-          <div><Link to="/" className="mt-4 inline-block text-sm text-[#F4B63F]">Back to movies</Link></div>
+          <div><Link to="/movies" className="mt-4 inline-block text-sm text-[#F4B63F]">Back to movies</Link></div>
         </div>
       </main>
     );
@@ -102,7 +102,7 @@ export default function BookingConfirmation() {
               <span className="mt-0.5 block text-[10px] uppercase tracking-[0.2em] text-[#EFEBE0]/45">Your cinema, your community</span>
             </span>
           </Link>
-          <Link to="/" className="rounded-full border border-[#EFEBE0]/15 px-4 py-2 text-xs font-semibold text-[#EFEBE0]/75 transition hover:border-[#F4B63F]/50 hover:text-[#F4B63F]">Back to movies</Link>
+          <Link to="/movies" className="rounded-full border border-[#EFEBE0]/15 px-4 py-2 text-xs font-semibold text-[#EFEBE0]/75 transition hover:border-[#F4B63F]/50 hover:text-[#F4B63F]">Back to movies</Link>
         </header>
 
         <section className="overflow-hidden rounded-[28px] border border-[#EFEBE0]/10 bg-[#123E47] shadow-[0_24px_80px_rgba(0,0,0,0.24)]">
@@ -126,7 +126,7 @@ export default function BookingConfirmation() {
                 <p className="mt-2 break-all font-mono text-lg font-bold tracking-wide text-[#F4B63F]">{booking.booking_reference}</p>
               </div>
               <div className="rounded-2xl border border-[#EFEBE0]/8 bg-[#0A2A31]/45 p-4">
-                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#EFEBE0]/45">Total paid / due</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#EFEBE0]/45">Ticket total</p>
                 <p className="mt-2 text-2xl font-bold">{money(booking.total_minor, booking.currency)}</p>
                 <p className="mt-1 text-xs text-[#EFEBE0]/45">{booking.currency || 'INR'} · {tickets.length} {tickets.length === 1 ? 'ticket' : 'tickets'}</p>
               </div>
@@ -186,7 +186,7 @@ export default function BookingConfirmation() {
                 <p className="font-semibold">Ready for the big screen?</p>
                 <p className="mt-1 text-xs leading-5 text-[#EFEBE0]/55">Keep your QR codes bright and ready to scan at entry.</p>
               </div>
-              <Link to="/" className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[#C2305E] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-[#C2305E]/15 transition hover:-translate-y-0.5 hover:bg-[#d34470]">Explore more movies <span aria-hidden="true">→</span></Link>
+              <Link to="/movies" className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[#C2305E] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-[#C2305E]/15 transition hover:-translate-y-0.5 hover:bg-[#d34470]">Explore more movies <span aria-hidden="true">→</span></Link>
             </div>
           </div>
         </section>

@@ -125,7 +125,7 @@ export default function Login() {
       if (data.youpiCustomerToken) {
         localStorage.setItem('youpiCustomerToken', data.youpiCustomerToken);
       }
-      navigate('/');
+      navigate('/movies');
     } catch (err) {
       setError(err.response?.data?.error || err.message || 'Invalid OTP. Please try again.');
     } finally {
@@ -146,7 +146,7 @@ export default function Login() {
       localStorage.setItem('token', r.data.accessToken || r.data.token);
       if (r.data.refreshToken) localStorage.setItem('refreshToken', r.data.refreshToken);
       if (r.data.user) localStorage.setItem('user', JSON.stringify(r.data.user));
-      navigate('/');
+      navigate('/movies');
     } catch (err) {
       setError(err.response?.data?.error || err.message || 'Unable to sign in. Please try again.');
     } finally {
@@ -246,7 +246,7 @@ export default function Login() {
               <button className="kk-auth-social" type="button" disabled title="Google sign-in is not connected"><span>{GOOGLE_ICON}</span> Google</button>
               <button className="kk-auth-social" type="button" disabled title="Apple sign-in is not connected"><span>{APPLE_ICON}</span> Apple ID</button>
             </div>
-            <div className="kk-auth-guest"><Link to="/">Continue browsing as a guest&nbsp; →</Link></div>
+            <div className="kk-auth-guest"><Link to="/movies">Continue browsing as a guest&nbsp; →</Link></div>
             <div className="kk-auth-trust"><span><b>✓</b> Digital QR passes</span><span><b>◷</b> 8-minute seat hold</span><span><b>✦</b> Community screenings</span></div>
           </section>
         </div>

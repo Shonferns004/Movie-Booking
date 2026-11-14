@@ -708,9 +708,10 @@ export class PaymentVerificationPipeline {
       return new Date(str);
     };
 
-    const sessionCreatedAt = session.slotAcquiredAt
-      ? parseSessionTime(session.slotAcquiredAt)
-      : parseSessionTime(session.createdAt);
+    // Use the order creation time, not the slot-acquisition time. A unique-amount
+    // payment can legitimately arrive while its session is still QUEUED; it must
+    // verify once the queue promotes that session.
+    const sessionCreatedAt = parseSessionTime(session.createdAt);
 
     if (receivedAt.getTime() < sessionCreatedAt.getTime() - 1000) {
       stage4 = {

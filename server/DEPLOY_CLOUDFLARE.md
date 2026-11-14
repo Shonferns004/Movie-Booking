@@ -201,6 +201,22 @@ browser / app ──► Worker (API) ──HTTPS──► youpi-gateway.onrender
 Without `YOUPI_API_URL` the API answers with
 `503 payment gateway is not configured on this deployment: set YOUPI_API_URL ...`.
 
+### Unique payment amounts
+
+Every YouPI order adds a **unique paise offset** (₹0.01–₹0.99) to the booking total
+before creating the gateway session, for example ₹200.47. The observer only sees the
+amount in the bank SMS, so this is what lets the gateway route a credit to the exact
+booking even when two users pay at once, a payment arrives before its queued session
+becomes active, or an unrelated transfer has the same rupee value.
+
+- `payments.amount_minor` stores the payable amount; `bookings.total_minor` remains the
+  ticket price. The difference is the verification offset (shown in checkout).
+- Offsets are unique among open orders and recent successes; abandoned orders release
+  their offset after 15 minutes.
+- If a credit matches a **QUEUED** session, the gateway answers `409` with
+  `retry: true` instead of rejecting it. The observer keeps the message pending and
+  retries for up to 15 minutes, when the queue promotes it.
+
 ## 8. Realtime (Neon Realtime → all apps)
 
 ```

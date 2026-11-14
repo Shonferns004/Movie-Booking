@@ -56,7 +56,7 @@ const pool = new Pool({
   connectionString: effectiveConnectionString,
   max: max || 10,
   idleTimeoutMillis: idleTimeoutMillis || 30000,
-  connectionTimeoutMillis: connectionTimeoutMillis || 15000,
+  connectionTimeoutMillis: Number(process.env.YOUPI_DB_CONNECT_TIMEOUT_MS || 8000),
   ssl: /supabase\.co|neon\.tech|amazonaws\.com/.test(effectiveConnectionString || '')
     ? { rejectUnauthorized: false }
     : undefined,

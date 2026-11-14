@@ -769,8 +769,10 @@ class _Footnote extends StatelessWidget {
           Text(
             'Every message is parsed for an amount and a bank reference. The gateway '
             'only accepts a credit when the reference is exactly 12 digits and the '
-            'amount matches a live checkout session — anything else is answered with '
-            'a rejection the log will show you.',
+            'amount matches a live checkout. Each checkout adds a unique paise value '
+            '(for example ₹200.07), so the exact amount identifies the booking even '
+            'when two people pay at once. Anything else is answered with a rejection '
+            'the log will show you.',
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ],

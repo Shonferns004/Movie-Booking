@@ -1,0 +1,19 @@
+{
+  "watch": [
+    "src",
+    "vendor/youpi-pg/apps",
+    "vendor/youpi-pg/packages",
+    ".env"
+  ],
+  "ext": "js,ts,json,html,css",
+  "ignore": [
+    "data/**",
+    "vendor/youpi-pg/data/**",
+    "vendor/youpi-pg/node_modules/**",
+    "node_modules/**",
+    "*.log"
+  ],
+  "delay": 500,
+  "signal": "SIGTERM",
+  "verbose": false
+}

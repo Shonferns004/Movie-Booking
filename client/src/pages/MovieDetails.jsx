@@ -295,7 +295,7 @@ export default function MovieDetails() {
         <p className="mt-3 max-w-md text-sm text-[#EFEBE0]/65">
           It may have been removed or the link may be incorrect.
         </p>
-        <Link to="/" className="mt-6 rounded-xl bg-[#C2305E] px-5 py-3 text-sm font-bold text-white">
+        <Link to="/movies" className="mt-6 rounded-xl bg-[#C2305E] px-5 py-3 text-sm font-bold text-white">
           Back to movies
         </Link>
       </div>
@@ -327,7 +327,7 @@ export default function MovieDetails() {
 
         <div className="relative mx-auto max-w-6xl px-4 pb-8 pt-6 sm:px-6">
           <Link
-            to="/"
+            to="/movies"
             className="inline-flex items-center gap-2 rounded-full border border-[#EFEBE0]/15 bg-[#0A2A31]/40 px-4 py-2 text-xs font-semibold text-[#EFEBE0]/75 backdrop-blur transition hover:border-[#F4B63F]/60 hover:text-[#F4B63F]"
           >
             <span aria-hidden="true">←</span> All movies
@@ -591,7 +591,7 @@ export default function MovieDetails() {
           <span className="kk-display text-base font-bold text-[#EFEBE0]">
             Konkani Samudai<span className="text-[#F4B63F]">.</span>
           </span>
-          <Link to="/" className="transition hover:text-[#F4B63F]">Back to all movies ↑</Link>
+          <Link to="/movies" className="transition hover:text-[#F4B63F]">Back to all movies ↑</Link>
         </div>
       </footer>
     </div>

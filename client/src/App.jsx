@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Routes, Route, Link, NavLink, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { gsap } from 'gsap';
 import Home from './pages/Home.jsx';
+import Community from './pages/Community.jsx';
 import MovieDetails from './pages/MovieDetails.jsx';
 import SeatSelection from './pages/SeatSelection.jsx';
 import Checkout from './pages/Checkout.jsx';
@@ -10,7 +11,8 @@ import MyTickets from './pages/MyTickets.jsx';
 import Login from './pages/Login.jsx';
 
 const NAV_LINKS = [
-  { to: '/', label: 'Movies', end: true, icon: 'movie' },
+  { to: '/', label: 'Community', end: true, icon: 'diversity_3' },
+  { to: '/movies', label: 'Movies', icon: 'movie' },
   { to: '/my-tickets', label: 'My Tickets', icon: 'confirmation_number' },
 ];
 
@@ -186,7 +188,8 @@ export default function App() {
       {!isAuthRoute && <Nav />}
       <main ref={pageRef} className="kk-body min-h-[65vh]">
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<Community />} />
+          <Route path="/movies" element={<Home />} />
           <Route path="/movies/:id" element={<MovieDetails />} />
           <Route path="/shows/:showId/seats" element={<SeatSelection />} />
           <Route path="/checkout" element={<Checkout />} />

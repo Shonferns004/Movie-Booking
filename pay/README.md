@@ -22,6 +22,13 @@ https://movie-booking-1-fl6i.onrender.com/youpi
 
 Do not append `/api` and do not use the gateway's internal `:6100` port.
 
+Every checkout gets a unique payable amount (₹200.47, ₹200.93, …). If a credit's exact
+amount does not belong to the currently active checkout yet — because another user is
+paying or the order was created a moment after the SMS — the gateway answers `409` with
+`retry: true`. The app leaves the message **pending** and retries for up to 15 minutes
+instead of marking it failed, so a queued or slightly early payment still gets matched
+when its session becomes active.
+
 ## Live updates
 
 The UI refreshes instantly when the API pushes a `payments` change over
@@ -48,9 +55,11 @@ the socket is open and **AUTO-REFRESH** while it is reconnecting.
 4. Turn the observer on and grant **SMS** + **notification** permissions.
 5. Set the app's battery usage to **Unrestricted** (Xiaomi/Oppo/Samsung especially) or
    Android will kill the receiver.
-6. **Settings → Send test observation**. A `400 NO_ACTIVE_SESSION` is expected when no
-   checkout is live: it proves the HMAC was accepted. `401`/`403` means pairing failed.
-   Start a checkout to see an accepted observation.
+6. **Settings → Send test observation**. A `409` with `retry: true`
+   (`NO_ACTIVE_SESSION`) is expected when no checkout is live: it proves the HMAC was
+   accepted. The live receiver keeps that message pending for up to 15 minutes and
+   matches it if a checkout appears. `401`/`403` means pairing failed. Start a checkout
+   to see an accepted observation immediately.
 
 ## Build
 

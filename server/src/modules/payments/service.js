@@ -139,11 +139,15 @@ export async function processPaymentEvent({ provider, providerEventId, eventType
     return { success: false };
   }
 
-  // update payment row
+  // Update only the payment row that belongs to this order. A booking can have an
+  // abandoned earlier order (with a different verification amount); marking that
+  // row verified would corrupt reconciliation.
+  const orderId = payload.orderId || payload.providerOrderId || null;
   await pool.query(
     `UPDATE payments SET status='verified', provider_payment_id=$1, verified_at=now(), updated_at=now()
-     WHERE booking_id=$2 AND status IN ('created','verified')`,
-    [payload.paymentId || payload.providerPaymentId || `pay_${randomToken(6)}`, booking.id]);
+     WHERE booking_id=$2 AND status IN ('created','verified')
+       AND ($3::text IS NULL OR provider_order_id = $3)`,
+    [payload.paymentId || payload.providerPaymentId || `pay_${randomToken(6)}`, booking.id, orderId]);
 
   try {
     await withTransaction(async (client) => {
@@ -230,8 +234,10 @@ async function allocatePayableMinor(client, baseMinor) {
   await client.query("SELECT pg_advisory_xact_lock(hashtext('youpi-payable-amount'))");
   const { rows } = await client.query(
     `SELECT amount_minor FROM payments
-     WHERE (status = 'created' AND created_at > now() - interval '15 minutes')
-        OR (status = 'verified' AND verified_at > now() - interval '15 minutes')`
+     WHERE (status = 'created' AND created_at > now() - ($1::int * interval '1 minute'))
+        OR (status = 'verified' AND verified_at > now() - ($1::int * interval '1 minute'))
+        OR (status IN ('failed', 'requires_refund') AND updated_at > now() - ($1::int * interval '1 minute'))`,
+    [VERIFICATION_AMOUNT_HOLD_MINUTES]
   );
   const used = new Set(rows.map((row) => Number(row.amount_minor)));
 
@@ -251,7 +257,8 @@ export async function createYoupiOrder({ bookingReference, customer, publicBase 
   const orderId = `order_${randomToken(8)}`;
 
   // Allocate the payable amount and reserve the local payment row atomically. The
-  // booking row lock makes a double-click reuse one order rather than two sessions.
+  // booking row lock and the allocator advisory lock keep concurrent orders from
+  // choosing the same amount.
   const { booking, payment, payableMinor, offsetMinor } = await withTransaction(async (client) => {
     const { rows } = await client.query('SELECT * FROM bookings WHERE booking_reference=$1 FOR UPDATE', [bookingReference]);
     if (!rows.length) throw notFound('booking not found');
@@ -423,7 +430,12 @@ export async function confirmYoupiPayment({ orderId, utr, amountPaise }) {
     if (status.status !== 'SUCCESS') {
       return { success: false, status: status.status };
     }
-    if (amountPaise && status.amountPaise && Number(status.amountPaise) !== Number(amountPaise)) {
+    // The gateway session amount is the unique payable amount stored on our row.
+    const expectedAmount = Number(payment.amount_minor);
+    if (status.amountPaise && Number(status.amountPaise) !== expectedAmount) {
+      throw badRequest('payment amount mismatch');
+    }
+    if (amountPaise && Number(amountPaise) !== expectedAmount) {
       throw badRequest('payment amount mismatch');
     }
   }

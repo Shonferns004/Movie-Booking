@@ -83,7 +83,10 @@ export class Database {
       // PostgreSQL mode: the real client lives in postgres-client.js.
       const client = new PostgresDatabase({
         connectionString,
-        schema: options.schema || process.env.YOUPI_DB_SCHEMA || DEFAULT_PG_SCHEMA
+        schema: options.schema || process.env.YOUPI_DB_SCHEMA || DEFAULT_PG_SCHEMA,
+        // The synchronous bridge blocks the gateway's event loop while the query runs.
+        // Keep it short so a slow/unreachable database cannot stall health checks.
+        timeoutMs: Number(process.env.YOUPI_DB_QUERY_TIMEOUT_MS || 8000)
       });
       // Expose the PostgreSQL client under the same surface the rest of the
       // package expects from a Database instance.

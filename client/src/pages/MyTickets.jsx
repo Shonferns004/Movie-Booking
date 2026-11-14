@@ -309,7 +309,7 @@ export default function MyTickets() {
                   ? 'Try another filter to see your other Konkani Samudai bookings.'
                   : 'Book a show and your digital pass with individual gate QR codes will appear here.'}
               </p>
-              <Link to="/" className="mt-6 rounded-xl px-5 py-3 text-sm font-bold text-white" style={{ background: COLORS.kokum }}>Browse movies →</Link>
+              <Link to="/movies" className="mt-6 rounded-xl px-5 py-3 text-sm font-bold text-white" style={{ background: COLORS.kokum }}>Browse movies →</Link>
             </div>
           )}
 

@@ -202,7 +202,7 @@ export default function Checkout() {
           </span>
           <h1 className="kk-display text-2xl font-semibold">No active seat hold</h1>
           <p className="mt-2 text-sm leading-6 text-[#EFEBE0]/65">Choose your seats first, then return here to complete your booking.</p>
-          <Link to="/" className="mt-6 inline-flex items-center justify-center rounded-full bg-[#C2305E] px-6 py-3 text-sm font-semibold text-[#EFEBE0] transition hover:bg-[#d34270]">
+          <Link to="/movies" className="mt-6 inline-flex items-center justify-center rounded-full bg-[#C2305E] px-6 py-3 text-sm font-semibold text-[#EFEBE0] transition hover:bg-[#d34270]">
             Browse movies
           </Link>
         </div>

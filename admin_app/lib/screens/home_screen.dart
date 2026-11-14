@@ -46,6 +46,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   int _heroIndex = 0;
   Timer? _heroTimer;
   String? _selectedShowId;
+  String _showFilter = 'upcoming';
+  bool _gridLayout = false;
 
   int _scannedCount = 0;
   bool _loading = true;
@@ -575,53 +577,38 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildHomeHeader(),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 6,
-                        height: 6,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFD96B43),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'SCREENINGS',
-                        style: TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF9E9890),
-                          letterSpacing: 1.4,
-                        ),
-                      ),
-                    ],
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFD96B43),
+                      shape: BoxShape.circle,
+                    ),
                   ),
-                  Text(
-                    '${_shows.length} showings scheduled',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontStyle: FontStyle.italic,
+                  const SizedBox(width: 8),
+                  const Text(
+                    'SCREENINGS',
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
                       color: Color(0xFF9E9890),
-                      fontWeight: FontWeight.w500,
+                      letterSpacing: 1.4,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
               _buildHeroCard(context),
-              const SizedBox(height: 16),
-              _buildHomeQuickActions(),
               const SizedBox(height: 20),
+              _buildHomeQuickActions(),
+              const SizedBox(height: 28),
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text(
-                    "TODAY'S GATHERINGS",
+                    'SHOWS',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
@@ -629,19 +616,26 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       letterSpacing: 1.4,
                     ),
                   ),
+                  const SizedBox(width: 8),
                   Text(
-                    '${_shows.length} showings scheduled',
+                    '${_filteredShows.length}',
                     style: const TextStyle(
                       fontSize: 11,
-                      fontStyle: FontStyle.italic,
-                      color: Color(0xFF9E9890),
-                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF52525A),
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
+                  const Spacer(),
+                  _buildLayoutToggle(),
                 ],
               ),
-              const SizedBox(height: 10),
-              ..._buildShowItems(context),
+              const SizedBox(height: 12),
+              _buildFilterPills(),
+              const SizedBox(height: 14),
+              if (_gridLayout)
+                _buildShowGrid(context)
+              else
+                ..._buildShowItems(context),
             ],
           ),
         ),
@@ -1154,19 +1148,311 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  List<Widget> _buildShowItems(BuildContext context) {
-    if (_shows.isEmpty) {
-      return [
-        const Padding(
-          padding: EdgeInsets.symmetric(vertical: 20),
+  DateTime? _showDate(dynamic raw) {
+    if (raw == null) return null;
+    return DateTime.tryParse(raw.toString())?.toLocal();
+  }
+
+  /// Cancelled, or already finished.
+  bool _isHistoryShow(dynamic show) {
+    final status = (show['status'] ?? '').toString().toLowerCase();
+    if (status == 'cancelled' || status == 'completed') return true;
+    final end = _showDate(show['ends_at']);
+    return end != null && end.isBefore(DateTime.now());
+  }
+
+  bool _isOngoingShow(dynamic show) {
+    if (_isHistoryShow(show)) return false;
+    final start = _showDate(show['starts_at']);
+    if (start == null) return false;
+    final end = _showDate(show['ends_at']);
+    final now = DateTime.now();
+    return !start.isAfter(now) && (end == null || end.isAfter(now));
+  }
+
+  bool _isUpcomingShow(dynamic show) {
+    if (_isHistoryShow(show) || _isOngoingShow(show)) return false;
+    final start = _showDate(show['starts_at']);
+    return start != null && start.isAfter(DateTime.now());
+  }
+
+  List<dynamic> get _filteredShows {
+    final predicate = switch (_showFilter) {
+      'ongoing' => _isOngoingShow,
+      'history' => _isHistoryShow,
+      _ => _isUpcomingShow,
+    };
+    final list = _shows.where(predicate).toList();
+    list.sort((a, b) {
+      final left = '${a['starts_at']}';
+      final right = '${b['starts_at']}';
+      return _showFilter == 'history'
+          ? right.compareTo(left)
+          : left.compareTo(right);
+    });
+    return list;
+  }
+
+  String get _emptyMessageForFilter {
+    switch (_showFilter) {
+      case 'ongoing':
+        return 'Nothing running right now.';
+      case 'history':
+        return 'No completed or cancelled shows yet.';
+      default:
+        return 'No upcoming shows scheduled.';
+    }
+  }
+
+  int _countFor(String filter) {
+    switch (filter) {
+      case 'ongoing':
+        return _shows.where(_isOngoingShow).length;
+      case 'history':
+        return _shows.where(_isHistoryShow).length;
+      default:
+        return _shows.where(_isUpcomingShow).length;
+    }
+  }
+
+  /// Grid-or-list switch, sits in the SHOWS header.
+  Widget _buildLayoutToggle() {
+    Widget button(IconData icon, bool grid) {
+      final active = _gridLayout == grid;
+      return GestureDetector(
+        onTap: () => setState(() => _gridLayout = grid),
+        child: Container(
+          margin: const EdgeInsets.only(left: 8),
+          padding: const EdgeInsets.all(7),
+          decoration: BoxDecoration(
+            color: active ? const Color(0xFFD96B43) : const Color(0xFF1A1A1E),
+            borderRadius: BorderRadius.circular(9),
+            border: Border.all(
+              color: active ? const Color(0xFFD96B43) : const Color(0xFF2F2F37),
+            ),
+          ),
+          child: Icon(
+            icon,
+            size: 15,
+            color: active ? Colors.white : const Color(0xFF9E9890),
+          ),
+        ),
+      );
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        button(Icons.grid_view_rounded, true),
+        button(Icons.view_list_rounded, false),
+      ],
+    );
+  }
+
+  /// Upcoming / Ongoing / History pills.
+  Widget _buildFilterPills() {
+    Widget chip(String key, String label, int count) {
+      final active = _showFilter == key;
+      return GestureDetector(
+        onTap: () => setState(() => _showFilter = key),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          margin: const EdgeInsets.only(right: 8),
+          decoration: BoxDecoration(
+            color: active ? const Color(0xFFD96B43) : const Color(0xFF1A1A1E),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: active ? const Color(0xFFD96B43) : const Color(0xFF2F2F37),
+            ),
+          ),
           child: Text(
-            'No programmes yet.',
-            style: TextStyle(color: Color(0xFF9E9890)),
+            '$label $count',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.3,
+              color: active ? Colors.white : const Color(0xFF9E9890),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          chip('upcoming', 'UPCOMING', _countFor('upcoming')),
+          chip('ongoing', 'ONGOING', _countFor('ongoing')),
+          chip('history', 'HISTORY', _countFor('history')),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildShowGrid(BuildContext context) {
+    if (_filteredShows.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        child: Text(
+          _emptyMessageForFilter,
+          style: const TextStyle(color: Color(0xFF9E9890)),
+        ),
+      );
+    }
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: EdgeInsets.zero,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: 14,
+        crossAxisSpacing: 14,
+        childAspectRatio: 0.62,
+      ),
+      itemCount: _filteredShows.length,
+      itemBuilder: (ctx, i) => _buildShowGridCard(_filteredShows[i]),
+    );
+  }
+
+  Widget _buildShowGridCard(dynamic s) {
+    final movie = _movies.firstWhere(
+      (m) => m['id'].toString() == s['movie_id']?.toString(),
+      orElse: () => <String, dynamic>{},
+    );
+    final title = _firstNonEmpty(
+      [s['movie_title'], movie['title']],
+      fallback: 'Untitled',
+    );
+    final thumb = _firstNonEmpty([
+      s['movie_thumbnail_url'],
+      movie['thumbnail_url'],
+    ]);
+    final theatre = _asText(s['theatre_name']);
+    final screen = _asText(s['auditorium_name']);
+    final venue = [theatre, screen].where((v) => v.isNotEmpty).join(' · ');
+    final time = _formatTime(s['starts_at']);
+    final dateSlash = _formatDateSlash(s['starts_at']);
+    final total = _asInt(s['seat_count']);
+    final occupied = (_asInt(s['booked_count']) + _asInt(s['held_count']))
+        .clamp(0, total)
+        .toInt();
+    final statusLabel = _showStatusLabel(s, occupied, total);
+    final badgeColor = _showStatusColor(s, occupied, total);
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: () async {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ShowDetailScreen(showId: s['id'], token: _token),
+          ),
+        );
+        if (mounted) await _refresh();
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A1A1E),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFF2F2F37)),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Container(
+                width: double.infinity,
+                color: const Color(0xFF161619),
+                child: thumb.isNotEmpty
+                    ? Image.network(
+                        thumb,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => const Icon(
+                          Icons.movie,
+                          color: Color(0xFF9E9890),
+                        ),
+                      )
+                    : const Icon(Icons.movie, color: Color(0xFF9E9890)),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFF5EFEB),
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  if (venue.isNotEmpty)
+                    Text(
+                      venue,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontStyle: FontStyle.italic,
+                        color: Color(0xFF9E9890),
+                      ),
+                    ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          [dateSlash, time].where((v) => v.isNotEmpty).join(' · '),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontFamily: 'monospace',
+                            fontSize: 9,
+                            color: Color(0xFF9E9890),
+                          ),
+                        ),
+                      ),
+                      if (statusLabel.isNotEmpty)
+                        Text(
+                          statusLabel,
+                          style: TextStyle(
+                            fontFamily: 'monospace',
+                            fontSize: 8,
+                            fontWeight: FontWeight.bold,
+                            color: badgeColor,
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildShowItems(BuildContext context) {
+    if (_filteredShows.isEmpty) {
+      return [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Text(
+            _emptyMessageForFilter,
+            style: const TextStyle(color: Color(0xFF9E9890)),
           ),
         ),
       ];
     }
-    return _shows.map((s) {
+    return _filteredShows.map((s) {
       final movie = _movies.firstWhere(
         (m) => m['id'].toString() == s['movie_id']?.toString(),
         orElse: () => <String, dynamic>{},
