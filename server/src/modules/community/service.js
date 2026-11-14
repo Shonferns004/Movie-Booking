@@ -42,6 +42,27 @@ export async function setMembershipAmount(amountMinor) {
   return plan;
 }
 
+/** Background artwork for event tickets, set from the admin gallery. */
+export async function getEventTicketSettings() {
+  const { rows } = await pool.query("SELECT value FROM community_settings WHERE key='event_ticket'");
+  return { backgroundUrl: rows[0]?.value?.backgroundUrl || '' };
+}
+
+export async function setEventTicketBackground(backgroundUrl) {
+  const url = String(backgroundUrl || '').trim();
+  if (url && !/^https?:\/\//i.test(url)) {
+    throw badRequest('background must be an http(s) image url');
+  }
+  const value = { backgroundUrl: url };
+  await pool.query(
+    `INSERT INTO community_settings (key, value, updated_at)
+     VALUES ('event_ticket', $1::jsonb, now())
+     ON CONFLICT (key) DO UPDATE SET value=$1::jsonb, updated_at=now()`,
+    [JSON.stringify(value)],
+  );
+  return value;
+}
+
 const asTiers = (value) => (Array.isArray(value) ? value : []);
 
 function eventRow(row) {
@@ -92,7 +113,7 @@ function memberRow(row) {
 /* ------------------------------------------------------------------ public */
 
 export async function getPublicPage() {
-  const [hero, events, notices, members, membership] = await Promise.all([
+  const [hero, events, notices, members, membership, eventTicket] = await Promise.all([
     pool.query(
       `SELECT id, url, caption FROM hero_images
         WHERE active = TRUE ORDER BY sort_order, created_at`,
@@ -107,6 +128,7 @@ export async function getPublicPage() {
     ),
     pool.query('SELECT count(*)::int AS n FROM community_members'),
     getMembershipPlan(),
+    getEventTicketSettings(),
   ]);
 
   return {
@@ -114,6 +136,7 @@ export async function getPublicPage() {
     events: events.rows.map(eventRow),
     notices: notices.rows.map(noticeRow),
     membership,
+    eventTicket,
     stats: {
       members: members.rows[0]?.n ?? 0,
       events: events.rows.length,
@@ -544,6 +567,9 @@ function ticketOrderRow(row) {
     id: row.id,
     eventId: row.event_id,
     eventTitle: row.event_title,
+    eventDate: row.event_date,
+    eventTime: row.event_time,
+    venue: row.venue,
     tierId: row.tier_id,
     tierName: row.tier_name,
     quantity: row.quantity,
@@ -627,13 +653,17 @@ export async function createTicketCheckout({ eventId, tierId, quantity, name, ph
 
   const { rows: saved } = await pool.query(
     `INSERT INTO community_ticket_orders
-       (event_id, event_title, tier_id, tier_name, quantity, amount_minor, base_amount_minor,
-        currency, buyer_name, phone, provider_order_id, provider_payment_id, status)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,'INR',$8,$9,$10,$11,'created')
+       (event_id, event_title, event_date, event_time, venue, tier_id, tier_name, quantity,
+        amount_minor, base_amount_minor, currency, buyer_name, phone,
+        provider_order_id, provider_payment_id, status)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'INR',$11,$12,$13,$14,'created')
      RETURNING *`,
     [
       event.id,
       event.title,
+      event.dateLabel,
+      event.timeLabel,
+      event.venue,
       String(tier.id || ''),
       tier.name || 'Entry',
       qty,

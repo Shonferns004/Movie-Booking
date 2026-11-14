@@ -89,7 +89,7 @@ export async function listMyTickets(userId) {
     `SELECT b.*, s.starts_at, s.ends_at,
             m.title, m.slug AS movie_slug, m.certification, m.duration_minutes, m.language, m.genre,
             (SELECT url FROM movie_media WHERE movie_id=m.id AND media_type='poster' ORDER BY display_order LIMIT 1) AS thumbnail_url,
-            a.name AS auditorium_name, t.name AS theatre_name,
+            a.name AS auditorium_name, t.name AS theatre_name, t.address AS theatre_address,
             COALESCE((
               SELECT json_agg(
                        json_build_object(

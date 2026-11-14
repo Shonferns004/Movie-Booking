@@ -16,6 +16,7 @@ class GalleryScreen extends StatefulWidget {
 
 class _GalleryScreenState extends State<GalleryScreen> {
   List<dynamic> _images = [];
+  String _backgroundUrl = '';
   bool _loading = true;
   bool _busy = false;
   String? _error;
@@ -33,10 +34,15 @@ class _GalleryScreenState extends State<GalleryScreen> {
       return;
     }
     try {
-      final list = await Api.getHeroImages(token);
+      final results = await Future.wait([
+        Api.getHeroImages(token),
+        Api.getEventTicketSettings(token),
+      ]);
+      final settings = results[1] as Map<String, dynamic>;
       if (!mounted) return;
       setState(() {
-        _images = list;
+        _images = results[0] as List<dynamic>;
+        _backgroundUrl = (settings['backgroundUrl'] ?? '').toString();
         _loading = false;
         _error = null;
       });
@@ -46,6 +52,98 @@ class _GalleryScreenState extends State<GalleryScreen> {
         _loading = false;
         _error = e.toString().replaceFirst('Exception: ', '');
       });
+    }
+  }
+
+  Future<void> _setBackground({bool fromDevice = false}) async {
+    final token = widget.token;
+    if (token == null || token.isEmpty) return;
+
+    String? url;
+    if (fromDevice) {
+      final picked = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 88);
+      if (picked == null) return;
+      setState(() => _busy = true);
+      try {
+        url = await Api.uploadCommunityImage(token, picked);
+      } catch (e) {
+        if (mounted) {
+          setState(() => _busy = false);
+          AppToast.show(
+            context,
+            e.toString().replaceFirst('Exception: ', ''),
+            type: AppToastType.error,
+          );
+        }
+        return;
+      }
+    } else {
+      final controller = TextEditingController(text: _backgroundUrl);
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: const Color(0xFF1A1A1E),
+          title: const Text('Event ticket background'),
+          content: TextField(
+            controller: controller,
+            decoration: const InputDecoration(labelText: 'Image URL'),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+            ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Save')),
+          ],
+        ),
+      );
+      if (ok != true) return;
+      url = controller.text.trim();
+      if (url.isEmpty) {
+        if (mounted) AppToast.show(context, 'Enter an image URL.', type: AppToastType.error);
+        return;
+      }
+      setState(() => _busy = true);
+    }
+
+    try {
+      await Api.updateEventTicketBackground(token, url!);
+      if (!mounted) return;
+      setState(() {
+        _backgroundUrl = url!;
+        _busy = false;
+      });
+      AppToast.show(context, 'Event ticket background updated.', type: AppToastType.success);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _busy = false);
+        AppToast.show(
+          context,
+          e.toString().replaceFirst('Exception: ', ''),
+          type: AppToastType.error,
+        );
+      }
+    }
+  }
+
+  Future<void> _clearBackground() async {
+    final token = widget.token;
+    if (token == null || token.isEmpty) return;
+    setState(() => _busy = true);
+    try {
+      await Api.updateEventTicketBackground(token, '');
+      if (!mounted) return;
+      setState(() {
+        _backgroundUrl = '';
+        _busy = false;
+      });
+      AppToast.show(context, 'Background removed.', type: AppToastType.success);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _busy = false);
+        AppToast.show(
+          context,
+          e.toString().replaceFirst('Exception: ', ''),
+          type: AppToastType.error,
+        );
+      }
     }
   }
 
@@ -131,6 +229,89 @@ class _GalleryScreenState extends State<GalleryScreen> {
     }
   }
 
+  Widget _backgroundCard() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 14, 16, 4),
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A1E),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF2A2A2E)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            height: 108,
+            width: double.infinity,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                if (_backgroundUrl.startsWith('http'))
+                  Image.network(_backgroundUrl, fit: BoxFit.cover)
+                else
+                  const ColoredBox(
+                    color: Color(0xFF2A2118),
+                    child: Center(
+                      child: Icon(
+                        Icons.confirmation_number_outlined,
+                        size: 32,
+                        color: Color(0xFFD96B43),
+                      ),
+                    ),
+                  ),
+                Container(color: Colors.black.withValues(alpha: 0.28)),
+                const Positioned(
+                  left: 12,
+                  bottom: 10,
+                  child: Text(
+                    'EVENT TICKET BACKGROUND',
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.2,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+            child: Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Used behind every purchased event pass.',
+                    style: TextStyle(fontSize: 10, color: Color(0xFF9E9890)),
+                  ),
+                ),
+                if (_backgroundUrl.isNotEmpty)
+                  IconButton(
+                    tooltip: 'Remove background',
+                    onPressed: _busy ? null : _clearBackground,
+                    icon: const Icon(Icons.close, size: 18),
+                    color: const Color(0xFF9E9890),
+                  ),
+                TextButton(
+                  onPressed: _busy ? null : () => _setBackground(),
+                  style: TextButton.styleFrom(foregroundColor: const Color(0xFFD96B43)),
+                  child: const Text('URL', style: TextStyle(fontSize: 11)),
+                ),
+                TextButton(
+                  onPressed: _busy ? null : () => _setBackground(fromDevice: true),
+                  style: TextButton.styleFrom(foregroundColor: const Color(0xFFD96B43)),
+                  child: const Text('Upload', style: TextStyle(fontSize: 11)),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -165,28 +346,32 @@ class _GalleryScreenState extends State<GalleryScreen> {
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: Color(0xFFD96B43)))
-          : _error != null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Text(_error!, style: const TextStyle(color: Color(0xFFE07A52))),
-                  ),
-                )
-              : _images.isEmpty
-                  ? const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(24),
-                        child: Text(
-                          'No hero images yet.\nAdd photos to replace the gradient hero.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: Color(0xFF9E9890)),
-                        ),
-                      ),
-                    )
-                  : RefreshIndicator(
-                      color: const Color(0xFFD96B43),
-                      onRefresh: _load,
-                      child: GridView.builder(
+          : Column(
+              children: [
+                _backgroundCard(),
+                Expanded(
+                  child: _error != null
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Text(_error!, style: const TextStyle(color: Color(0xFFE07A52))),
+                          ),
+                        )
+                      : _images.isEmpty
+                          ? const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(24),
+                                child: Text(
+                                  'No hero images yet.\nAdd photos to replace the gradient hero.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(color: Color(0xFF9E9890)),
+                                ),
+                              ),
+                            )
+                          : RefreshIndicator(
+                              color: const Color(0xFFD96B43),
+                              onRefresh: _load,
+                              child: GridView.builder(
                         padding: const EdgeInsets.fromLTRB(16, 16, 16, 140),
                         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 2,
@@ -231,6 +416,9 @@ class _GalleryScreenState extends State<GalleryScreen> {
                         },
                       ),
                     ),
+                  ),
+                ],
+              ),
     );
   }
 }

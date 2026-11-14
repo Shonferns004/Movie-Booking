@@ -1,20 +1,11 @@
-import { useMemo } from 'react';
+import StyledQr from './StyledQr.jsx';
 
 /**
  * Movie ticket in the black + red stub style: a wide cinema panel with the
- * show details and a perforated red stub carrying gate / row / seat, a barcode
- * and the ticket number. Used on My Tickets and in the print-to-PDF view.
+ * show details and a perforated red stub carrying gate / row / seat, the real
+ * gate QR code(s) and the ticket number. Used on My Tickets and in the
+ * print-to-PDF view.
  */
-
-function makeBars(value) {
-  const source = String(value || 'KONKANI').replace(/[^A-Z0-9-]/gi, '') || 'KONKANI';
-  let seed = 13;
-  return Array.from({ length: 46 }, (_, index) => {
-    const code = source.charCodeAt(index % source.length);
-    seed = (seed * 37 + code * 17 + index * 13) % 1009;
-    return 1 + (seed % 3);
-  });
-}
 
 function seatParts(seats) {
   const labels = seats.map((seat) => String(seat?.seat_label || '')).filter(Boolean);
@@ -37,13 +28,13 @@ export default function TicketArtwork({ booking }) {
 
   const seats = Array.isArray(booking?.seats) ? booking.seats : [];
   const { labels, rows, numbers } = seatParts(seats);
-  const gate = String(booking?.auditorium_name || '').match(/\d+/)?.[0] || '01';
+  const gate = String(String(booking?.auditorium_name || '').match(/\d+/)?.[0] || '01').padStart(2, '0');
   const ticketNumber = String(booking?.booking_reference || '').replace(/^BK-/, '');
   const venue = [booking?.theatre_name, booking?.auditorium_name].filter(Boolean).join(' · ') || 'Konkani Samudai';
   const status = String(booking?.status || '').toLowerCase();
   const cancelled = status === 'cancelled';
 
-  const bars = useMemo(() => makeBars(ticketNumber || booking?.id), [ticketNumber, booking?.id]);
+  const scanSeats = seats.filter((seat) => seat?.ticket_reference);
 
   return (
     <article
@@ -84,49 +75,52 @@ export default function TicketArtwork({ booking }) {
           </svg>
         </div>
 
-        <div className="relative">
-          <div className="flex items-start justify-between gap-3">
-            <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-[#F4B63F]">
-              Konkani Samudai · Movie pass
-            </p>
-            {cancelled && (
-              <span className="rounded-full bg-white/15 px-2.5 py-1 text-[8px] font-bold uppercase tracking-[0.14em] text-white/80">
-                Cancelled
-              </span>
-            )}
-          </div>
-
-          <h2 className="mt-3 line-clamp-3 font-['Bebas_Neue',Impact,'Arial_Narrow',sans-serif] text-[36px] font-normal uppercase leading-[0.94] tracking-[0.015em] sm:text-[46px]">
-            {booking?.title || 'Movie night'}
-          </h2>
-
-          <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-3">
-            <div>
-              <p className="text-[8px] font-bold uppercase tracking-[0.22em] text-white/45">{weekday}</p>
-              <p className="mt-0.5 text-[15px] font-semibold leading-none">{dayMonth}</p>
-            </div>
-            <span className="h-8 w-[2px] bg-[#C61D23]" aria-hidden="true" />
-            <div>
-              <p className="text-[8px] font-bold uppercase tracking-[0.22em] text-white/45">Start at</p>
-              <p className="mt-0.5 text-[15px] font-semibold leading-none">{time}</p>
-            </div>
-            <div>
-              <p className="text-[8px] font-bold uppercase tracking-[0.22em] text-white/45">Screen</p>
-              <p className="mt-0.5 max-w-[150px] truncate text-[15px] font-semibold leading-none">
-                {booking?.auditorium_name || 'Main'}
+        <div className="relative flex h-full flex-col justify-between gap-6">
+          <div>
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-[#F4B63F]">
+                Konkani Samudai · Movie pass
               </p>
+              {cancelled && (
+                <span className="rounded-full bg-white/15 px-2.5 py-1 text-[8px] font-bold uppercase tracking-[0.14em] text-white/80">
+                  Cancelled
+                </span>
+              )}
+            </div>
+
+            <h2 className="mt-3 line-clamp-3 font-['Bebas_Neue',Impact,'Arial_Narrow',sans-serif] text-[38px] font-normal uppercase leading-[0.94] tracking-[0.015em] sm:text-[54px]">
+              {booking?.title || 'Movie night'}
+            </h2>
+
+            <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-3">
+              <div>
+                <p className="text-[8px] font-bold uppercase tracking-[0.22em] text-white/45">{weekday}</p>
+                <p className="mt-0.5 text-[15px] font-semibold leading-none">{dayMonth}</p>
+              </div>
+              <span className="h-8 w-[2px] bg-[#C61D23]" aria-hidden="true" />
+              <div>
+                <p className="text-[8px] font-bold uppercase tracking-[0.22em] text-white/45">Start at</p>
+                <p className="mt-0.5 text-[15px] font-semibold leading-none">{time}</p>
+              </div>
+              <div>
+                <p className="text-[8px] font-bold uppercase tracking-[0.22em] text-white/45">Screen</p>
+                <p className="mt-0.5 max-w-[150px] truncate text-[15px] font-semibold leading-none">
+                  {booking?.auditorium_name || 'Main'}
+                </p>
+              </div>
             </div>
           </div>
 
-          <div className="mt-5 h-px bg-white/20" />
-
-          <p className="mt-3 text-[9px] font-bold uppercase tracking-[0.18em] text-white/70">{venue}</p>
-          {booking?.theatre_address && (
-            <p className="mt-1 line-clamp-1 text-[10px] text-white/40">{booking.theatre_address}</p>
-          )}
-          <p className="mt-2 line-clamp-1 text-[10px] text-white/55">
-            {labels.length ? labels.join(' · ') : 'Seats assigned at the counter'}
-          </p>
+          <div>
+            <div className="h-px bg-white/20" />
+            <p className="mt-3 text-[9px] font-bold uppercase tracking-[0.18em] text-white/70">{venue}</p>
+            {booking?.theatre_address && (
+              <p className="mt-1 line-clamp-1 text-[10px] text-white/40">{booking.theatre_address}</p>
+            )}
+            <p className="mt-2 line-clamp-1 text-[10px] text-white/55">
+              {labels.length ? labels.join(' · ') : 'Seats assigned at the counter'}
+            </p>
+          </div>
         </div>
       </div>
 
@@ -134,12 +128,12 @@ export default function TicketArtwork({ booking }) {
       <div className="relative border-t border-dashed border-white/25 bg-[#C61D23] px-5 py-5 sm:border-l sm:border-t-0 sm:px-6">
         <span
           aria-hidden="true"
-          className="absolute -top-2.5 right-6 hidden h-5 w-5 rounded-full sm:block"
+          className="absolute -left-2.5 -top-2.5 hidden h-5 w-5 rounded-full sm:block"
           style={{ background: 'var(--kk-ticket-bg)' }}
         />
         <span
           aria-hidden="true"
-          className="absolute -bottom-2.5 right-6 hidden h-5 w-5 rounded-full sm:block"
+          className="absolute -bottom-2.5 -left-2.5 hidden h-5 w-5 rounded-full sm:block"
           style={{ background: 'var(--kk-ticket-bg)' }}
         />
         <span
@@ -164,14 +158,26 @@ export default function TicketArtwork({ booking }) {
           <span className="text-[15px] font-semibold leading-none">{numbers.join(', ') || '—'}</span>
         </div>
 
-        <div className="mt-4 flex h-14 items-stretch gap-[2px] overflow-hidden" aria-hidden="true">
-          {bars.map((width, index) => (
-            <span key={index} className="h-full bg-white/95" style={{ width: `${width}px` }} />
-          ))}
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+          {scanSeats.length > 0 ? (
+            scanSeats.map((seat) => (
+              <div
+                key={`${seat.seat_label}-${seat.ticket_reference}`}
+                className="overflow-hidden rounded-lg"
+              >
+                <StyledQr
+                  value={seat.ticket_reference}
+                  size={scanSeats.length === 1 ? 128 : scanSeats.length === 2 ? 96 : 72}
+                  logo={false}
+                />
+              </div>
+            ))
+          ) : (
+            <div className="rounded-lg border border-dashed border-white/40 px-4 py-3 text-center text-[8px] font-bold uppercase tracking-[0.14em] text-white/70">
+              QR pending · open gate pass
+            </div>
+          )}
         </div>
-        <p className="mt-1.5 text-center font-mono text-[7px] tracking-[0.18em] text-white/70">
-          {`${ticketNumber.slice(0, 5)} ${ticketNumber.slice(5, 10)} ${ticketNumber.slice(10)}`.trim()}
-        </p>
 
         <p className="mt-3 flex items-center justify-between gap-2 text-[8px] font-bold uppercase tracking-[0.16em] text-white/75">
           <span>Ticket number</span>

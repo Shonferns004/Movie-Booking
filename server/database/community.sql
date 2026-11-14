@@ -83,6 +83,11 @@ CREATE TABLE IF NOT EXISTS community_ticket_orders (
 CREATE INDEX IF NOT EXISTS community_ticket_orders_status_idx
   ON community_ticket_orders (status, created_at DESC);
 
+-- Event passes need their own date/time/venue for the printed ticket.
+ALTER TABLE community_ticket_orders ADD COLUMN IF NOT EXISTS event_date TEXT;
+ALTER TABLE community_ticket_orders ADD COLUMN IF NOT EXISTS event_time TEXT;
+ALTER TABLE community_ticket_orders ADD COLUMN IF NOT EXISTS venue TEXT;
+
 -- Single membership price, editable from the admin app.
 CREATE TABLE IF NOT EXISTS community_settings (
   key TEXT PRIMARY KEY,
@@ -92,6 +97,11 @@ CREATE TABLE IF NOT EXISTS community_settings (
 
 INSERT INTO community_settings (key, value)
 VALUES ('membership', '{"label":"Annual membership","amountMinor":120000}'::jsonb)
+ON CONFLICT (key) DO NOTHING;
+
+-- Background artwork for event tickets (editable from the admin gallery).
+INSERT INTO community_settings (key, value)
+VALUES ('event_ticket', '{"backgroundUrl":""}'::jsonb)
 ON CONFLICT (key) DO NOTHING;
 
 -- YOUPI checkouts for memberships (separate from movie bookings and event passes).

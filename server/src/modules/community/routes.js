@@ -154,6 +154,52 @@ router.post('/events/checkout/:orderId/confirm', async (req, res, next) => {
   }
 });
 
+/* ------------------------------------------------------ ticket artwork */
+
+router.get('/admin/event-ticket', adminOnly, async (req, res, next) => {
+  try {
+    res.json({ settings: await community.getEventTicketSettings() });
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.patch('/admin/event-ticket', adminOnly, async (req, res, next) => {
+  try {
+    res.json({
+      settings: await community.setEventTicketBackground(req.body?.backgroundUrl),
+    });
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.post('/admin/upload', adminOnly, upload.single('file'), async (req, res, next) => {
+  try {
+    if (!req.file) {
+      res.status(400).json({ error: 'send an image file' });
+      return;
+    }
+    if (!isNeonStorageEnabled()) {
+      res.status(503).json({ error: 'Image storage is not configured (NEON_STORAGE_*)' });
+      return;
+    }
+    const safeName = String(req.file.originalname || 'image')
+      .toLowerCase()
+      .replace(/[^a-z0-9.]+/g, '-');
+    const key = `community/uploads/${Date.now()}-${safeName}`;
+    const url = await uploadObject(
+      key,
+      req.file.buffer,
+      req.file.mimetype || 'image/jpeg',
+      'public, max-age=31536000',
+    );
+    res.status(201).json({ url });
+  } catch (e) {
+    next(e);
+  }
+});
+
 /* ------------------------------------------------------------------- hero */
 
 router.get('/admin/hero', adminOnly, async (req, res, next) => {

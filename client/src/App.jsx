@@ -4,6 +4,7 @@ import { gsap } from 'gsap';
 import Home from './pages/Home.jsx';
 import Community from './pages/Community.jsx';
 import Gallery from './pages/Gallery.jsx';
+import EventTicket from './pages/EventTicket.jsx';
 import MovieDetails from './pages/MovieDetails.jsx';
 import SeatSelection from './pages/SeatSelection.jsx';
 import Checkout from './pages/Checkout.jsx';
@@ -306,6 +307,7 @@ export default function App() {
           <Route path="/" element={<Community />} />
           <Route path="/movies" element={<Home />} />
           <Route path="/gallery" element={<Gallery />} />
+          <Route path="/event-ticket/:orderId" element={<EventTicket />} />
           <Route path="/movies/:id" element={<MovieDetails />} />
           <Route path="/shows/:showId/seats" element={<SeatSelection />} />
           <Route path="/checkout" element={<Checkout />} />

@@ -1,0 +1,192 @@
+import { useEffect, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
+
+import api from '../services/api.js';
+import EventTicketArtwork from '../components/EventTicketArtwork.jsx';
+
+const WHATSAPP = '917506419340';
+
+export default function EventTicket() {
+  const { orderId } = useParams();
+  const [ticket, setTicket] = useState(null);
+  const [status, setStatus] = useState('');
+  const [backgroundUrl, setBackgroundUrl] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [printing, setPrinting] = useState(false);
+
+  useEffect(() => {
+    let stop = false;
+    api
+      .get('/community')
+      .then((response) => {
+        if (!stop) setBackgroundUrl(response.data?.eventTicket?.backgroundUrl || '');
+      })
+      .catch(() => {});
+    return () => {
+      stop = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let stop = false;
+    let timer;
+
+    const load = async () => {
+      try {
+        const response = await api.get(`/community/events/checkout/${orderId}`);
+        if (stop) return;
+        setTicket(response.data?.order || null);
+        setStatus(String(response.data?.status || ''));
+        setError('');
+        setLoading(false);
+        if (response.data?.status !== 'paid') {
+          timer = setTimeout(load, 3500);
+        }
+      } catch (e) {
+        if (stop) return;
+        setError(e?.response?.data?.error || 'We could not find this ticket.');
+        setLoading(false);
+      }
+    };
+
+    load();
+    return () => {
+      stop = true;
+      clearTimeout(timer);
+    };
+  }, [orderId]);
+
+  useEffect(() => {
+    if (!printing) return undefined;
+    const done = () => setPrinting(false);
+    window.addEventListener('afterprint', done);
+    const timer = setTimeout(() => window.print(), 150);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('afterprint', done);
+    };
+  }, [printing]);
+
+  const paid = status === 'paid';
+  const whatsappLink = ticket
+    ? `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(
+        `Event ticket: ${ticket.eventTitle}\nOrder: ${ticket.orderId}\n${ticket.quantity} × ${ticket.tierName}`,
+      )}`
+    : '#';
+
+  return (
+    <main className="min-h-screen bg-[#082328] px-4 pb-20 pt-24 text-[#F6F1E7] sm:px-6">
+      <style>{CSS}</style>
+
+      <div className="mx-auto max-w-[1000px]">
+        <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="flex items-center gap-3 text-[9px] font-bold uppercase tracking-[0.3em] text-[#F5B841]">
+              <span className="h-px w-8 bg-[#F5B841]/60" />
+              Your ticket
+            </p>
+            <h1 className="mt-3 font-['Fraunces',Georgia,serif] text-[32px] font-bold leading-none tracking-[-0.03em] sm:text-[42px]">
+              Event pass
+            </h1>
+          </div>
+          <Link
+            to="/"
+            className="rounded-full border border-[#F6F1E7]/20 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.12em] text-[#F6F1E7]/70 transition-colors hover:border-[#F5B841] hover:text-[#F5B841]"
+          >
+            Back to community
+          </Link>
+        </header>
+
+        {loading && (
+          <div className="rounded-[22px] border border-[#F6F1E7]/10 bg-[#0C3238]/70 p-10 text-center text-[12px] text-[#F6F1E7]/55">
+            Loading your ticket…
+          </div>
+        )}
+
+        {!loading && error && (
+          <div className="rounded-[22px] border border-[#F07882]/30 bg-[#F07882]/10 p-10 text-center">
+            <p className="text-[13px] text-[#F6F1E7]/70">{error}</p>
+            <Link
+              to="/"
+              className="mt-4 inline-flex rounded-full bg-[#F6F1E7] px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#082328]"
+            >
+              Back to community
+            </Link>
+          </div>
+        )}
+
+        {!loading && !error && !paid && (
+          <div className="rounded-[22px] border border-[#F5B841]/25 bg-[#0C3238]/70 p-10 text-center">
+            <span className="material-symbols-outlined text-[36px] text-[#F5B841]/70">hourglass_top</span>
+            <h2 className="mt-3 font-['Fraunces',Georgia,serif] text-[24px] font-bold">Confirming your payment</h2>
+            <p className="mx-auto mt-2 max-w-md text-[12px] leading-relaxed text-[#F6F1E7]/55">
+              This page refreshes automatically as soon as the committee’s gateway confirms the
+              payment.
+            </p>
+          </div>
+        )}
+
+        {!loading && !error && paid && ticket && (
+          <>
+            <EventTicketArtwork ticket={ticket} backgroundUrl={backgroundUrl} />
+
+            <div className="mt-4 flex flex-wrap items-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => setPrinting(true)}
+                className="inline-flex items-center gap-2 rounded-full bg-[#F5B841] px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#082328] transition-transform hover:-translate-y-0.5"
+              >
+                <span className="material-symbols-outlined text-[16px]">download</span>
+                Download PDF
+              </button>
+              <a
+                href={whatsappLink}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 rounded-full bg-[#7FCBA8] px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#082328] transition-transform hover:-translate-y-0.5"
+              >
+                <span className="material-symbols-outlined text-[16px]">chat</span>
+                Send details
+              </a>
+              <span className="ml-auto font-mono text-[10px] text-[#F6F1E7]/40">Order {ticket.orderId}</span>
+            </div>
+
+            <p className="mt-4 text-[10px] leading-relaxed text-[#F6F1E7]/40">
+              Show this pass at the counter. The QR encodes your order id for the committee.
+            </p>
+          </>
+        )}
+      </div>
+
+      {printing && ticket && (
+        <div className="kk-print-ticket">
+          <EventTicketArtwork ticket={ticket} backgroundUrl={backgroundUrl} />
+        </div>
+      )}
+    </main>
+  );
+}
+
+const CSS = `
+.kk-print-ticket { display: none; }
+@media print {
+  body { background: #fff !important; }
+  body * { visibility: hidden; }
+  .kk-print-ticket, .kk-print-ticket * { visibility: visible; }
+  .kk-print-ticket {
+    display: block;
+    position: fixed;
+    inset: 0;
+    padding: 12mm;
+    background: #fff;
+    --kk-ticket-bg: #fff;
+  }
+  .kk-print-ticket .event-ticket {
+    box-shadow: none;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  @page { size: A4 landscape; margin: 0; }
+}
+`;

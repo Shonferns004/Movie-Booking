@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import api from '../services/api.js';
@@ -695,6 +695,7 @@ function Footer() {
 /* --------------------------------------------------------- ticket modal */
 
 function TicketModal({ event, onClose }) {
+  const navigate = useNavigate();
   const account = useMemo(() => {
     try {
       return JSON.parse(localStorage.getItem('user') || 'null');
@@ -746,8 +747,9 @@ function TicketModal({ event, onClose }) {
         /* keep the paid state: status polling already saw SUCCESS */
       }
       setStage('paid');
+      navigate(`/event-ticket/${orderId}`);
     },
-    [stopPolling],
+    [navigate, stopPolling],
   );
 
   const startPolling = useCallback(
@@ -911,11 +913,21 @@ function TicketModal({ event, onClose }) {
               Show this order at the counter. Send the committee a copy on WhatsApp and they will
               keep your passes ready.
             </p>
+            {order?.orderId && (
+              <Link
+                to={`/event-ticket/${order.orderId}`}
+                onClick={onClose}
+                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#F5B841] px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[#082328]"
+              >
+                <span className="material-symbols-outlined text-[15px]">confirmation_number</span>
+                View your ticket
+              </Link>
+            )}
             <a
               href={whatsappLink}
               target="_blank"
               rel="noreferrer"
-              className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#7FCBA8] px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[#082328]"
+              className="mt-2 inline-flex items-center gap-2 rounded-full bg-[#7FCBA8] px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[#082328]"
             >
               <span className="material-symbols-outlined text-[15px]">chat</span>
               Send details

@@ -396,6 +396,47 @@ class Api {
     if (res.statusCode != 200) throw Exception('Failed to delete image: ${res.body}');
   }
 
+  static Future<Map<String, dynamic>> getEventTicketSettings(String token) async {
+    final data = await _getMap(
+      token,
+      '/community/admin/event-ticket',
+      'Failed to load event ticket settings',
+    );
+    return (data['settings'] as Map?)?.cast<String, dynamic>() ?? const {};
+  }
+
+  static Future<void> updateEventTicketBackground(String token, String url) async {
+    final res = await _request(
+      token,
+      'PATCH',
+      '/community/admin/event-ticket',
+      body: {'backgroundUrl': url},
+    );
+    if (res.statusCode != 200) {
+      throw Exception('Failed to update ticket background: ${res.body}');
+    }
+  }
+
+  /** Uploads an image and returns its public URL (no gallery row is created). */
+  static Future<String> uploadCommunityImage(String token, XFile file) async {
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$baseUrl/community/admin/upload'),
+    );
+    request.headers['Authorization'] = 'Bearer $token';
+    request.files.add(await http.MultipartFile.fromPath(
+      'file',
+      file.path,
+      filename: file.name.isEmpty ? 'image.jpg' : file.name,
+      contentType: _mediaTypeFor(file),
+    ));
+    final res = await request.send();
+    final body = await res.stream.bytesToString();
+    if (res.statusCode != 201) throw Exception('Upload failed: $body');
+    final data = jsonDecode(body);
+    return (data['url'] ?? '').toString();
+  }
+
   static Future<List<dynamic>> getCommunityMembers(String token) async {
     final data = await _getMap(token, '/community/admin/members', 'Failed to load members');
     return (data['members'] as List?) ?? const [];
