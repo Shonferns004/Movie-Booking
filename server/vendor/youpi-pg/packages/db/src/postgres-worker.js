@@ -40,12 +40,24 @@ const {
   resSab
 } = workerData || {};
 
+/**
+ * Neon's PgBouncer endpoint rejects the `search_path` startup parameter
+ * (Postgres error 08P01: "unsupported startup parameter in options: search_path").
+ * The gateway isolates its tables in a dedicated schema, so it needs the direct
+ * (unpooled) endpoint, which supports that parameter.
+ */
+let effectiveConnectionString = connectionString;
+if (typeof effectiveConnectionString === 'string' && /-pooler\./.test(effectiveConnectionString)) {
+  effectiveConnectionString = effectiveConnectionString.replace(/-pooler\./i, '.');
+  console.warn('[db:postgres] Neon pooler does not support search_path; using the direct endpoint.');
+}
+
 const pool = new Pool({
-  connectionString,
+  connectionString: effectiveConnectionString,
   max: max || 10,
   idleTimeoutMillis: idleTimeoutMillis || 30000,
   connectionTimeoutMillis: connectionTimeoutMillis || 15000,
-  ssl: /supabase\.co|neon\.tech|amazonaws\.com/.test(connectionString || '')
+  ssl: /supabase\.co|neon\.tech|amazonaws\.com/.test(effectiveConnectionString || '')
     ? { rejectUnauthorized: false }
     : undefined,
   // Keep the gateway tables in their own schema so they never collide with the
