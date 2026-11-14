@@ -5,6 +5,19 @@ const IV_LENGTH = 12; // 96-bit IV recommended for GCM
 const AUTH_TAG_LENGTH = 16; // 128-bit auth tag
 
 /**
+ * Accepts the documented 64-hex-character key, and also hashes any other non-empty
+ * secret (Render's `generateValue` produces a base64-ish string) into a 32-byte key.
+ * Previously a non-hex value threw on every OTP write, which surfaced as a 500.
+ * @param {string} masterKey
+ * @returns {Buffer}
+ */
+function masterKeyBuffer(masterKey) {
+  const value = String(masterKey || '');
+  if (/^[0-9a-f]{64}$/i.test(value)) return Buffer.from(value, 'hex');
+  return crypto.createHash('sha256').update(value).digest();
+}
+
+/**
  * Encrypts plaintext string using AES-256-GCM.
  * Output format: iv_hex:authTag_hex:cipher_hex
  * @param {string} plaintext
@@ -12,7 +25,7 @@ const AUTH_TAG_LENGTH = 16; // 128-bit auth tag
  * @returns {string}
  */
 export function encrypt(plaintext, masterKeyHex) {
-  const key = Buffer.from(masterKeyHex, 'hex');
+  const key = masterKeyBuffer(masterKeyHex);
   if (key.length !== 32) {
     throw new Error('Master key must be a 32-byte (64 hex characters) string.');
   }
@@ -37,7 +50,7 @@ export function encrypt(plaintext, masterKeyHex) {
  * @returns {string}
  */
 export function decrypt(encryptedPayload, masterKeyHex) {
-  const key = Buffer.from(masterKeyHex, 'hex');
+  const key = masterKeyBuffer(masterKeyHex);
   if (key.length !== 32) {
     throw new Error('Master key must be a 32-byte (64 hex characters) string.');
   }
