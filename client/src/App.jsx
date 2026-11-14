@@ -199,7 +199,7 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
-      {!isAuthRoute && <SiteFooter />}
+      {!isAuthRoute && pathname !== '/' && <SiteFooter />}
     </div>
   );
 }

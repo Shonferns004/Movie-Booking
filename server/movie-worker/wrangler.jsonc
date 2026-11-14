@@ -113,7 +113,7 @@
 		// Public frontend origin: used for CORS, checkout return links and embeds.
 		// localhost variants are always allowed by app-core.js.
 		"APP_BASE_URL": "https://konkani-samudai.vercel.app",
-		"YOUPI_FRAME_ANCESTORS": "https://konkani-samudai.vercel.app,http://localhost:5175",
+		"YOUPI_FRAME_ANCESTORS": "https://konkani-samudai.vercel.app,http://localhost:5175,http://localhost:5176,http://localhost:5177,http://localhost:5178,http://127.0.0.1:5175",
 		// Used by the status page's Redeploy button (the API token itself is a secret).
 		"CF_ACCOUNT_ID": "49f60c9c6c70f933b5e462499f16d5bc",
 		"CF_SCRIPT_NAME": "movie-worker"

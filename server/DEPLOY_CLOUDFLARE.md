@@ -233,6 +233,7 @@ subscription and POSTs change events to the Worker, whose Durable Object
 | `catalog` | movies, theatres, auditoriums, shows | admin app, web client |
 | `seats` | seat holds, bookings, per-seat status | web seat picker, admin app |
 | `payments` | payments, tickets | pay/observer app, admin app |
+| `community` | hero images, community events, notices, members | web landing page |
 
 Events carry no rows — clients refetch the endpoints they already use. `WSS
 /api/v1/realtime` is the socket; `POST /api/v1/internal/realtime` is the relay's private

@@ -1,437 +1,537 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { QRCodeSVG } from 'qrcode.react';
+import api from '../services/api.js';
+import { useRealtime } from '../services/realtime.js';
+
+gsap.registerPlugin(ScrollTrigger);
 
 /**
- * Community landing page.
+ * Konkani Samudai - community landing page.
  *
- * This is the public face of Konkani Samudai: events, notices, the archive and a way to
- * join. Event ticketing happens over UPI (QR + VPA), with the buyer sending the details
- * on WhatsApp so the committee can issue a pass - no gateway product needed for
- * community events.
+ * Content is served by `GET /api/v1/community` (events, notices, hero images, member
+ * count) and edited from the admin app. The constants below are only a fallback for
+ * when the API is unreachable.
  */
 
 const UPI_ID = '7506419340-1@naviaxis';
 const WHATSAPP = '917506419340';
 
-const UPCOMING = [
+const FALLBACK_EVENTS = [
   {
-    id: 'food-festival',
+    id: 'fallback-food',
     title: 'Konkani Food Festival',
+    kicker: '22 NOV',
     date: 'Sat, 22 Nov 2026',
     time: '11:00 AM - 9:00 PM',
     venue: 'Samudai Grounds, Margao',
-    blurb: 'Forty home kitchens, one afternoon. Solkadhi, bangda fry, patoleo and the annual sorpotel contest.',
+    blurb: 'Forty home kitchens, one afternoon. Solkath, bangda fry, patoleo and the sorpotel contest.',
     tags: ['Food', 'Family'],
-    accent: '#F4B63F',
+    accent: '#F5B841',
     tiers: [
-      { id: 'general', name: 'General entry', price: 299, note: 'All stalls, entry from 11 AM' },
-      { id: 'patron', name: 'Patron pass', price: 999, note: 'Entry + tasting table + reserved seating' },
-    ],
-  },
-  {
-    id: 'fugdi-night',
-    title: 'Fugdi & Dhol Night',
-    date: 'Sat, 29 Nov 2026',
-    time: '7:30 PM onwards',
-    venue: 'Samudai Hall, Margao',
-    blurb: 'Live dhol, fugdi circles and a Konkani folk set from the youth wing. Dinner included.',
-    tags: ['Music', 'Dance'],
-    accent: '#C2305E',
-    tiers: [
-      { id: 'general', name: 'General entry', price: 499, note: 'Standing + dinner' },
-      { id: 'table', name: 'Table of 4', price: 1799, note: 'Reserved table, front section' },
-    ],
-  },
-  {
-    id: 'christmas-market',
-    title: 'Christmas Mangalore Market',
-    date: 'Sun, 21 Dec 2026',
-    time: '10:00 AM - 6:00 PM',
-    venue: 'Church Square, Margao',
-    blurb: 'Kuswar, hand-painted baubles, and the children\'s choir at 5 PM.',
-    tags: ['Market', 'Festive'],
-    accent: '#78C9A6',
-    tiers: [
-      { id: 'general', name: 'Entry', price: 199, note: 'Children under 10 free' },
+      { id: 'general', name: 'General entry', price: 299, note: 'All stalls' },
+      { id: 'patron', name: 'Patron pass', price: 999, note: 'Entry + tasting table' },
     ],
   },
 ];
 
-const PAST = [
-  { year: '2026', title: 'Monti Fest', detail: '420 families, 1,100 plates of shevyo.' },
-  { year: '2026', title: 'Konkani Film Week', detail: '12 films, 6 directors, 3 sold-out evenings.' },
-  { year: '2025', title: 'Utorda Beach Clean-up', detail: '120 volunteers, 800 kg of waste.' },
-  { year: '2025', title: 'First Cookbook Launch', detail: '68 family recipes collected and printed.' },
-];
-
-const NOTICES = [
+const FALLBACK_NOTICES = [
   {
-    date: '12 Nov 2026',
+    id: 'fallback-notice',
     title: 'Membership renewals open',
-    body: 'Renew before 31 December to keep your family voting rights and event discounts.',
+    body: 'Renew before 31 December to keep your voting rights and event discounts.',
     tag: 'Membership',
-  },
-  {
-    date: '08 Nov 2026',
-    title: 'Scholarship applications',
-    body: 'Open to members\' children in classes 10-12. Last date 30 November 2026.',
-    tag: 'Education',
-  },
-  {
-    date: '02 Nov 2026',
-    title: 'Konkani classes moved',
-    body: 'Sunday classes now start at 9:30 AM in the annexe room instead of 8:00 AM.',
-    tag: 'Classes',
-  },
-  {
-    date: '28 Oct 2026',
-    title: 'AGM agenda published',
-    body: 'Accounts for 2025-26, the events calendar and the new committee list are on the noticeboard.',
-    tag: 'Committee',
+    dateLabel: '12 Nov 2026',
   },
 ];
 
-const STATS = [
-  { value: '1,200+', label: 'member families' },
-  { value: '24', label: 'events a year' },
-  { value: '3', label: 'generations' },
+const MARQUEE = [
+  'Monti Fest',
+  'Fugdi nights',
+  'Tiatr season',
+  'Sunday Konkani',
+  'Sorpotel contest',
+  'Youth wing',
+  'Film week',
+  'Beach clean-up',
 ];
 
-const NAV = [
-  { href: '#events', label: 'Events' },
-  { href: '#notices', label: 'Notices' },
-  { href: '#archive', label: 'Our story' },
-  { href: '#join', label: 'Join' },
-];
+const rupees = (value) => `₹${Number(value).toLocaleString('en-IN')}`;
 
-function formatRupees(value) {
-  return `₹${Number(value).toLocaleString('en-IN')}`;
+/** API event -> view model used by the cards. */
+function viewEvent(event) {
+  const tiers = Array.isArray(event.tiers) && event.tiers.length
+    ? event.tiers
+    : [{ id: 'general', name: 'Entry', price: 199, note: '' }];
+  return {
+    id: event.id,
+    title: event.title,
+    kicker: event.kicker || 'EVENT',
+    date: event.dateLabel || event.date || '',
+    time: event.timeLabel || event.time || '',
+    venue: event.venue || '',
+    blurb: event.blurb || '',
+    tags: Array.isArray(event.tags) ? event.tags : [],
+    accent: event.accent || '#F5B841',
+    tiers,
+  };
 }
 
 export default function Community() {
+  const [page, setPage] = useState(null);
+  const [offline, setOffline] = useState(false);
   const [ticketEvent, setTicketEvent] = useState(null);
-  const [scrolled, setScrolled] = useState(false);
+  const [joinOpen, setJoinOpen] = useState(false);
+  const root = useRef(null);
 
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 24);
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+  const load = useCallback(() => {
+    api
+      .get('/community')
+      .then((response) => {
+        setPage(response.data);
+        setOffline(false);
+      })
+      .catch(() => {
+        setOffline(true);
+        setPage({ hero: [], events: [], notices: [], stats: { members: 0 } });
+      });
   }, []);
 
   useEffect(() => {
-    if (!ticketEvent) return undefined;
+    load();
+  }, [load]);
+
+  // Neon Realtime: the relay forwards a "community" topic whenever events, notices,
+  // hero images or members change, and the page refetches. No polling.
+  useRealtime('community', load);
+
+  const modalOpen = Boolean(ticketEvent) || joinOpen;
+  useEffect(() => {
+    if (!modalOpen) return undefined;
     const onKey = (event) => {
-      if (event.key === 'Escape') setTicketEvent(null);
+      if (event.key === 'Escape') {
+        setTicketEvent(null);
+        setJoinOpen(false);
+      }
     };
+    document.body.style.overflow = 'hidden';
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [ticketEvent]);
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [modalOpen]);
+
+  const events = useMemo(() => {
+    const list = page?.events?.length ? page.events.map(viewEvent) : offline ? FALLBACK_EVENTS : [];
+    return list;
+  }, [page, offline]);
+
+  const notices = page?.notices?.length ? page.notices : offline ? FALLBACK_NOTICES : [];
+  const hero = page?.hero ?? [];
+
+  // Motion
+  useEffect(() => {
+    if (!root.current) return undefined;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
+
+    const ctx = gsap.context(() => {
+      gsap
+        .timeline({ defaults: { ease: 'power3.out' } })
+        .from('.js-hero-kicker', { y: 12, duration: 0.45 })
+        .from('.js-hero-line', { y: 26, duration: 0.7, stagger: 0.07 }, '-=0.25')
+        .from('.js-hero-copy', { y: 14, duration: 0.45 }, '-=0.35')
+        .from('.js-hero-cta', { y: 12, duration: 0.35, stagger: 0.06 }, '-=0.25')
+        .from('.js-hero-stat', { y: 10, duration: 0.35, stagger: 0.05 }, '-=0.2')
+        .from('.js-stub', { y: 30, x: 24, duration: 0.7, stagger: 0.1 }, '-=0.6')
+        .from('.js-seal', { scale: 0.65, duration: 0.5, ease: 'back.out(1.7)' }, '-=0.4');
+
+      gsap.utils.toArray('.js-reveal').forEach((element) => {
+        gsap.from(element, {
+          y: 26,
+          opacity: 0,
+          duration: 0.7,
+          ease: 'power2.out',
+          scrollTrigger: { trigger: element, start: 'top 88%', once: true },
+        });
+      });
+
+      gsap.to('.js-marquee-track', { xPercent: -50, duration: 26, ease: 'none', repeat: -1 });
+    }, root);
+
+    return () => ctx.revert();
+  }, []);
 
   return (
-    <div className="min-h-screen bg-[#0A2A31] text-[#EFEBE0]">
-      <SubNav scrolled={scrolled} />
+    <div ref={root} className="community-page relative min-h-screen overflow-hidden bg-[#082328] text-[#F6F1E7]">
+      <style>{PAGE_CSS}</style>
+      <Grain />
 
-      <Hero />
-      <Events onPick={setTicketEvent} />
-      <Notices />
+      <Hero images={hero} event={events[0]} onPick={setTicketEvent} stats={page?.stats} />
+      <Marquee />
+      <Events events={events} onPick={setTicketEvent} />
+      <Notices notices={notices} />
       <Archive />
-      <Join />
+      <Join onBecomeMember={() => setJoinOpen(true)} />
       <Footer />
 
-      {ticketEvent && (
-        <TicketModal event={ticketEvent} onClose={() => setTicketEvent(null)} />
-      )}
+      {ticketEvent && <TicketModal event={ticketEvent} onClose={() => setTicketEvent(null)} />}
+      {joinOpen && <MembershipModal onClose={() => setJoinOpen(false)} />}
     </div>
   );
 }
 
-/* ------------------------------------------------------------------ nav */
+/* ------------------------------------------------------------------ texture */
 
-function SubNav({ scrolled }) {
+function Grain() {
   return (
     <div
-      className={`sticky top-[72px] z-40 border-b transition-colors duration-300 ${
-        scrolled
-          ? 'border-[#EFEBE0]/10 bg-[#071E23]/95 backdrop-blur-xl'
-          : 'border-transparent bg-transparent'
-      }`}
-    >
-      <div className="mx-auto flex max-w-7xl items-center gap-1 overflow-x-auto px-4 py-2 sm:px-6 lg:px-8">
-        {NAV.map((item) => (
-          <a
-            key={item.href}
-            href={item.href}
-            className="whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold text-[#EFEBE0]/70 transition-colors hover:bg-[#EFEBE0]/10 hover:text-[#EFEBE0]"
-          >
-            {item.label}
-          </a>
-        ))}
-        <span className="ml-auto hidden sm:block">
-          <Link
-            to="/movies"
-            className="inline-flex items-center gap-2 rounded-full bg-[#F4B63F] px-4 py-2 text-xs font-bold text-[#0A2A31] transition-transform hover:-translate-y-0.5"
-          >
-            <span className="material-symbols-outlined text-[16px]">movie</span>
-            Book movie tickets
-          </Link>
-        </span>
-      </div>
-    </div>
+      aria-hidden="true"
+      className="pointer-events-none fixed inset-0 z-[1] opacity-[0.16]"
+      style={{ backgroundImage: 'var(--grain)', mixBlendMode: 'soft-light' }}
+    />
   );
 }
 
 /* ----------------------------------------------------------------- hero */
 
-function Hero() {
-  return (
-    <section className="relative overflow-hidden">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            'radial-gradient(900px 420px at 15% -10%, rgba(244,182,63,0.22), transparent 60%), radial-gradient(700px 420px at 85% 10%, rgba(194,48,94,0.28), transparent 65%)',
-        }}
-      />
-      <div className="relative mx-auto grid max-w-7xl gap-10 px-4 pb-16 pt-14 sm:px-6 lg:grid-cols-[1.15fr_0.85fr] lg:px-8 lg:pb-24 lg:pt-20">
-        <div>
-          <span className="inline-flex items-center gap-2 rounded-full border border-[#F4B63F]/40 bg-[#F4B63F]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-[#F4B63F]">
-            <span className="material-symbols-outlined text-[14px]">diversity_3</span>
-            Margao · since 1934
-          </span>
+function Hero({ images, event, onPick, stats }) {
+  const [index, setIndex] = useState(0);
 
-          <h1 className="mt-6 font-['Fraunces',Georgia,serif] text-[42px] font-black leading-[1.02] tracking-tight sm:text-[58px] lg:text-[64px]">
-            One community.
-            <br />
-            A thousand <span className="italic text-[#F4B63F]">stories</span>.
+  useEffect(() => {
+    if (images.length < 2) return undefined;
+    const timer = setInterval(() => setIndex((value) => (value + 1) % images.length), 6500);
+    return () => clearInterval(timer);
+  }, [images.length]);
+
+  useEffect(() => {
+    if (index >= images.length) setIndex(0);
+  }, [images.length, index]);
+
+  const memberCount = stats?.members ?? 0;
+
+  return (
+    <section className="relative flex min-h-[calc(100svh-72px)] items-center overflow-hidden">
+      {/* Background: uploaded hero images crossfading, or the gradient art. */}
+      <div aria-hidden="true" className="absolute inset-0">
+        {images.length === 0 && <div className="hero-glow absolute inset-0" />}
+        {images.map((image, position) => (
+          <div
+            key={image.id}
+            className="absolute inset-0 bg-cover bg-center transition-opacity duration-[1400ms] ease-out"
+            style={{
+              backgroundImage: `url(${image.url})`,
+              opacity: position === index ? 1 : 0,
+              transform: position === index ? 'scale(1.03)' : 'scale(1)',
+              transitionProperty: 'opacity, transform',
+            }}
+          />
+        ))}
+        {/* A denser left-to-right scrim keeps the copy readable over bright photos. */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'linear-gradient(90deg, rgba(4,22,26,0.95) 0%, rgba(4,22,26,0.80) 38%, rgba(4,22,26,0.34) 72%, rgba(4,22,26,0.14) 100%)',
+          }}
+        />
+        <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#082328] to-transparent" />
+      </div>
+
+      <div className="relative mx-auto grid max-w-[1180px] items-center gap-8 px-5 py-12 sm:px-8 md:grid-cols-[minmax(0,1fr)_320px] md:gap-12 md:py-16 lg:grid-cols-[minmax(0,1fr)_340px] lg:py-20">
+        <div className="max-w-[680px]">
+          <p className="js-hero-kicker flex items-center gap-2.5 text-[10px] font-bold uppercase tracking-[0.3em] text-[#F5B841]">
+            <span className="h-px w-9 bg-[#F5B841]/60" />
+            Margao · since 1934
+          </p>
+
+          <h1 className="js-hero-title mt-5 font-['Fraunces',Georgia,serif] text-[40px] font-bold leading-[0.98] tracking-[-0.035em] text-[#F6F1E7] drop-shadow-[0_4px_24px_rgba(0,0,0,0.45)] sm:text-[52px] lg:text-[62px] xl:text-[68px]">
+            <span className="js-hero-line block">One community.</span>
+            <span className="js-hero-line block">
+              A thousand <em className="not-italic text-[#F5B841]">stories</em>.
+            </span>
           </h1>
 
-          <p className="mt-5 max-w-xl text-base leading-relaxed text-[#EFEBE0]/75">
-            Konkani Samudai is the home of our festivals, our food, our films and our
-            people. Come for the Fugdi night, stay for the Sunday classes, bring the
-            children to the Christmas market.
+          <p className="js-hero-copy mt-5 max-w-[480px] text-[15px] leading-[1.7] text-[#F6F1E7]/80 drop-shadow-[0_2px_12px_rgba(0,0,0,0.5)]">
+            Festivals, food, films and our people — Fugdi nights, Sunday classes and the
+            Christmas market, all under one roof.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <a
               href="#events"
-              className="inline-flex min-h-12 items-center gap-2 rounded-full bg-[#C2305E] px-6 text-sm font-bold text-white shadow-lg shadow-black/25 transition-transform hover:-translate-y-0.5"
+              className="js-hero-cta group inline-flex min-h-12 items-center gap-2 rounded-full bg-[#C2305E] px-7 text-[13px] font-bold tracking-wide text-white shadow-[0_14px_30px_-16px_rgba(194,48,94,0.9)] transition-transform hover:-translate-y-0.5"
             >
-              <span className="material-symbols-outlined text-[18px]">event</span>
               Explore events
+              <span className="material-symbols-outlined text-[18px] transition-transform group-hover:translate-x-0.5">arrow_forward</span>
             </a>
-            <Link
-              to="/movies"
-              className="inline-flex min-h-12 items-center gap-2 rounded-full border border-[#EFEBE0]/25 px-6 text-sm font-semibold text-[#EFEBE0] transition-colors hover:border-[#F4B63F] hover:text-[#F4B63F]"
+            <a
+              href="#join"
+              className="js-hero-cta inline-flex min-h-12 items-center gap-2 rounded-full border border-[#F6F1E7]/25 bg-[#061D22]/40 px-7 text-[13px] font-semibold text-[#F6F1E7]/90 backdrop-blur transition-colors hover:border-[#F5B841] hover:text-[#F5B841]"
             >
-              <span className="material-symbols-outlined text-[18px]">theaters</span>
-              Book movie tickets
-            </Link>
+              <span className="material-symbols-outlined text-[18px]">groups</span>
+              Become a member
+            </a>
           </div>
 
-          <dl className="mt-10 grid max-w-lg grid-cols-3 gap-4">
-            {STATS.map((stat) => (
-              <div
-                key={stat.label}
-                className="rounded-2xl border border-[#EFEBE0]/10 bg-[#123E47]/70 px-4 py-3"
-              >
-                <dt className="font-['Fraunces',Georgia,serif] text-2xl font-black text-[#F4B63F]">
-                  {stat.value}
-                </dt>
-                <dd className="mt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#EFEBE0]/55">
-                  {stat.label}
-                </dd>
-              </div>
-            ))}
+          <dl className="js-hero-stats mt-10 flex max-w-[400px] gap-9">
+            <HeroStat value={memberCount > 0 ? `${memberCount}` : '1,200+'} label="members" />
+            <HeroStat value={stats?.events ? `${stats.events}` : '24'} label="events listed" />
+            <HeroStat value="3" label="generations" />
           </dl>
-        </div>
 
-        {/* Featured event card */}
-        <div className="relative">
-          <div className="absolute -inset-3 rounded-[34px] bg-[#F4B63F]/10 blur-2xl" aria-hidden="true" />
-          <article className="relative overflow-hidden rounded-[28px] border border-[#EFEBE0]/12 bg-[#123E47] p-6 shadow-2xl shadow-black/30">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#EFEBE0]/55">
-                Next up
-              </span>
-              <span className="rounded-full bg-[#C2305E] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white">
-                22 Nov
-              </span>
+          {images.length > 1 && (
+            <div className="mt-6 flex items-center gap-2">
+              {images.map((image, position) => (
+                <button
+                  key={image.id}
+                  type="button"
+                  onClick={() => setIndex(position)}
+                  aria-label={`Hero image ${position + 1}`}
+                  className={`h-1 rounded-full transition-all ${
+                    position === index ? 'w-9 bg-[#F5B841]' : 'w-4 bg-[#F6F1E7]/25 hover:bg-[#F6F1E7]/50'
+                  }`}
+                />
+              ))}
             </div>
+          )}
 
-            <div
-              className="mt-5 flex h-40 items-center justify-center rounded-2xl border border-[#EFEBE0]/10"
-              style={{
-                background:
-                  'linear-gradient(135deg, rgba(244,182,63,0.35), rgba(194,48,94,0.35))',
-              }}
+          {/* Small screens: the event card becomes a slim "next up" ticket bar. */}
+          {event && (
+            <button
+              type="button"
+              onClick={() => onPick(event)}
+              className="js-hero-cta mt-6 flex w-full max-w-[440px] items-center gap-3 rounded-xl border border-[#F5B841]/25 bg-[#061D22]/55 px-4 py-3 text-left backdrop-blur transition-colors hover:border-[#F5B841]/60 md:hidden"
             >
-              <span className="material-symbols-outlined text-[56px] text-[#0A2A31]/60">
-                restaurant
-              </span>
-            </div>
-
-            <h2 className="mt-5 font-['Fraunces',Georgia,serif] text-2xl font-black leading-tight">
-              Konkani Food Festival
-            </h2>
-            <p className="mt-2 text-sm text-[#EFEBE0]/70">
-              Forty home kitchens · sorpotel contest · live tiatr stage.
-            </p>
-
-            <div className="mt-4 flex flex-wrap gap-2 text-[11px] text-[#EFEBE0]/70">
-              <span className="inline-flex items-center gap-1 rounded-full border border-[#EFEBE0]/12 px-2.5 py-1">
-                <span className="material-symbols-outlined text-[13px]">schedule</span>
-                11 AM - 9 PM
-              </span>
-              <span className="inline-flex items-center gap-1 rounded-full border border-[#EFEBE0]/12 px-2.5 py-1">
-                <span className="material-symbols-outlined text-[13px]">location_on</span>
-                Samudai Grounds
-              </span>
-            </div>
-
-            <div className="mt-5 flex items-center justify-between border-t border-[#EFEBE0]/10 pt-4">
-              <div>
-                <p className="text-[10px] uppercase tracking-[0.14em] text-[#EFEBE0]/50">
-                  From
-                </p>
-                <p className="font-['Fraunces',Georgia,serif] text-xl font-black text-[#F4B63F]">
-                  ₹299
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => document.getElementById('events')?.scrollIntoView({ behavior: 'smooth' })}
-                className="inline-flex items-center gap-2 rounded-full bg-[#EFEBE0] px-5 py-2.5 text-xs font-bold text-[#0A2A31] transition-transform hover:-translate-y-0.5"
+              <span
+                className="rounded-md px-2 py-1 text-[9px] font-bold uppercase tracking-[0.16em] text-[#082328]"
+                style={{ background: event.accent }}
               >
-                Get tickets
-                <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
-              </button>
-            </div>
-          </article>
+                {event.kicker}
+              </span>
+              <span className="min-w-0 flex-1 truncate text-[12px] font-semibold text-[#F6F1E7]">
+                Next: {event.title}
+              </span>
+              <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#F5B841]">Tickets</span>
+            </button>
+          )}
         </div>
+
+        {event && (
+          <div className="relative hidden md:block">
+            <div className="relative mx-auto w-full max-w-[340px] -rotate-[1.5deg]">
+              <Stub event={event} onPick={onPick} className="js-stub" primary />
+              <div className="js-seal seal absolute -right-4 -top-5 grid h-[72px] w-[72px] place-items-center rounded-full">
+                <div className="text-center">
+                  <p className="text-[7px] font-bold uppercase tracking-[0.18em] text-[#082328]/70">est.</p>
+                  <p className="font-['Fraunces',Georgia,serif] text-lg font-bold leading-none text-[#082328]">1934</p>
+                  <p className="mt-0.5 text-[6px] font-bold uppercase tracking-[0.14em] text-[#082328]/70">Samudai</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </section>
+  );
+}
+
+function HeroStat({ value, label }) {
+  return (
+    <div className="js-hero-stat flex-1 border-t border-[#F6F1E7]/20 pt-3">
+      <dt className="font-['Fraunces',Georgia,serif] text-[26px] font-bold leading-none text-[#F6F1E7]">{value}</dt>
+      <dd className="mt-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-[#F6F1E7]/55">{label}</dd>
+    </div>
+  );
+}
+
+function Stub({ event, onPick, className = '', primary = false }) {
+  const from = Math.min(...event.tiers.map((tier) => tier.price));
+  return (
+    <button
+      type="button"
+      onClick={() => onPick(event)}
+      className={`stub relative w-full overflow-hidden text-left transition-transform duration-300 hover:-translate-y-1 ${className} ${
+        primary ? 'stub-primary' : 'stub-ghost'
+      }`}
+    >
+      <div className="flex items-center justify-between px-5 pb-3 pt-4">
+        <span
+          className="rounded-md px-2 py-1 text-[9px] font-bold uppercase tracking-[0.18em] text-[#082328]"
+          style={{ background: event.accent }}
+        >
+          {event.kicker}
+        </span>
+      </div>
+
+      <div className="px-5">
+        <h3 className="font-['Fraunces',Georgia,serif] text-[24px] font-bold leading-[1.04] tracking-[-0.02em]">
+          {event.title}
+        </h3>
+        <p className="mt-2 line-clamp-2 text-[11.5px] leading-relaxed text-[#F6F1E7]/55">{event.blurb}</p>
+      </div>
+
+      <div className="stub-perf mx-5 my-4" />
+
+      <div className="flex items-end justify-between px-5 pb-5">
+        <div>
+          <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-[#F6F1E7]/40">from</p>
+          <p className="font-['Fraunces',Georgia,serif] text-[24px] font-bold text-[#F5B841]">{rupees(from)}</p>
+        </div>
+        <div className="text-right">
+          <p className="text-[10px] text-[#F6F1E7]/55">{event.date}</p>
+          <p className="mt-0.5 inline-flex items-center gap-1 text-[10.5px] font-semibold text-[#F6F1E7]/75">
+            Get tickets
+            <span className="material-symbols-outlined text-[13px]">arrow_outward</span>
+          </p>
+        </div>
+      </div>
+    </button>
+  );
+}
+
+/* --------------------------------------------------------------- marquee */
+
+function Marquee() {
+  const line = [...MARQUEE, ...MARQUEE];
+  return (
+    <div className="relative overflow-hidden border-y border-[#F6F1E7]/10 bg-[#061D22] py-4">
+      <div className="js-marquee-track flex w-max items-center gap-8 whitespace-nowrap">
+        {line.map((item, index) => (
+          <span key={`${item}-${index}`} className="flex items-center gap-8">
+            <span className="font-['Fraunces',Georgia,serif] text-[15px] italic tracking-tight text-[#F6F1E7]/55">{item}</span>
+            <span className="text-[#F5B841]/70">✦</span>
+          </span>
+        ))}
+      </div>
+    </div>
   );
 }
 
 /* --------------------------------------------------------------- events */
 
-function Events({ onPick }) {
+function Events({ events, onPick }) {
   return (
-    <section id="events" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
-      <SectionHeading
-        eyebrow="What's coming"
-        title="Upcoming events"
-        action={
-          <span className="hidden text-xs text-[#EFEBE0]/55 sm:block">
-            Tickets are sold online via UPI · passes at the counter too
-          </span>
-        }
-      />
+    <section id="events" className="relative mx-auto max-w-[1180px] px-5 py-16 sm:px-8 lg:py-20">
+      <SectionHead kicker="What's coming" title="Upcoming events" note="Tickets online via UPI · passes also at the counter" />
 
-      <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-        {UPCOMING.map((event) => {
-          const from = Math.min(...event.tiers.map((tier) => tier.price));
-          return (
-            <article
-              key={event.id}
-              className="group flex flex-col overflow-hidden rounded-3xl border border-[#EFEBE0]/10 bg-[#123E47]/70 transition-transform duration-300 hover:-translate-y-1"
-            >
-              <div
-                className="relative flex h-36 items-end p-4"
-                style={{
-                  background: `linear-gradient(150deg, ${event.accent}44, ${event.accent}11 55%, transparent)`,
-                }}
-              >
-                <div className="flex flex-wrap gap-1.5">
-                  {event.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="rounded-full bg-[#0A2A31]/70 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#EFEBE0]/80"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-                <span
-                  className="absolute right-4 top-4 rounded-xl px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-[#0A2A31]"
-                  style={{ background: event.accent }}
-                >
-                  {event.date.split(',')[1]?.trim() || event.date}
-                </span>
-              </div>
-
-              <div className="flex flex-1 flex-col p-5">
-                <h3 className="font-['Fraunces',Georgia,serif] text-xl font-black leading-tight">
-                  {event.title}
-                </h3>
-                <p className="mt-2 text-sm leading-relaxed text-[#EFEBE0]/70">{event.blurb}</p>
-
-                <div className="mt-4 space-y-1.5 text-[11px] text-[#EFEBE0]/60">
-                  <p className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[14px]">calendar_month</span>
-                    {event.date} · {event.time}
-                  </p>
-                  <p className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[14px]">location_on</span>
-                    {event.venue}
-                  </p>
-                </div>
-
-                <div className="mt-5 flex items-center justify-between border-t border-[#EFEBE0]/10 pt-4">
-                  <p className="text-xs text-[#EFEBE0]/60">
-                    From{' '}
-                    <span className="font-['Fraunces',Georgia,serif] text-lg font-black text-[#F4B63F]">
-                      {formatRupees(from)}
-                    </span>
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => onPick(event)}
-                    className="inline-flex items-center gap-2 rounded-full bg-[#C2305E] px-4 py-2 text-xs font-bold text-white transition-transform group-hover:-translate-y-0.5"
-                  >
-                    Get tickets
-                    <span className="material-symbols-outlined text-[15px]">confirmation_number</span>
-                  </button>
-                </div>
-              </div>
-            </article>
-          );
-        })}
-      </div>
+      {events.length === 0 ? (
+        <div className="js-reveal mt-10 rounded-3xl border border-[#F6F1E7]/10 bg-[#0C3238]/50 p-10 text-center">
+          <span className="material-symbols-outlined text-[34px] text-[#F5B841]/60">event_busy</span>
+          <p className="mt-3 text-[13px] text-[#F6F1E7]/55">
+            Nothing on the calendar yet. The committee publishes events from the admin app.
+          </p>
+        </div>
+      ) : (
+        <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+          {events.map((event) => (
+            <EventCard key={event.id} event={event} onPick={onPick} />
+          ))}
+        </div>
+      )}
     </section>
+  );
+}
+
+function EventCard({ event, onPick }) {
+  return (
+    <article className="js-reveal group card-tick relative overflow-hidden rounded-[22px]">
+      <div className="flex items-start justify-between px-5 pt-5">
+        <div>
+          <p className="text-[9px] font-bold uppercase tracking-[0.2em]" style={{ color: event.accent }}>
+            {event.date}
+          </p>
+          <h3 className="mt-2 font-['Fraunces',Georgia,serif] text-[23px] font-bold leading-[1.05] tracking-[-0.02em]">
+            {event.title}
+          </h3>
+        </div>
+        <span className="material-symbols-outlined text-[22px] transition-transform duration-300 group-hover:-translate-y-0.5" style={{ color: event.accent }}>
+          local_activity
+        </span>
+      </div>
+
+      <p className="mt-3 px-5 text-[12px] leading-relaxed text-[#F6F1E7]/55">{event.blurb}</p>
+
+      <div className="mt-4 space-y-1.5 px-5">
+        {event.time && (
+          <p className="flex items-center gap-2 text-[11px] text-[#F6F1E7]/50">
+            <span className="material-symbols-outlined text-[14px]">schedule</span>
+            {event.time}
+          </p>
+        )}
+        {event.venue && (
+          <p className="flex items-center gap-2 text-[11px] text-[#F6F1E7]/50">
+            <span className="material-symbols-outlined text-[14px]">location_on</span>
+            {event.venue}
+          </p>
+        )}
+      </div>
+
+      <div className="stub-perf mx-5 my-4" />
+
+      <div className="flex items-center justify-between px-5 pb-5">
+        <div>
+          <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-[#F6F1E7]/35">from</p>
+          <p className="font-['Fraunces',Georgia,serif] text-xl font-bold text-[#F5B841]">
+            {rupees(Math.min(...event.tiers.map((tier) => tier.price)))}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => onPick(event)}
+          className="inline-flex items-center gap-1.5 rounded-full bg-[#F6F1E7]/[0.08] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[#F6F1E7] transition-colors hover:bg-[#C2305E] hover:text-white"
+        >
+          Get tickets
+          <span className="material-symbols-outlined text-[14px]">north_east</span>
+        </button>
+      </div>
+    </article>
   );
 }
 
 /* -------------------------------------------------------------- notices */
 
-function Notices() {
+function Notices({ notices }) {
   return (
-    <section id="notices" className="border-y border-[#EFEBE0]/10 bg-[#071E23]/60">
-      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-        <SectionHeading eyebrow="Noticeboard" title="From the committee" />
+    <section id="notices" className="relative border-y border-[#F6F1E7]/10 bg-[#061D22]/70">
+      <div className="mx-auto max-w-[1180px] px-5 py-16 sm:px-8">
+        <SectionHead kicker="Noticeboard" title="From the committee" />
 
-        <div className="mt-8 grid gap-4 md:grid-cols-2">
-          {NOTICES.map((notice) => (
-            <article
-              key={notice.title}
-              className="rounded-2xl border border-[#EFEBE0]/10 bg-[#123E47]/60 p-5 transition-colors hover:border-[#F4B63F]/35"
-            >
-              <div className="flex items-center gap-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#EFEBE0]/45">
-                <span className="rounded-full bg-[#F4B63F]/15 px-2.5 py-1 text-[#F4B63F]">
-                  {notice.tag}
-                </span>
-                {notice.date}
-              </div>
-              <h3 className="mt-3 font-['Fraunces',Georgia,serif] text-lg font-bold">
-                {notice.title}
-              </h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-[#EFEBE0]/70">{notice.body}</p>
-            </article>
-          ))}
-        </div>
+        {notices.length === 0 ? (
+          <p className="mt-10 text-[13px] text-[#F6F1E7]/45">No notices right now.</p>
+        ) : (
+          <ul className="mt-10 divide-y divide-[#F6F1E7]/10 border-y border-[#F6F1E7]/10">
+            {notices.map((notice, index) => (
+              <li key={notice.id} className="js-reveal group">
+                <div className="flex flex-col gap-3 py-6 sm:flex-row sm:items-baseline sm:gap-8">
+                  <div className="flex items-center gap-4 sm:w-52 sm:shrink-0">
+                    <span className="font-['Fraunces',Georgia,serif] text-[13px] font-bold text-[#F5B841]/60">
+                      {String(index + 1).padStart(2, '0')}
+                    </span>
+                    <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#F6F1E7]/40">
+                      {notice.dateLabel || ''}
+                    </span>
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <h3 className="font-['Fraunces',Georgia,serif] text-[19px] font-bold tracking-[-0.01em]">
+                        {notice.title}
+                      </h3>
+                      {notice.tag && (
+                        <span className="rounded-full border border-[#F5B841]/30 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.14em] text-[#F5B841]/80">
+                          {notice.tag}
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-1.5 max-w-2xl text-[13px] leading-relaxed text-[#F6F1E7]/55">{notice.body}</p>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </section>
   );
@@ -440,45 +540,41 @@ function Notices() {
 /* -------------------------------------------------------------- archive */
 
 function Archive() {
-  return (
-    <section id="archive" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
-      <SectionHeading eyebrow="Our story" title="What we've already done" />
+  const items = [
+    { year: '2026', title: 'Monti Fest', detail: '420 families, 1,100 plates of shevyo.' },
+    { year: '2026', title: 'Konkani Film Week', detail: '12 films, 6 directors, 3 sold-out evenings.' },
+    { year: '2025', title: 'Utorda Beach Clean-up', detail: '120 volunteers, 800 kg of waste.' },
+    { year: '2025', title: 'First Cookbook Launch', detail: '68 family recipes collected and printed.' },
+  ];
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {PAST.map((item) => (
-          <article
-            key={item.title}
-            className="relative overflow-hidden rounded-2xl border border-[#EFEBE0]/10 bg-[#123E47]/50 p-5"
-          >
-            <span className="absolute -right-4 -top-6 font-['Fraunces',Georgia,serif] text-7xl font-black text-[#EFEBE0]/[0.05]">
+  return (
+    <section id="archive" className="mx-auto max-w-[1180px] px-5 py-16 sm:px-8 lg:py-20">
+      <SectionHead kicker="Our story" title="What we've already done" />
+
+      <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {items.map((item) => (
+          <article key={item.title} className="js-reveal plate group relative overflow-hidden rounded-[18px] p-5">
+            <span className="absolute -right-3 -top-8 font-['Fraunces',Georgia,serif] text-[86px] font-bold leading-none text-[#F6F1E7]/[0.045]">
               {item.year}
             </span>
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#F4B63F]">
-              {item.year}
-            </p>
-            <h3 className="mt-2 font-['Fraunces',Georgia,serif] text-lg font-bold leading-tight">
-              {item.title}
-            </h3>
-            <p className="mt-2 text-xs leading-relaxed text-[#EFEBE0]/65">{item.detail}</p>
+            <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-[#F5B841]/80">{item.year}</p>
+            <h3 className="mt-2 font-['Fraunces',Georgia,serif] text-[18px] font-bold leading-tight">{item.title}</h3>
+            <p className="mt-2 text-[11px] leading-relaxed text-[#F6F1E7]/50">{item.detail}</p>
           </article>
         ))}
       </div>
 
-      <div className="mt-10 flex flex-col gap-4 rounded-3xl border border-[#F4B63F]/25 bg-[#F4B63F]/[0.07] p-6 sm:flex-row sm:items-center sm:justify-between">
+      <div className="js-reveal mt-8 flex flex-col gap-5 overflow-hidden rounded-[22px] border border-[#F5B841]/25 bg-gradient-to-r from-[#F5B841]/[0.09] to-transparent p-6 sm:flex-row sm:items-center sm:justify-between sm:p-7">
         <div>
-          <h3 className="font-['Fraunces',Georgia,serif] text-xl font-black">
-            Also running: our screenhouse
-          </h3>
-          <p className="mt-1 text-sm text-[#EFEBE0]/70">
-            Konkani and world cinema, four screens, tickets from ₹150.
-          </p>
+          <h3 className="font-['Fraunces',Georgia,serif] text-[22px] font-bold tracking-[-0.02em]">Also running: our screenhouse</h3>
+          <p className="mt-1 text-[12px] text-[#F6F1E7]/60">Konkani and world cinema, four screens, tickets from ₹150.</p>
         </div>
         <Link
           to="/movies"
-          className="inline-flex items-center gap-2 self-start rounded-full bg-[#EFEBE0] px-5 py-2.5 text-xs font-bold text-[#0A2A31] transition-transform hover:-translate-y-0.5"
+          className="inline-flex items-center gap-2 self-start rounded-full bg-[#F6F1E7] px-5 py-2.5 text-[11px] font-bold uppercase tracking-[0.1em] text-[#082328] transition-transform hover:-translate-y-0.5"
         >
           See what's showing
-          <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+          <span className="material-symbols-outlined text-[15px]">arrow_forward</span>
         </Link>
       </div>
     </section>
@@ -487,149 +583,68 @@ function Archive() {
 
 /* ----------------------------------------------------------------- join */
 
-function Join() {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [interest, setInterest] = useState('Events');
-  const [sent, setSent] = useState(false);
-
-  function submit(event) {
-    event.preventDefault();
-    if (!name.trim() || !email.trim()) return;
-    setSent(true);
-  }
-
+function Join({ onBecomeMember }) {
   return (
-    <section id="join" className="border-t border-[#EFEBE0]/10 bg-[#071E23]/60">
-      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-2 lg:px-8 lg:py-20">
+    <section id="join" className="relative border-t border-[#F6F1E7]/10 bg-[#061D22]/70">
+      <div className="mx-auto grid max-w-[1180px] gap-10 px-5 py-16 sm:px-8 lg:grid-cols-[1fr_420px] lg:gap-14 lg:py-20">
         <div>
-          <SectionHeading eyebrow="Join us" title="Become part of the Samudai" />
-          <p className="mt-4 max-w-md text-sm leading-relaxed text-[#EFEBE0]/70">
-            Membership gets your family voting rights at the AGM, discounts on every
-            event, priority movie seats and a place in the Sunday classes.
+          <SectionHead kicker="Join us" title="Become part of the Samudai" />
+          <p className="mt-4 max-w-md text-[14px] leading-[1.75] text-[#F6F1E7]/60">
+            Membership gets your family voting rights at the AGM, discounts on every event,
+            priority movie seats and a place in the Sunday classes.
           </p>
 
-          <ul className="mt-6 space-y-3 text-sm text-[#EFEBE0]/75">
+          <ul className="mt-8 grid gap-3 sm:grid-cols-2">
             {[
               'Family membership · ₹1,200 a year',
               'Event discounts for every member',
-              'Scholarships for members\' children',
-              'Konkani classes, choir and the youth wing',
+              "Scholarships for members' children",
+              'Konkani classes, choir and youth wing',
             ].map((point) => (
-              <li key={point} className="flex items-start gap-3">
-                <span className="material-symbols-outlined text-[18px] text-[#78C9A6]">
-                  check_circle
-                </span>
+              <li key={point} className="flex items-start gap-2.5 text-[12px] leading-relaxed text-[#F6F1E7]/75">
+                <span className="material-symbols-outlined text-[16px] text-[#7FCBA8]">check_circle</span>
                 {point}
               </li>
             ))}
           </ul>
 
-          <div className="mt-7 flex flex-wrap gap-3">
+          <div className="mt-8 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={onBecomeMember}
+              className="inline-flex items-center gap-2 rounded-full bg-[#C2305E] px-5 py-2.5 text-[11px] font-bold uppercase tracking-[0.1em] text-white transition-transform hover:-translate-y-0.5"
+            >
+              <span className="material-symbols-outlined text-[15px]">badge</span>
+              Become a member
+            </button>
             <a
-              href={`https://wa.me/${WHATSAPP}?text=${encodeURIComponent('Hi! I would like to join Konkani Samudai.')}`}
+              href={`https://wa.me/${WHATSAPP}?text=${encodeURIComponent('Hi! I would like to know more about Konkani Samudai.')}`}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-2 rounded-full bg-[#78C9A6] px-5 py-2.5 text-xs font-bold text-[#0A2A31] transition-transform hover:-translate-y-0.5"
+              className="inline-flex items-center gap-2 rounded-full bg-[#7FCBA8] px-5 py-2.5 text-[11px] font-bold uppercase tracking-[0.1em] text-[#082328] transition-transform hover:-translate-y-0.5"
             >
-              <span className="material-symbols-outlined text-[16px]">chat</span>
+              <span className="material-symbols-outlined text-[15px]">chat</span>
               Message on WhatsApp
-            </a>
-            <a
-              href={`mailto:hello@konkanisamudai.org?subject=${encodeURIComponent('Membership enquiry')}`}
-              className="inline-flex items-center gap-2 rounded-full border border-[#EFEBE0]/20 px-5 py-2.5 text-xs font-semibold text-[#EFEBE0]/80 transition-colors hover:border-[#F4B63F] hover:text-[#F4B63F]"
-            >
-              <span className="material-symbols-outlined text-[16px]">mail</span>
-              Email the office
             </a>
           </div>
         </div>
 
-        <div className="rounded-3xl border border-[#EFEBE0]/12 bg-[#123E47]/70 p-6 sm:p-8">
-          {sent ? (
-            <div className="flex h-full flex-col items-center justify-center py-10 text-center">
-              <span className="material-symbols-outlined text-[44px] text-[#78C9A6]">
-                mark_email_read
-              </span>
-              <h3 className="mt-3 font-['Fraunces',Georgia,serif] text-xl font-black">
-                Thank you, {name.split(' ')[0]}
-              </h3>
-              <p className="mt-2 max-w-xs text-sm text-[#EFEBE0]/70">
-                The office will reach out at {email} about {interest.toLowerCase()}.
-              </p>
-              <button
-                type="button"
-                onClick={() => {
-                  setSent(false);
-                  setName('');
-                  setEmail('');
-                }}
-                className="mt-5 text-xs font-semibold text-[#F4B63F]"
-              >
-                Send another
-              </button>
-            </div>
-          ) : (
-            <form onSubmit={submit} className="space-y-4">
-              <h3 className="font-['Fraunces',Georgia,serif] text-xl font-black">
-                Tell us a little about you
-              </h3>
-
-              <label className="block">
-                <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#EFEBE0]/55">
-                  Your name
-                </span>
-                <input
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  required
-                  placeholder="Maria Fernandes"
-                  className="mt-1.5 w-full rounded-xl border border-[#EFEBE0]/15 bg-[#0A2A31]/60 px-4 py-3 text-sm text-[#EFEBE0] outline-none placeholder:text-[#EFEBE0]/30 focus:border-[#F4B63F]"
-                />
-              </label>
-
-              <label className="block">
-                <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#EFEBE0]/55">
-                  Email
-                </span>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  required
-                  placeholder="you@example.com"
-                  className="mt-1.5 w-full rounded-xl border border-[#EFEBE0]/15 bg-[#0A2A31]/60 px-4 py-3 text-sm text-[#EFEBE0] outline-none placeholder:text-[#EFEBE0]/30 focus:border-[#F4B63F]"
-                />
-              </label>
-
-              <label className="block">
-                <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#EFEBE0]/55">
-                  I'm interested in
-                </span>
-                <select
-                  value={interest}
-                  onChange={(event) => setInterest(event.target.value)}
-                  className="mt-1.5 w-full rounded-xl border border-[#EFEBE0]/15 bg-[#0A2A31]/60 px-4 py-3 text-sm text-[#EFEBE0] outline-none focus:border-[#F4B63F]"
-                >
-                  <option>Events</option>
-                  <option>Membership</option>
-                  <option>Konkani classes</option>
-                  <option>Volunteering</option>
-                  <option>Sponsorship</option>
-                </select>
-              </label>
-
-              <button
-                type="submit"
-                className="mt-2 w-full rounded-full bg-[#C2305E] py-3 text-sm font-bold text-white transition-transform hover:-translate-y-0.5"
-              >
-                Count me in
-              </button>
-              <p className="text-center text-[10px] text-[#EFEBE0]/40">
-                We only use these details to reach you about the Samudai.
-              </p>
-            </form>
-          )}
+        <div className="js-reveal rounded-[24px] border border-[#F6F1E7]/12 bg-[#0C3238] p-6 sm:p-7">
+          <h3 className="font-['Fraunces',Georgia,serif] text-[22px] font-bold tracking-[-0.02em]">What membership gets you</h3>
+          <ul className="mt-4 space-y-3 text-[12px] leading-relaxed text-[#F6F1E7]/65">
+            <li className="flex gap-2.5"><span className="text-[#F5B841]">✦</span> Voting rights at the AGM</li>
+            <li className="flex gap-2.5"><span className="text-[#F5B841]">✦</span> Member rates on every event</li>
+            <li className="flex gap-2.5"><span className="text-[#F5B841]">✦</span> Priority seating for film nights</li>
+            <li className="flex gap-2.5"><span className="text-[#F5B841]">✦</span> A card for the whole family</li>
+          </ul>
+          <button
+            type="button"
+            onClick={onBecomeMember}
+            className="mt-6 w-full rounded-full border border-[#F5B841]/40 py-3 text-[11px] font-bold uppercase tracking-[0.14em] text-[#F5B841] transition-colors hover:bg-[#F5B841] hover:text-[#082328]"
+          >
+            Start membership
+          </button>
+          <p className="mt-3 text-center text-[9px] text-[#F6F1E7]/35">Sign in first · pay by UPI</p>
         </div>
       </div>
     </section>
@@ -638,95 +653,57 @@ function Join() {
 
 /* ---------------------------------------------------------------- bits */
 
-function SectionHeading({ eyebrow, title, action }) {
+function SectionHead({ kicker, title, note }) {
   return (
-    <div className="flex flex-wrap items-end justify-between gap-3">
+    <div className="flex flex-wrap items-end justify-between gap-4">
       <div>
-        <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#F4B63F]">
-          {eyebrow}
+        <p className="flex items-center gap-3 text-[9px] font-bold uppercase tracking-[0.3em] text-[#F5B841]">
+          <span className="h-px w-8 bg-[#F5B841]/50" />
+          {kicker}
         </p>
-        <h2 className="mt-2 font-['Fraunces',Georgia,serif] text-[30px] font-black leading-tight tracking-tight sm:text-[38px]">
+        <h2 className="mt-3 font-['Fraunces',Georgia,serif] text-[32px] font-bold leading-[1.02] tracking-[-0.03em] sm:text-[44px]">
           {title}
         </h2>
       </div>
-      {action}
+      {note && <p className="max-w-[260px] text-[11px] leading-relaxed text-[#F6F1E7]/40">{note}</p>}
     </div>
   );
 }
 
 function Footer() {
   return (
-    <footer className="border-t border-[#EFEBE0]/10 bg-[#071E23]">
-      <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-10 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
-        <div>
-          <p className="font-['Fraunces',Georgia,serif] text-lg font-black">
-            Konkani <span className="italic text-[#F4B63F]">Samudai</span>
-          </p>
-          <p className="mt-1 text-xs text-[#EFEBE0]/55">
-            Cinema, screenhouse and community · Margao, Goa
-          </p>
+    <footer className="border-t border-[#F6F1E7]/10 bg-[#061D22]">
+      <div className="mx-auto max-w-[1180px] px-5 py-12 sm:px-8">
+        <p className="font-['Fraunces',Georgia,serif] text-[34px] font-bold leading-none tracking-[-0.03em] text-[#F6F1E7]/90 sm:text-[52px]">
+          Konkani <span className="italic text-[#F5B841]">Samudai</span>
+        </p>
+        <div className="mt-8 flex flex-col gap-6 border-t border-[#F6F1E7]/10 pt-6 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-[11px] leading-relaxed text-[#F6F1E7]/40">Cinema, screenhouse and community · Margao, Goa</p>
+          <ul className="flex flex-wrap gap-5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#F6F1E7]/45">
+            <li><a className="transition-colors hover:text-[#F5B841]" href="#events">Events</a></li>
+            <li><a className="transition-colors hover:text-[#F5B841]" href="#notices">Notices</a></li>
+            <li><Link className="transition-colors hover:text-[#F5B841]" to="/movies">Movies</Link></li>
+            <li><Link className="transition-colors hover:text-[#F5B841]" to="/my-tickets">My tickets</Link></li>
+          </ul>
         </div>
-        <ul className="flex flex-wrap gap-5 text-xs text-[#EFEBE0]/60">
-          <li>
-            <a className="hover:text-[#F4B63F]" href="#events">
-              Events
-            </a>
-          </li>
-          <li>
-            <a className="hover:text-[#F4B63F]" href="#notices">
-              Notices
-            </a>
-          </li>
-          <li>
-            <Link className="hover:text-[#F4B63F]" to="/movies">
-              Movies
-            </Link>
-          </li>
-          <li>
-            <Link className="hover:text-[#F4B63F]" to="/my-tickets">
-              My tickets
-            </Link>
-          </li>
-        </ul>
       </div>
     </footer>
   );
 }
 
-/* --------------------------------------------------------- ticket modal */
+/* --------------------------------------------------------------- shared */
 
-function TicketModal({ event, onClose }) {
-  const [tierId, setTierId] = useState(event.tiers[0].id);
-  const [quantity, setQuantity] = useState(1);
-  const [name, setName] = useState('');
+function UpiBlock({ amount, note }) {
   const [copied, setCopied] = useState(false);
 
-  const tier = useMemo(
-    () => event.tiers.find((item) => item.id === tierId) || event.tiers[0],
-    [event, tierId],
-  );
-  const total = tier.price * quantity;
-
-  const upiLink = useMemo(
+  const link = useMemo(
     () =>
       `upi://pay?pa=${encodeURIComponent(UPI_ID)}&pn=${encodeURIComponent('Konkani Samudai')}` +
-      `&am=${total}&cu=INR&tn=${encodeURIComponent(`${event.title} · ${tier.name} x${quantity}`)}`,
-    [event, tier, total, quantity],
+      `&am=${amount}&cu=INR&tn=${encodeURIComponent(note)}`,
+    [amount, note],
   );
 
-  const whatsappLink = useMemo(() => {
-    const lines = [
-      `Event: ${event.title}`,
-      `Pass: ${tier.name}`,
-      `Quantity: ${quantity}`,
-      `Total: ${formatRupees(total)}`,
-      name.trim() ? `Name: ${name.trim()}` : null,
-      `Paid to: ${UPI_ID}`,
-    ].filter(Boolean);
-    return `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(lines.join('\n'))}`;
-  }, [event, tier, quantity, total, name]);
-
-  async function copyUpi() {
+  async function copy() {
     try {
       await navigator.clipboard.writeText(UPI_ID);
       setCopied(true);
@@ -737,8 +714,52 @@ function TicketModal({ event, onClose }) {
   }
 
   return (
+    <div className="mt-4 rounded-[18px] border border-[#F6F1E7]/10 bg-[#061D22] p-5 text-center">
+      <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-[#F6F1E7]/40">Pay by UPI</p>
+      <div className="mx-auto mt-3 w-fit rounded-xl bg-white p-3">
+        <QRCodeSVG value={link} size={140} level="M" marginSize={0} />
+      </div>
+      <p className="mt-3 font-mono text-[11px] text-[#F6F1E7]/70">{UPI_ID}</p>
+      <p className="mt-1 font-['Fraunces',Georgia,serif] text-[26px] font-bold text-[#F5B841]">{rupees(amount)}</p>
+      <button
+        type="button"
+        onClick={copy}
+        className="mt-3 rounded-full border border-[#F6F1E7]/18 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.1em] text-[#F6F1E7]/70 transition-colors hover:border-[#F5B841] hover:text-[#F5B841]"
+      >
+        {copied ? 'Copied' : 'Copy UPI ID'}
+      </button>
+    </div>
+  );
+}
+
+/* --------------------------------------------------------- ticket modal */
+
+function TicketModal({ event, onClose }) {
+  const [tierId, setTierId] = useState(event.tiers[0].id);
+  const [quantity, setQuantity] = useState(1);
+  const [name, setName] = useState('');
+
+  const tier = useMemo(
+    () => event.tiers.find((item) => item.id === tierId) || event.tiers[0],
+    [event, tierId],
+  );
+  const total = tier.price * quantity;
+
+  const whatsappLink = useMemo(() => {
+    const lines = [
+      `Event: ${event.title}`,
+      `Pass: ${tier.name}`,
+      `Quantity: ${quantity}`,
+      `Total: ${rupees(total)}`,
+      name.trim() ? `Name: ${name.trim()}` : null,
+      `Paid to: ${UPI_ID}`,
+    ].filter(Boolean);
+    return `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(lines.join('\n'))}`;
+  }, [event, tier, quantity, total, name]);
+
+  return (
     <div
-      className="fixed inset-0 z-[60] flex items-end justify-center bg-black/70 p-0 backdrop-blur-sm sm:items-center sm:p-6"
+      className="fixed inset-0 z-[70] flex items-end justify-center bg-[#04161A]/85 backdrop-blur-md sm:items-center sm:p-6"
       role="dialog"
       aria-modal="true"
       aria-label={`${event.title} tickets`}
@@ -746,21 +767,21 @@ function TicketModal({ event, onClose }) {
         if (clickEvent.target === clickEvent.currentTarget) onClose();
       }}
     >
-      <div className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-3xl border border-[#EFEBE0]/12 bg-[#0D343B] p-6 shadow-2xl sm:rounded-3xl">
+      <div className="modal-in max-h-[92vh] w-full max-w-[460px] overflow-y-auto rounded-t-[26px] border border-[#F6F1E7]/12 bg-[#0C3238] p-6 shadow-2xl sm:rounded-[26px]">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#F4B63F]">
-              {event.date} · {event.time}
+            <p className="text-[9px] font-bold uppercase tracking-[0.2em]" style={{ color: event.accent }}>
+              {event.date}
             </p>
-            <h3 className="mt-1 font-['Fraunces',Georgia,serif] text-2xl font-black leading-tight">
+            <h3 className="mt-1.5 font-['Fraunces',Georgia,serif] text-[26px] font-bold leading-[1.02] tracking-[-0.02em]">
               {event.title}
             </h3>
-            <p className="mt-1 text-xs text-[#EFEBE0]/60">{event.venue}</p>
+            <p className="mt-1.5 text-[11px] text-[#F6F1E7]/50">{event.venue}</p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full border border-[#EFEBE0]/15 p-2 text-[#EFEBE0]/70 transition-colors hover:text-[#EFEBE0]"
+            className="rounded-full border border-[#F6F1E7]/15 p-2 text-[#F6F1E7]/60 transition-colors hover:text-[#F6F1E7]"
             aria-label="Close"
           >
             <span className="material-symbols-outlined text-[18px]">close</span>
@@ -777,38 +798,38 @@ function TicketModal({ event, onClose }) {
                 onClick={() => setTierId(option.id)}
                 className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition-colors ${
                   selected
-                    ? 'border-[#F4B63F] bg-[#F4B63F]/10'
-                    : 'border-[#EFEBE0]/12 bg-[#0A2A31]/40 hover:border-[#EFEBE0]/25'
+                    ? 'border-[#F5B841]/70 bg-[#F5B841]/[0.09]'
+                    : 'border-[#F6F1E7]/10 bg-[#082328]/40 hover:border-[#F6F1E7]/25'
                 }`}
               >
                 <span>
-                  <span className="block text-sm font-semibold">{option.name}</span>
-                  <span className="block text-[11px] text-[#EFEBE0]/55">{option.note}</span>
+                  <span className="block text-[13px] font-semibold text-[#F6F1E7]">{option.name}</span>
+                  {option.note && <span className="block text-[10px] text-[#F6F1E7]/45">{option.note}</span>}
                 </span>
-                <span className="font-['Fraunces',Georgia,serif] text-lg font-black text-[#F4B63F]">
-                  {formatRupees(option.price)}
+                <span className="font-['Fraunces',Georgia,serif] text-lg font-bold text-[#F5B841]">
+                  {rupees(option.price)}
                 </span>
               </button>
             );
           })}
         </div>
 
-        <div className="mt-4 flex items-center justify-between rounded-xl border border-[#EFEBE0]/12 bg-[#0A2A31]/40 px-4 py-3">
-          <span className="text-sm text-[#EFEBE0]/75">Passes</span>
+        <div className="mt-3 flex items-center justify-between rounded-xl border border-[#F6F1E7]/10 bg-[#082328]/40 px-4 py-2.5">
+          <span className="text-[11px] uppercase tracking-[0.12em] text-[#F6F1E7]/50">Passes</span>
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => setQuantity((value) => Math.max(1, value - 1))}
-              className="h-8 w-8 rounded-full border border-[#EFEBE0]/20 text-lg leading-none hover:border-[#F4B63F]"
+              className="h-7 w-7 rounded-full border border-[#F6F1E7]/20 text-base leading-none text-[#F6F1E7]/80 hover:border-[#F5B841]"
               aria-label="Fewer passes"
             >
               −
             </button>
-            <span className="w-6 text-center text-sm font-bold">{quantity}</span>
+            <span className="w-5 text-center text-[13px] font-bold">{quantity}</span>
             <button
               type="button"
               onClick={() => setQuantity((value) => Math.min(10, value + 1))}
-              className="h-8 w-8 rounded-full border border-[#EFEBE0]/20 text-lg leading-none hover:border-[#F4B63F]"
+              className="h-7 w-7 rounded-full border border-[#F6F1E7]/20 text-base leading-none text-[#F6F1E7]/80 hover:border-[#F5B841]"
               aria-label="More passes"
             >
               +
@@ -816,48 +837,267 @@ function TicketModal({ event, onClose }) {
           </div>
         </div>
 
-        <div className="mt-5 rounded-2xl border border-[#EFEBE0]/12 bg-[#071E23]/70 p-5 text-center">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#EFEBE0]/50">
-            Pay by UPI
-          </p>
-          <div className="mx-auto mt-3 w-fit rounded-2xl bg-white p-3">
-            <QRCodeSVG value={upiLink} size={148} level="M" includeMargin={false} />
-          </div>
-          <p className="mt-3 font-mono text-xs text-[#EFEBE0]/80">{UPI_ID}</p>
-          <p className="mt-1 font-['Fraunces',Georgia,serif] text-2xl font-black text-[#F4B63F]">
-            {formatRupees(total)}
-          </p>
+        <UpiBlock amount={total} note={`${event.title} · ${tier.name} x${quantity}`} />
 
-          <div className="mt-4 flex flex-wrap justify-center gap-2">
-            <button
-              type="button"
-              onClick={copyUpi}
-              className="rounded-full border border-[#EFEBE0]/20 px-4 py-2 text-[11px] font-semibold text-[#EFEBE0]/80 transition-colors hover:border-[#F4B63F] hover:text-[#F4B63F]"
-            >
-              {copied ? 'UPI ID copied' : 'Copy UPI ID'}
-            </button>
-            <a
-              href={whatsappLink}
-              target="_blank"
-              rel="noreferrer"
-              className="rounded-full bg-[#78C9A6] px-4 py-2 text-[11px] font-bold text-[#0A2A31]"
-            >
-              I've paid · send details
-            </a>
-          </div>
+        <a
+          href={whatsappLink}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-3 block rounded-full bg-[#7FCBA8] py-2.5 text-center text-[10px] font-bold uppercase tracking-[0.1em] text-[#082328]"
+        >
+          I've paid · send details
+        </a>
 
-          <input
-            value={name}
-            onChange={(changeEvent) => setName(changeEvent.target.value)}
-            placeholder="Your name (for the pass)"
-            className="mt-4 w-full rounded-xl border border-[#EFEBE0]/15 bg-[#0A2A31]/60 px-4 py-2.5 text-center text-xs text-[#EFEBE0] outline-none placeholder:text-[#EFEBE0]/30 focus:border-[#F4B63F]"
-          />
-          <p className="mt-2 text-[10px] leading-relaxed text-[#EFEBE0]/40">
-            Scan with any UPI app, then send us the payment screenshot on WhatsApp. The
-            committee confirms passes within a few hours.
-          </p>
-        </div>
+        <input
+          value={name}
+          onChange={(changeEvent) => setName(changeEvent.target.value)}
+          placeholder="Your name (for the pass)"
+          className="mt-3 w-full rounded-xl border border-[#F6F1E7]/12 bg-[#082328]/60 px-4 py-2.5 text-center text-[11px] text-[#F6F1E7] outline-none placeholder:text-[#F6F1E7]/25 focus:border-[#F5B841]"
+        />
       </div>
     </div>
   );
 }
+
+/* ----------------------------------------------------- membership modal */
+
+function MembershipModal({ onClose }) {
+  const token = localStorage.getItem('token');
+  const [plans, setPlans] = useState({
+    single: { label: 'Single', amountMinor: 60000 },
+    family: { label: 'Family', amountMinor: 120000 },
+    patron: { label: 'Patron', amountMinor: 500000 },
+  });
+  const [plan, setPlan] = useState('family');
+  const [phone, setPhone] = useState('');
+  const [member, setMember] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const amount = Math.round((plans[plan]?.amountMinor ?? 120000) / 100);
+
+  useEffect(() => {
+    if (!token) return;
+    api
+      .get('/community/membership')
+      .then((response) => {
+        if (response.data?.plans) setPlans(response.data.plans);
+        if (response.data?.member) setMember(response.data.member);
+      })
+      .catch(() => {});
+  }, [token]);
+
+  async function subscribe() {
+    setError('');
+    setSaving(true);
+    try {
+      const response = await api.post('/community/membership', { plan, phone });
+      setMember(response.data.member);
+    } catch (e) {
+      setError(e?.response?.data?.error || 'Could not save your membership.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-[70] flex items-end justify-center bg-[#04161A]/85 backdrop-blur-md sm:items-center sm:p-6"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Become a member"
+      onClick={(clickEvent) => {
+        if (clickEvent.target === clickEvent.currentTarget) onClose();
+      }}
+    >
+      <div className="modal-in max-h-[92vh] w-full max-w-[460px] overflow-y-auto rounded-t-[26px] border border-[#F6F1E7]/12 bg-[#0C3238] p-6 shadow-2xl sm:rounded-[26px]">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#F5B841]">Membership</p>
+            <h3 className="mt-1.5 font-['Fraunces',Georgia,serif] text-[26px] font-bold leading-[1.02] tracking-[-0.02em]">
+              Join Konkani Samudai
+            </h3>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full border border-[#F6F1E7]/15 p-2 text-[#F6F1E7]/60 transition-colors hover:text-[#F6F1E7]"
+            aria-label="Close"
+          >
+            <span className="material-symbols-outlined text-[18px]">close</span>
+          </button>
+        </div>
+
+        {!token ? (
+          <div className="mt-8 text-center">
+            <span className="material-symbols-outlined text-[38px] text-[#F5B841]/70">lock</span>
+            <p className="mt-3 text-[13px] leading-relaxed text-[#F6F1E7]/65">
+              You need an account before you can become a member. It takes a minute.
+            </p>
+            <Link
+              to="/login"
+              className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#C2305E] px-6 py-3 text-[12px] font-bold uppercase tracking-[0.12em] text-white"
+            >
+              Sign in to continue
+              <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+            </Link>
+            <p className="mt-3 text-[10px] text-[#F6F1E7]/35">
+              New here? The sign-in page also creates an account.
+            </p>
+          </div>
+        ) : member ? (
+          <div className="mt-8 text-center">
+            <span className="material-symbols-outlined text-[40px] text-[#7FCBA8]">verified</span>
+            <h4 className="mt-3 font-['Fraunces',Georgia,serif] text-xl font-bold">You're on the list</h4>
+            <p className="mt-2 text-[12px] leading-relaxed text-[#F6F1E7]/60">
+              {plans[member.plan]?.label || member.plan} membership · status{' '}
+              <span className="font-semibold text-[#F5B841]">{member.status}</span>
+            </p>
+            <p className="mt-3 text-[10px] leading-relaxed text-[#F6F1E7]/40">
+              The office confirms payments within a few hours. Bring your ID to collect the
+              family card.
+            </p>
+            <a
+              href={`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(`Hi, I've paid for ${plans[member.plan]?.label || member.plan} membership.`)}`}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-5 inline-flex rounded-full bg-[#7FCBA8] px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[#082328]"
+            >
+              Send payment proof
+            </a>
+          </div>
+        ) : (
+          <>
+            <p className="mt-3 text-[12px] leading-relaxed text-[#F6F1E7]/55">
+              Pick a plan, pay by UPI, and the committee confirms you within a few hours.
+            </p>
+
+            <div className="mt-4 space-y-2">
+              {Object.entries(plans).map(([key, option]) => {
+                const selected = key === plan;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setPlan(key)}
+                    className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition-colors ${
+                      selected
+                        ? 'border-[#F5B841]/70 bg-[#F5B841]/[0.09]'
+                        : 'border-[#F6F1E7]/10 bg-[#082328]/40 hover:border-[#F6F1E7]/25'
+                    }`}
+                  >
+                    <span className="text-[13px] font-semibold text-[#F6F1E7]">{option.label}</span>
+                    <span className="font-['Fraunces',Georgia,serif] text-lg font-bold text-[#F5B841]">
+                      {rupees(Math.round(option.amountMinor / 100))}
+                      <span className="ml-1 text-[9px] font-semibold uppercase tracking-[0.1em] text-[#F6F1E7]/40">/ year</span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <input
+              value={phone}
+              onChange={(changeEvent) => setPhone(changeEvent.target.value)}
+              inputMode="tel"
+              placeholder="Phone number (for the card)"
+              className="mt-3 w-full rounded-xl border border-[#F6F1E7]/12 bg-[#082328]/60 px-4 py-2.5 text-[12px] text-[#F6F1E7] outline-none placeholder:text-[#F6F1E7]/25 focus:border-[#F5B841]"
+            />
+
+            <UpiBlock amount={amount} note={`Konkani Samudai ${plans[plan]?.label} membership`} />
+
+            {error && <p className="mt-3 text-center text-[11px] text-[#F07882]">{error}</p>}
+
+            <button
+              type="button"
+              onClick={subscribe}
+              disabled={saving}
+              className="mt-3 w-full rounded-full bg-[#C2305E] py-3 text-[11px] font-bold uppercase tracking-[0.14em] text-white disabled:opacity-60"
+            >
+              {saving ? 'Saving…' : "I've paid · activate membership"}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ css */
+
+const PAGE_CSS = `
+.community-page {
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+}
+.community-page .hero-glow {
+  background:
+    radial-gradient(760px 420px at 22% -8%, rgba(245,184,65,0.20), transparent 62%),
+    radial-gradient(620px 380px at 88% 4%, rgba(194,48,94,0.24), transparent 66%);
+}
+.community-page .stub {
+  border-radius: 20px;
+  box-shadow: 0 30px 70px -34px rgba(0,0,0,0.9);
+}
+.community-page .stub-primary {
+  background: linear-gradient(160deg, rgba(18,71,79,0.96) 0%, rgba(12,50,56,0.98) 62%);
+  border: 1px solid rgba(245,184,65,0.35);
+  backdrop-filter: blur(6px);
+}
+.community-page .stub-ghost {
+  background: linear-gradient(160deg, rgba(15,58,66,0.96) 0%, rgba(7,38,43,0.98) 70%);
+  border: 1px solid rgba(246,241,231,0.12);
+}
+.community-page .stub-perf {
+  position: relative;
+  height: 1px;
+  background-image: linear-gradient(90deg, rgba(246,241,231,0.28) 45%, transparent 0);
+  background-size: 9px 1px;
+  background-repeat: repeat-x;
+}
+.community-page .stub-perf::before,
+.community-page .stub-perf::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  height: 13px;
+  width: 13px;
+  border-radius: 999px;
+  background: #082328;
+  transform: translateY(-50%);
+}
+.community-page .stub-perf::before { left: -22px; }
+.community-page .stub-perf::after { right: -22px; }
+.community-page .seal {
+  background: radial-gradient(circle at 35% 30%, #FFD98A, #F5B841 62%, #D99A22);
+  box-shadow: 0 18px 40px -18px rgba(245,184,65,0.7), inset 0 0 0 1px rgba(8,35,40,0.18);
+}
+.community-page .seal::after {
+  content: '';
+  position: absolute;
+  inset: 7px;
+  border-radius: 999px;
+  border: 1px dashed rgba(8,35,40,0.35);
+}
+.community-page .card-tick {
+  background: linear-gradient(165deg, rgba(18,71,79,0.75), rgba(7,38,43,0.9));
+  border: 1px solid rgba(246,241,231,0.10);
+  transition: transform .35s ease, border-color .35s ease, box-shadow .35s ease;
+}
+.community-page .card-tick:hover {
+  transform: translateY(-4px);
+  border-color: rgba(245,184,65,0.32);
+  box-shadow: 0 30px 60px -40px rgba(0,0,0,0.9);
+}
+.community-page .plate {
+  background: linear-gradient(160deg, rgba(18,71,79,0.55), rgba(7,38,43,0.75));
+  border: 1px solid rgba(246,241,231,0.09);
+}
+.community-page .modal-in { animation: modalIn .32s cubic-bezier(.22,1,.36,1); }
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(18px) scale(.985); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .community-page .modal-in { animation: none; }
+}
+`;

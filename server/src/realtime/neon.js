@@ -41,6 +41,18 @@ const TOPICS = {
       (select count(*)::text from tickets)                 as tickets,
       (select max(updated_at)::text from payments)         as payments_at
   `,
+  /** Community landing page: hero images, events, notices and members. */
+  community: `
+    select
+      (select count(*)::text from community_events)      as events,
+      (select count(*)::text from community_notices)     as notices,
+      (select count(*)::text from hero_images)           as hero_images,
+      (select count(*)::text from community_members)     as members,
+      (select max(updated_at)::text from community_events)  as events_at,
+      (select max(created_at)::text from community_notices) as notices_at,
+      (select max(created_at)::text from hero_images)       as hero_at,
+      (select max(updated_at)::text from community_members) as members_at
+  `,
 };
 
 export function isRealtimeConfigured() {

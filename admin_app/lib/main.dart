@@ -7,6 +7,7 @@ import 'screens/home_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/auth_gate.dart';
 import 'screens/scanner_shell.dart' show KkSurface;
+import 'screens/community_home_screen.dart';
 import 'services/auth_service.dart';
 
 class MainShell extends StatefulWidget {
@@ -53,21 +54,8 @@ class _MainShellState extends State<MainShell> {
           : IndexedStack(
               index: _index,
               children: [
-                const _EmptyTab(
-                  icon: LucideIcons.house,
-                  title: 'Home',
-                  message: 'Nothing planned here yet.',
-                ),
-                const _EmptyTab(
-                  icon: LucideIcons.newspaper,
-                  title: 'News',
-                  message: 'Nothing planned here yet.',
-                ),
-                const _EmptyTab(
-                  icon: LucideIcons.calendarDays,
-                  title: 'Events',
-                  message: 'Nothing planned here yet.',
-                ),
+                // Home = community command centre (hero, members, notices, events).
+                CommunityHomeScreen(token: _token),
                 // The dashboard (formerly the Home page) lives in the Movies tab.
                 const HomeScreen(),
                 ProfileScreen(
@@ -125,53 +113,8 @@ class _MainShellState extends State<MainShell> {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               item(LucideIcons.house, 'Home', 0),
-              item(LucideIcons.newspaper, 'News', 1),
-              item(LucideIcons.calendarDays, 'Events', 2),
-              item(LucideIcons.film, 'Movies', 3),
-              item(LucideIcons.circleUser, 'Profile', 4),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Placeholder body for the tabs that are not designed yet.
-class _EmptyTab extends StatelessWidget {
-  const _EmptyTab({required this.icon, required this.title, required this.message});
-
-  final IconData icon;
-  final String title;
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: KkSurface.bg,
-      body: SafeArea(
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 34, color: KkSurface.containerHighest),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                style: GoogleFonts.poppins(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: KkSurface.onSurface,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                message,
-                style: GoogleFonts.poppins(
-                  fontSize: 12,
-                  color: KkSurface.onSurfaceVariant,
-                ),
-              ),
+              item(LucideIcons.film, 'Movies', 1),
+              item(LucideIcons.circleUser, 'Profile', 2),
             ],
           ),
         ),

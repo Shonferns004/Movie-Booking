@@ -7599,15 +7599,21 @@
       }
     });
 
-    fetchGatewaySettings();
-    fetchObserversStatus();
-    fetchWhatsAppStatus();
-    loadServices();
-    fetchFalseNarrativeStatus();
-    fetchTestModeStatus();
+    // Stagger the first load: the gateway's DB bridge is synchronous and remote
+    // Postgres calls take a few seconds each. Firing every panel at once makes
+    // Render's proxy time out and surface as 502s.
+    [
+      fetchGatewaySettings,
+      fetchObserversStatus,
+      fetchWhatsAppStatus,
+      loadServices,
+      pollGlobalCounterPending,
+      fetchFalseNarrativeStatus,
+      fetchTestModeStatus,
+    ].forEach((fn, index) => setTimeout(fn, index * 800));
+
     connectServicesLogsSse();
     connectAdminEventsSse();
-    pollGlobalCounterPending();
 
     // The gateway database bridge is synchronous, so keep admin polling gentle;
     // remote Postgres latency otherwise starves the health check and causes 502s.

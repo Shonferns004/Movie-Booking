@@ -5,8 +5,8 @@ import { useEffect, useRef } from 'react';
  *
  * The server holds the single Neon Realtime subscription (Neon's client is JS-only and
  * the Flutter apps cannot use it) and pushes `{ type: 'change', topic }`. Topics are
- * `catalog`, `seats` and `payments`. No row data travels over this socket: listeners
- * simply refetch what they already know how to load.
+ * `catalog`, `seats`, `payments` and `community`. No row data travels over this socket:
+ * listeners simply refetch what they already know how to load.
  */
 const SOCKET_URL = (() => {
   const explicit = import.meta.env.VITE_REALTIME_URL;

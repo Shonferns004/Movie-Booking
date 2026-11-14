@@ -332,6 +332,94 @@ class Api {
     throw Exception('Failed to create show: ${res.body}');
   }
 
+  // --- Community content (landing page) -------------------------------------
+  static Future<List<dynamic>> getCommunityEvents(String token) async {
+    final data = await _getMap(token, '/community/admin/events', 'Failed to load events');
+    return (data['events'] as List?) ?? const [];
+  }
+
+  static Future<void> createCommunityEvent(String token, Map<String, dynamic> data) async {
+    final res = await _request(token, 'POST', '/community/admin/events', body: data);
+    if (res.statusCode != 201) throw Exception('Failed to create event: ${res.body}');
+  }
+
+  static Future<void> deleteCommunityEvent(String token, String id) async {
+    final res = await _request(token, 'DELETE', '/community/admin/events/$id');
+    if (res.statusCode != 200) throw Exception('Failed to delete event: ${res.body}');
+  }
+
+  static Future<List<dynamic>> getCommunityNotices(String token) async {
+    final data = await _getMap(token, '/community/admin/notices', 'Failed to load notices');
+    return (data['notices'] as List?) ?? const [];
+  }
+
+  static Future<void> createCommunityNotice(String token, Map<String, dynamic> data) async {
+    final res = await _request(token, 'POST', '/community/admin/notices', body: data);
+    if (res.statusCode != 201) throw Exception('Failed to create notice: ${res.body}');
+  }
+
+  static Future<void> deleteCommunityNotice(String token, String id) async {
+    final res = await _request(token, 'DELETE', '/community/admin/notices/$id');
+    if (res.statusCode != 200) throw Exception('Failed to delete notice: ${res.body}');
+  }
+
+  static Future<List<dynamic>> getHeroImages(String token) async {
+    final data = await _getMap(token, '/community/admin/hero', 'Failed to load hero images');
+    return (data['images'] as List?) ?? const [];
+  }
+
+  static Future<void> addHeroImage(
+    String token, {
+    String? url,
+    XFile? file,
+    String? caption,
+  }) async {
+    final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/community/admin/hero'));
+    request.headers['Authorization'] = 'Bearer $token';
+    if (caption != null && caption.trim().isNotEmpty) request.fields['caption'] = caption.trim();
+    if (url != null && url.trim().isNotEmpty) request.fields['url'] = url.trim();
+    if (file != null) {
+      request.files.add(await http.MultipartFile.fromPath(
+        'file',
+        file.path,
+        filename: file.name.isEmpty ? 'hero.jpg' : file.name,
+        contentType: _mediaTypeFor(file),
+      ));
+    }
+    final res = await request.send();
+    final body = await res.stream.bytesToString();
+    if (res.statusCode != 201) throw Exception('Could not add image: $body');
+  }
+
+  static Future<void> deleteHeroImage(String token, String id) async {
+    final res = await _request(token, 'DELETE', '/community/admin/hero/$id');
+    if (res.statusCode != 200) throw Exception('Failed to delete image: ${res.body}');
+  }
+
+  static Future<List<dynamic>> getCommunityMembers(String token) async {
+    final data = await _getMap(token, '/community/admin/members', 'Failed to load members');
+    return (data['members'] as List?) ?? const [];
+  }
+
+  static Future<void> createCommunityMember(String token, Map<String, dynamic> data) async {
+    final res = await _request(token, 'POST', '/community/admin/members', body: data);
+    if (res.statusCode != 201) throw Exception('Failed to add member: ${res.body}');
+  }
+
+  static Future<void> updateCommunityMember(
+    String token,
+    String id,
+    Map<String, dynamic> data,
+  ) async {
+    final res = await _request(token, 'PATCH', '/community/admin/members/$id', body: data);
+    if (res.statusCode != 200) throw Exception('Failed to update member: ${res.body}');
+  }
+
+  static Future<void> deleteCommunityMember(String token, String id) async {
+    final res = await _request(token, 'DELETE', '/community/admin/members/$id');
+    if (res.statusCode != 200) throw Exception('Failed to delete member: ${res.body}');
+  }
+
   static Map<String, dynamic> jsonDecode(String body) =>
       json.decode(body) as Map<String, dynamic>;
 }

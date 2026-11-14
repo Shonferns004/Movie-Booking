@@ -671,103 +671,87 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Widget _buildHomeQuickActions() {
     return Row(
       children: [
-        Expanded(
-          child: ElevatedButton(
-            onPressed: () async {
-              await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => MoviePlannerScreen(token: _token),
-                ),
-              );
-              if (mounted) {
-                await _refresh();
-                await _loadTheatres();
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFD96B43),
-              foregroundColor: const Color(0xFFFAF7F2),
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.all(Radius.circular(12)),
-              ),
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-              elevation: 0,
-            ),
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '+ Add Movie',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFFFAF7F2),
-                  ),
-                ),
-                SizedBox(height: 2),
-                Text(
-                  'Draft until priced',
-                  style: TextStyle(
-                    fontSize: 9,
-                    fontStyle: FontStyle.italic,
-                    color: Color(0xFFF5EFEB),
-                  ),
-                ),
-              ],
-            ),
-          ),
+        _homeActionButton(
+          title: '+ Add Movie',
+          subtitle: 'Draft until priced',
+          primary: true,
+          onTap: () async {
+            await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => MoviePlannerScreen(token: _token)),
+            );
+            if (mounted) {
+              await _refresh();
+              await _loadTheatres();
+            }
+          },
         ),
         const SizedBox(width: 12),
-        Expanded(
-          child: ElevatedButton(
-            onPressed: () async {
-              await showModalBottomSheet(
-                context: context,
-                isScrollControlled: true,
-                backgroundColor: Colors.transparent,
-                builder: (_) => TheaterListSheet(token: _token),
-              );
-              // The sheet can add or delete theatres: refresh as soon as it closes
-              // instead of waiting for the next poll tick.
-              await _loadTheatres();
-              await _refresh();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1A1A1E),
-              foregroundColor: const Color(0xFFF5EFEB),
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.all(Radius.circular(12)),
-              ),
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-              side: const BorderSide(color: Color(0xFF2F2F37)),
-              elevation: 0,
-            ),
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Theatres',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFFF5EFEB),
-                  ),
-                ),
-                SizedBox(height: 2),
-                Text(
-                  'Audi allocation',
-                  style: TextStyle(
-                    fontSize: 9,
-                    fontStyle: FontStyle.italic,
-                    color: Color(0xFF9E9890),
-                  ),
-                ),
-              ],
-            ),
-          ),
+        _homeActionButton(
+          title: 'Theatres',
+          subtitle: 'Audi allocation',
+          onTap: () async {
+            await showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (_) => TheaterListSheet(token: _token),
+            );
+            // The sheet can add or delete theatres: refresh as soon as it closes
+            // instead of waiting for the next poll tick.
+            await _loadTheatres();
+            await _refresh();
+          },
         ),
       ],
+    );
+  }
+
+  Widget _homeActionButton({
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    bool primary = false,
+  }) {
+    return Expanded(
+      child: ElevatedButton(
+        onPressed: onTap,
+        style: ElevatedButton.styleFrom(
+          backgroundColor:
+              primary ? const Color(0xFFD96B43) : const Color(0xFF1A1A1E),
+          foregroundColor: const Color(0xFFF5EFEB),
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(12)),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+          side: primary
+              ? BorderSide.none
+              : const BorderSide(color: Color(0xFF2F2F37)),
+          elevation: 0,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFFF5EFEB),
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              style: const TextStyle(
+                fontSize: 9,
+                fontStyle: FontStyle.italic,
+                color: Color(0xFF9E9890),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

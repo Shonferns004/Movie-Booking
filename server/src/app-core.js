@@ -12,6 +12,7 @@ import paymentRoutes from './modules/payments/routes.js';
 import ticketRoutes from './modules/tickets/routes.js';
 import staffRoutes from './modules/staff/routes.js';
 import adminRoutes from './modules/admin/routes.js';
+import communityRoutes from './modules/community/routes.js';
 import internalRoutes from './modules/internal/routes.js';
 import { errorMiddleware } from './middleware/error.js';
 import { env } from './config/env.js';
@@ -124,6 +125,7 @@ export function createApp({
   app.use('/api/v1/staff', staffRoutes);
   app.use('/api/v1/internal', internalRoutes);
   app.use('/api/v1/admin', adminRoutes);
+  app.use('/api/v1/community', communityRoutes);
 
   if (extend) extend(app);
 
