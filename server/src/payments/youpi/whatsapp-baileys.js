@@ -11,7 +11,7 @@ import makeWASocket, {
   initAuthCreds,
   useMultiFileAuthState,
 } from '@whiskeysockets/baileys';
-import { env } from '../../config/env.js';
+import { gatewayEnv } from '../../config/gateway-env.js';
 
 const { Pool } = pg;
 
@@ -154,7 +154,13 @@ export class BaileysWhatsAppService {
     this.qrWaiters = [];
     this.client = { lastQr: null };
 
-    this.connectionString = options.connectionString || env.YOUPI_DATABASE_URL || '';
+    // `env` (the movie API config) has no YOUPI_DATABASE_URL: it lives in gatewayEnv.
+    // Reading only `env` silently fell back to file auth on Render's ephemeral disk,
+    // so every restart lost the linked device.
+    this.connectionString = options.connectionString
+      || gatewayEnv.YOUPI_DATABASE_URL
+      || process.env.YOUPI_DATABASE_URL
+      || '';
     this.schemaName = options.schema || process.env.YOUPI_DB_SCHEMA || 'youpi';
     this.authDir = options.authDir || DEFAULT_AUTH_DIR;
   }
@@ -455,14 +461,24 @@ export class BaileysWhatsAppService {
   }
 }
 
+/**
+ * Starts the Baileys service without blocking gateway startup.
+ *
+ * The auth state lives in Neon, so a cold start can race the database wake-up. Failing
+ * at boot must not downgrade the provider (a fallback has no `sendDocument` and cannot
+ * deliver tickets), so keep retrying in the background until the socket is up.
+ */
 export async function createBaileysService(options = {}) {
   const service = new BaileysWhatsAppService(options);
-  await service.getAuthStore();
-  service.initialize().catch((error) => {
-    service.lastError = { reason: 'initialize_failed', at: new Date().toISOString(), message: error.message };
-    service.status = 'DISCONNECTED';
-    console.warn('[whatsapp:baileys] initial connection failed:', error.message);
-  });
+  const start = () => {
+    service.initialize().catch((error) => {
+      service.lastError = { reason: 'initialize_failed', at: new Date().toISOString(), message: error.message };
+      service.status = 'DISCONNECTED';
+      console.warn('[whatsapp:baileys] initial connection failed, retrying:', error.message);
+      setTimeout(start, 15000);
+    });
+  };
+  start();
   return service;
 }
 
