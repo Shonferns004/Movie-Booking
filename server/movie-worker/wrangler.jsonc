@@ -108,8 +108,8 @@
 		// The access key / secret are secrets: `wrangler secret put NEON_STORAGE_ACCESS_KEY_ID`
 		"NEON_STORAGE_REGION": "us-east-2",
 		// Render-hosted YouPI gateway (see render.gateway.yaml / DEPLOY_CLOUDFLARE.md).
-		"YOUPI_API_URL": "https://movie-booking-1-fl6i.onrender.com/youpi",
-		"YOUPI_PUBLIC_BASE_URL": "https://movie-booking-1-fl6i.onrender.com",
+		"YOUPI_API_URL": "https://movie-booking-2-3owk.onrender.com/youpi",
+		"YOUPI_PUBLIC_BASE_URL": "https://movie-booking-2-3owk.onrender.com",
 		// Public frontend origin: used for CORS, checkout return links and embeds.
 		// localhost variants are always allowed by app-core.js.
 		"APP_BASE_URL": "https://konkani-samudai.vercel.app",

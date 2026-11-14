@@ -5,6 +5,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { QRCodeSVG } from 'qrcode.react';
 import api from '../services/api.js';
 import { useRealtime } from '../services/realtime.js';
+import { openYoupiCheckout } from '../services/youpi.js';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -735,27 +736,173 @@ function UpiBlock({ amount, note }) {
 /* --------------------------------------------------------- ticket modal */
 
 function TicketModal({ event, onClose }) {
+  const account = useMemo(() => {
+    try {
+      return JSON.parse(localStorage.getItem('user') || 'null');
+    } catch {
+      return null;
+    }
+  }, []);
+  const accountName = String(account?.displayName || account?.name || '').trim();
+  const accountPhone = String(account?.mobile || account?.phone || '').trim();
+  const accountEmail = String(account?.email || '').trim();
+  const loggedIn = Boolean(localStorage.getItem('token'));
+
   const [tierId, setTierId] = useState(event.tiers[0].id);
   const [quantity, setQuantity] = useState(1);
-  const [name, setName] = useState('');
+  const [name, setName] = useState(accountName);
+  const [phone, setPhone] = useState(accountPhone);
+  const [editDetails, setEditDetails] = useState(!loggedIn || !accountName || !accountPhone);
+  const [order, setOrder] = useState(null);
+  const [stage, setStage] = useState('form');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const pollRef = useRef(null);
 
   const tier = useMemo(
     () => event.tiers.find((item) => item.id === tierId) || event.tiers[0],
     [event, tierId],
   );
   const total = tier.price * quantity;
+  const waiting = stage === 'waiting';
+  const offsetMinor = order ? Math.max(0, Number(order.amountMinor) - Number(order.baseAmountMinor)) : 0;
+
+  const stopPolling = useCallback(() => {
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => stopPolling, [stopPolling]);
+
+  const finish = useCallback(
+    async (orderId) => {
+      stopPolling();
+      try {
+        // The gateway is the authority; the webhook can still settle this later.
+        await api.post(`/community/events/checkout/${orderId}/confirm`, {});
+      } catch {
+        /* keep the paid state: status polling already saw SUCCESS */
+      }
+      setStage('paid');
+    },
+    [stopPolling],
+  );
+
+  const startPolling = useCallback(
+    (activeOrder) => {
+      stopPolling();
+      let attempts = 0;
+      pollRef.current = setInterval(async () => {
+        attempts += 1;
+        try {
+          const response = await api.get(`/community/events/checkout/${activeOrder.orderId}`);
+          const status = String(response.data?.status || '');
+          if (status === 'paid') {
+            await finish(activeOrder.orderId);
+            return;
+          }
+          if (status === 'failed' || status === 'expired') {
+            stopPolling();
+            setStage('form');
+            setError('The payment did not go through. Please try again.');
+          }
+        } catch {
+          // Transient errors are expected while the UPI app is open.
+        }
+        if (attempts >= 60) stopPolling();
+      }, 3500);
+    },
+    [finish, stopPolling],
+  );
+
+  function paymentOptions(activeOrder, overrides = {}) {
+    return {
+      name: name.trim() || accountName,
+      phone: phone.trim() || accountPhone,
+      email: accountEmail,
+      description: `${event.title} · ${activeOrder.tierName} × ${activeOrder.quantity}`,
+      onSuccess: () => finish(activeOrder.orderId),
+      onFailed: (result) => {
+        stopPolling();
+        setStage('form');
+        setError(result?.error || result?.reason || 'Payment failed. Please try again.');
+      },
+      onCancelled: () => {
+        setNotice('Payment window closed. You can reopen it with the button below.');
+      },
+      ...overrides,
+    };
+  }
+
+  async function pay() {
+    if (busy) return;
+    setBusy(true);
+    setError('');
+    setNotice('');
+    setStage('waiting');
+    try {
+      const response = await api.post(`/community/events/${event.id}/checkout`, {
+        tierId: tier.id,
+        quantity,
+        name: name.trim() || undefined,
+        phone: phone.trim() || undefined,
+      });
+      const created = response.data;
+      setOrder(created);
+      startPolling(created);
+      const mode = await openYoupiCheckout(created, paymentOptions(created));
+      if (mode === 'tab') {
+        setNotice('Complete the payment in the new tab — this window updates automatically.');
+      }
+    } catch (e) {
+      stopPolling();
+      setStage('form');
+      setError(e?.response?.data?.error || e?.message || 'Could not start the payment.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function reopen() {
+    if (!order || busy) return;
+    setBusy(true);
+    setError('');
+    setNotice('');
+    setStage('waiting');
+    try {
+      const mode = await openYoupiCheckout(order, paymentOptions(order));
+      if (mode === 'tab') {
+        setNotice('Complete the payment in the new tab — this window updates automatically.');
+      }
+    } catch (e) {
+      setError(e?.message || 'Could not reopen the payment window.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function resetOrder() {
+    setOrder(null);
+    setStage('form');
+    setError('');
+    setNotice('');
+    stopPolling();
+  }
 
   const whatsappLink = useMemo(() => {
     const lines = [
       `Event: ${event.title}`,
-      `Pass: ${tier.name}`,
-      `Quantity: ${quantity}`,
-      `Total: ${rupees(total)}`,
+      `Pass: ${order?.tierName || tier.name}`,
+      `Quantity: ${order?.quantity || quantity}`,
+      `Paid: ₹${order?.amount || total}`,
+      order?.orderId ? `Order: ${order.orderId}` : null,
       name.trim() ? `Name: ${name.trim()}` : null,
-      `Paid to: ${UPI_ID}`,
     ].filter(Boolean);
     return `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(lines.join('\n'))}`;
-  }, [event, tier, quantity, total, name]);
+  }, [event, tier, quantity, total, name, order]);
 
   return (
     <div
@@ -788,72 +935,196 @@ function TicketModal({ event, onClose }) {
           </button>
         </div>
 
-        <div className="mt-5 space-y-2">
-          {event.tiers.map((option) => {
-            const selected = option.id === tierId;
-            return (
-              <button
-                key={option.id}
-                type="button"
-                onClick={() => setTierId(option.id)}
-                className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition-colors ${
-                  selected
-                    ? 'border-[#F5B841]/70 bg-[#F5B841]/[0.09]'
-                    : 'border-[#F6F1E7]/10 bg-[#082328]/40 hover:border-[#F6F1E7]/25'
-                }`}
-              >
-                <span>
-                  <span className="block text-[13px] font-semibold text-[#F6F1E7]">{option.name}</span>
-                  {option.note && <span className="block text-[10px] text-[#F6F1E7]/45">{option.note}</span>}
-                </span>
-                <span className="font-['Fraunces',Georgia,serif] text-lg font-bold text-[#F5B841]">
-                  {rupees(option.price)}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="mt-3 flex items-center justify-between rounded-xl border border-[#F6F1E7]/10 bg-[#082328]/40 px-4 py-2.5">
-          <span className="text-[11px] uppercase tracking-[0.12em] text-[#F6F1E7]/50">Passes</span>
-          <div className="flex items-center gap-3">
+        {stage === 'paid' ? (
+          <div className="mt-8 text-center">
+            <span className="material-symbols-outlined text-[46px] text-[#7FCBA8]">check_circle</span>
+            <h4 className="mt-3 font-['Fraunces',Georgia,serif] text-[24px] font-bold">You're in.</h4>
+            <p className="mt-2 text-[12px] leading-relaxed text-[#F6F1E7]/65">
+              {order?.quantity || quantity} × {order?.tierName || tier.name} · {event.title}
+            </p>
+            <p className="mt-1 font-['Fraunces',Georgia,serif] text-[22px] font-bold text-[#F5B841]">
+              ₹{order?.amount || total}
+            </p>
+            {order?.orderId && (
+              <p className="mt-2 font-mono text-[10px] text-[#F6F1E7]/40">Order {order.orderId}</p>
+            )}
+            <p className="mt-3 text-[10px] leading-relaxed text-[#F6F1E7]/40">
+              Show this order at the counter. Send the committee a copy on WhatsApp and they will
+              keep your passes ready.
+            </p>
+            <a
+              href={whatsappLink}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#7FCBA8] px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[#082328]"
+            >
+              <span className="material-symbols-outlined text-[15px]">chat</span>
+              Send details
+            </a>
             <button
               type="button"
-              onClick={() => setQuantity((value) => Math.max(1, value - 1))}
-              className="h-7 w-7 rounded-full border border-[#F6F1E7]/20 text-base leading-none text-[#F6F1E7]/80 hover:border-[#F5B841]"
-              aria-label="Fewer passes"
+              onClick={onClose}
+              className="mt-2 block w-full rounded-full border border-[#F6F1E7]/18 py-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#F6F1E7]/70"
             >
-              −
-            </button>
-            <span className="w-5 text-center text-[13px] font-bold">{quantity}</span>
-            <button
-              type="button"
-              onClick={() => setQuantity((value) => Math.min(10, value + 1))}
-              className="h-7 w-7 rounded-full border border-[#F6F1E7]/20 text-base leading-none text-[#F6F1E7]/80 hover:border-[#F5B841]"
-              aria-label="More passes"
-            >
-              +
+              Done
             </button>
           </div>
-        </div>
+        ) : (
+          <>
+            <div className="mt-5 space-y-2">
+              {event.tiers.map((option) => {
+                const selected = option.id === tierId;
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => {
+                      if (option.id !== tierId) {
+                        setTierId(option.id);
+                        resetOrder();
+                      }
+                    }}
+                    className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition-colors ${
+                      selected
+                        ? 'border-[#F5B841]/70 bg-[#F5B841]/[0.09]'
+                        : 'border-[#F6F1E7]/10 bg-[#082328]/40 hover:border-[#F6F1E7]/25'
+                    }`}
+                  >
+                    <span>
+                      <span className="block text-[13px] font-semibold text-[#F6F1E7]">{option.name}</span>
+                      {option.note && <span className="block text-[10px] text-[#F6F1E7]/45">{option.note}</span>}
+                    </span>
+                    <span className="font-['Fraunces',Georgia,serif] text-lg font-bold text-[#F5B841]">
+                      {rupees(option.price)}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
 
-        <UpiBlock amount={total} note={`${event.title} · ${tier.name} x${quantity}`} />
+            <div className="mt-3 flex items-center justify-between rounded-xl border border-[#F6F1E7]/10 bg-[#082328]/40 px-4 py-2.5">
+              <span className="text-[11px] uppercase tracking-[0.12em] text-[#F6F1E7]/50">Passes</span>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQuantity((value) => Math.max(1, value - 1));
+                    resetOrder();
+                  }}
+                  className="h-7 w-7 rounded-full border border-[#F6F1E7]/20 text-base leading-none text-[#F6F1E7]/80 hover:border-[#F5B841]"
+                  aria-label="Fewer passes"
+                >
+                  −
+                </button>
+                <span className="w-5 text-center text-[13px] font-bold">{quantity}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQuantity((value) => Math.min(10, value + 1));
+                    resetOrder();
+                  }}
+                  className="h-7 w-7 rounded-full border border-[#F6F1E7]/20 text-base leading-none text-[#F6F1E7]/80 hover:border-[#F5B841]"
+                  aria-label="More passes"
+                >
+                  +
+                </button>
+              </div>
+            </div>
 
-        <a
-          href={whatsappLink}
-          target="_blank"
-          rel="noreferrer"
-          className="mt-3 block rounded-full bg-[#7FCBA8] py-2.5 text-center text-[10px] font-bold uppercase tracking-[0.1em] text-[#082328]"
-        >
-          I've paid · send details
-        </a>
+            {loggedIn && !editDetails ? (
+              <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-[#F6F1E7]/10 bg-[#082328]/40 px-4 py-2.5">
+                <div className="min-w-0">
+                  <p className="text-[8px] font-bold uppercase tracking-[0.16em] text-[#F6F1E7]/40">Paying as</p>
+                  <p className="truncate text-[12px] font-semibold text-[#F6F1E7]">
+                    {name}
+                    {phone ? ` · ${phone}` : ''}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditDetails(true)}
+                  className="shrink-0 text-[10px] font-bold uppercase tracking-[0.1em] text-[#F5B841]"
+                >
+                  Edit
+                </button>
+              </div>
+            ) : (
+              <div className="mt-3 space-y-2">
+                <input
+                  value={name}
+                  onChange={(changeEvent) => setName(changeEvent.target.value)}
+                  placeholder="Name (for the pass)"
+                  className="w-full rounded-xl border border-[#F6F1E7]/12 bg-[#082328]/60 px-3 py-2.5 text-[11px] text-[#F6F1E7] outline-none placeholder:text-[#F6F1E7]/25 focus:border-[#F5B841]"
+                />
+                <input
+                  value={phone}
+                  onChange={(changeEvent) => setPhone(changeEvent.target.value)}
+                  inputMode="tel"
+                  placeholder="Mobile number (for the pass)"
+                  className="w-full rounded-xl border border-[#F6F1E7]/12 bg-[#082328]/60 px-3 py-2.5 text-[11px] text-[#F6F1E7] outline-none placeholder:text-[#F6F1E7]/25 focus:border-[#F5B841]"
+                />
+              </div>
+            )}
 
-        <input
-          value={name}
-          onChange={(changeEvent) => setName(changeEvent.target.value)}
-          placeholder="Your name (for the pass)"
-          className="mt-3 w-full rounded-xl border border-[#F6F1E7]/12 bg-[#082328]/60 px-4 py-2.5 text-center text-[11px] text-[#F6F1E7] outline-none placeholder:text-[#F6F1E7]/25 focus:border-[#F5B841]"
-        />
+            <div className="mt-4 rounded-[18px] border border-[#F6F1E7]/10 bg-[#061D22] p-4">
+              <div className="flex items-center justify-between text-[11px] text-[#F6F1E7]/60">
+                <span>Passes</span>
+                <span>{quantity} × {rupees(tier.price)}</span>
+              </div>
+              <div className="mt-1 flex items-center justify-between text-[11px] text-[#F6F1E7]/60">
+                <span>Ticket total</span>
+                <span>{rupees(total)}</span>
+              </div>
+              {offsetMinor > 0 && (
+                <div className="mt-1 flex items-center justify-between text-[10px] text-[#F6F1E7]/40">
+                  <span>Payment verification</span>
+                  <span>+ ₹{(offsetMinor / 100).toFixed(2)}</span>
+                </div>
+              )}
+              <div className="mt-2 flex items-baseline justify-between border-t border-[#F6F1E7]/10 pt-2">
+                <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#F6F1E7]/45">
+                  Payable
+                </span>
+                <span className="font-['Fraunces',Georgia,serif] text-[24px] font-bold text-[#F5B841]">
+                  ₹{order ? order.amount : total}
+                </span>
+              </div>
+              {order && offsetMinor > 0 && (
+                <p className="mt-2 text-[9px] leading-relaxed text-[#F6F1E7]/35">
+                  A small verification amount identifies your transfer. It is part of the total
+                  and goes to the Samudai.
+                </p>
+              )}
+            </div>
+
+            {notice && <p className="mt-3 text-center text-[11px] text-[#F5B841]/85">{notice}</p>}
+            {error && <p className="mt-3 text-center text-[11px] text-[#F07882]">{error}</p>}
+
+            {order ? (
+              <button
+                type="button"
+                onClick={reopen}
+                disabled={busy || waiting}
+                className="mt-4 w-full rounded-full border border-[#F5B841]/45 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#F5B841] transition-colors hover:bg-[#F5B841] hover:text-[#082328] disabled:opacity-60"
+              >
+                {busy ? 'Opening…' : waiting ? 'Waiting for payment…' : 'Reopen secure payment'}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={pay}
+                disabled={busy}
+                className="mt-4 w-full rounded-full bg-[#C2305E] py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-white disabled:opacity-60"
+              >
+                {busy ? 'Opening secure payment…' : `Pay ${rupees(total)} with YouPI`}
+              </button>
+            )}
+
+            <p className="mt-2 text-center text-[9px] text-[#F6F1E7]/35">
+              Secure UPI checkout · YouPI · passes also at the counter
+            </p>
+          </>
+        )}
       </div>
     </div>
   );
@@ -869,7 +1140,14 @@ function MembershipModal({ onClose }) {
     patron: { label: 'Patron', amountMinor: 500000 },
   });
   const [plan, setPlan] = useState('family');
-  const [phone, setPhone] = useState('');
+  const [phone, setPhone] = useState(() => {
+    try {
+      const account = JSON.parse(localStorage.getItem('user') || 'null');
+      return String(account?.mobile || account?.phone || '');
+    } catch {
+      return '';
+    }
+  });
   const [member, setMember] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -996,13 +1274,19 @@ function MembershipModal({ onClose }) {
               })}
             </div>
 
-            <input
-              value={phone}
-              onChange={(changeEvent) => setPhone(changeEvent.target.value)}
-              inputMode="tel"
-              placeholder="Phone number (for the card)"
-              className="mt-3 w-full rounded-xl border border-[#F6F1E7]/12 bg-[#082328]/60 px-4 py-2.5 text-[12px] text-[#F6F1E7] outline-none placeholder:text-[#F6F1E7]/25 focus:border-[#F5B841]"
-            />
+            {phone.trim() ? (
+              <p className="mt-3 rounded-xl border border-[#F6F1E7]/10 bg-[#082328]/40 px-4 py-2.5 text-[11px] text-[#F6F1E7]/60">
+                Card for <span className="font-semibold text-[#F6F1E7]">{phone}</span>
+              </p>
+            ) : (
+              <input
+                value={phone}
+                onChange={(changeEvent) => setPhone(changeEvent.target.value)}
+                inputMode="tel"
+                placeholder="Phone number (for the card)"
+                className="mt-3 w-full rounded-xl border border-[#F6F1E7]/12 bg-[#082328]/60 px-4 py-2.5 text-[12px] text-[#F6F1E7] outline-none placeholder:text-[#F6F1E7]/25 focus:border-[#F5B841]"
+              />
+            )}
 
             <UpiBlock amount={amount} note={`Konkani Samudai ${plans[plan]?.label} membership`} />
 

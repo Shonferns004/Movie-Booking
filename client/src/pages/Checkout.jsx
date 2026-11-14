@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import api from '../services/api.js';
+import { loadYoupiScript } from '../services/youpi.js';
 
 const C = {
   ink: '#0A2A31',
@@ -11,35 +12,6 @@ const C = {
   green: '#1E5B3C',
   greenSoft: '#E7F3EA',
 };
-
-let youpiScriptPromise = null;
-
-function loadYoupiScript(scriptUrl, merchantKey, { apiUrl, portalUrl } = {}) {
-  if (window.Youpi) return Promise.resolve(window.Youpi);
-  if (youpiScriptPromise) return youpiScriptPromise;
-
-  youpiScriptPromise = new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    script.src = scriptUrl;
-    script.async = true;
-    if (merchantKey) script.setAttribute('data-youpi-key', merchantKey);
-    if (apiUrl) script.setAttribute('data-api-url', apiUrl);
-    if (portalUrl) script.setAttribute('data-portal-url', portalUrl);
-    script.setAttribute('data-currency', 'INR');
-    script.onload = () => {
-      if (window.Youpi) resolve(window.Youpi);
-      else reject(new Error('Youpi SDK unavailable'));
-    };
-    script.onerror = () => reject(new Error('Failed to load the secure payment window'));
-    document.head.appendChild(script);
-  }).catch((error) => {
-    // Allow a later attempt if the network or SDK script fails to load.
-    youpiScriptPromise = null;
-    throw error;
-  });
-
-  return youpiScriptPromise;
-}
 
 const rupees = (minor = 0) => new Intl.NumberFormat('en-IN', {
   style: 'currency',

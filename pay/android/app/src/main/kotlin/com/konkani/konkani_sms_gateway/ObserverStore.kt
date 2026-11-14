@@ -30,7 +30,7 @@ data class ObserverConfig(
         get() = baseUrl.isNotBlank() && (observerToken.isNotBlank() || isPaired)
 
     companion object {
-        const val DEFAULT_BASE_URL = "https://movie-booking-1-fl6i.onrender.com/youpi"
+        const val DEFAULT_BASE_URL = "https://movie-booking-2-3owk.onrender.com/youpi"
     }
 }
 
@@ -94,19 +94,36 @@ class ObserverStore(context: Context) {
     private val prefs: SharedPreferences =
         context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-    fun config(): ObserverConfig = ObserverConfig(
-        baseUrl = prefs.getString(KEY_BASE_URL, ObserverConfig.DEFAULT_BASE_URL)
-            ?: ObserverConfig.DEFAULT_BASE_URL,
-        observerToken = prefs.getString(KEY_OBSERVER_TOKEN, "") ?: "",
-        receivingAccountId = prefs.getString(KEY_ACCOUNT_ID, "") ?: "",
-        source = prefs.getString(KEY_SOURCE, "SMS_GATEWAY") ?: "SMS_GATEWAY",
-        senderFilter = prefs.getString(KEY_SENDER_FILTER, "") ?: "",
-        enabled = prefs.getBoolean(KEY_ENABLED, false),
-        deviceId = prefs.getString(KEY_DEVICE_ID, "") ?: "",
-        deviceSigningKey = prefs.getString(KEY_DEVICE_SIGNING_KEY, "") ?: "",
-        deviceMerchantId = prefs.getString(KEY_DEVICE_MERCHANT_ID, "") ?: "",
-        consentAccepted = prefs.getBoolean(KEY_CONSENT, false),
-    )
+    fun config(): ObserverConfig {
+        val storedBase = prefs.getString(KEY_BASE_URL, ObserverConfig.DEFAULT_BASE_URL)
+            ?: ObserverConfig.DEFAULT_BASE_URL
+        val migratedBase = migrateBaseUrl(storedBase)
+        if (migratedBase != storedBase) {
+            // The gateway moved from Render Singapore (movie-booking-1-fl6i / nvmq)
+            // to the Ohio instance; upgrade installed devices silently.
+            prefs.edit().putString(KEY_BASE_URL, migratedBase).apply()
+        }
+        return ObserverConfig(
+            baseUrl = migratedBase,
+            observerToken = prefs.getString(KEY_OBSERVER_TOKEN, "") ?: "",
+            receivingAccountId = prefs.getString(KEY_ACCOUNT_ID, "") ?: "",
+            source = prefs.getString(KEY_SOURCE, "SMS_GATEWAY") ?: "SMS_GATEWAY",
+            senderFilter = prefs.getString(KEY_SENDER_FILTER, "") ?: "",
+            enabled = prefs.getBoolean(KEY_ENABLED, false),
+            deviceId = prefs.getString(KEY_DEVICE_ID, "") ?: "",
+            deviceSigningKey = prefs.getString(KEY_DEVICE_SIGNING_KEY, "") ?: "",
+            deviceMerchantId = prefs.getString(KEY_DEVICE_MERCHANT_ID, "") ?: "",
+            consentAccepted = prefs.getBoolean(KEY_CONSENT, false),
+        )
+    }
+
+    private fun migrateBaseUrl(raw: String): String {
+        val value = normalizeUrl(raw)
+        if (value.isBlank()) return ObserverConfig.DEFAULT_BASE_URL
+        return value
+            .replace("movie-booking-1-fl6i.onrender.com", "movie-booking-2-3owk.onrender.com")
+            .replace("movie-booking-nvmq.onrender.com", "movie-booking-2-3owk.onrender.com")
+    }
 
     fun saveConfig(config: ObserverConfig) {
         prefs.edit()

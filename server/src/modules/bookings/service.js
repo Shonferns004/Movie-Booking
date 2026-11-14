@@ -110,7 +110,8 @@ export async function listMyTickets(userId) {
      JOIN movies m ON m.id=s.movie_id
      JOIN auditoriums a ON a.id=s.auditorium_id
      JOIN theatres t ON t.id=a.theatre_id
-     WHERE b.user_id=$1 ORDER BY s.starts_at DESC`, [userId]);
+     WHERE b.user_id=$1 AND b.status <> 'pending'
+     ORDER BY s.starts_at DESC`, [userId]);
   return rows;
 }
 

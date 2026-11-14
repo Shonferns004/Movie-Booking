@@ -2,8 +2,9 @@
 import multer from 'multer';
 
 import * as community from './service.js';
+import * as payments from '../payments/service.js';
 import { getUserRoles, verifyToken } from '../auth/service.js';
-import { requireAuth } from '../../middleware/auth.js';
+import { requireAuth, optionalAuth } from '../../middleware/auth.js';
 import { forbidden, unauthorized } from '../../utils/errors.js';
 import { isNeonStorageEnabled, uploadObject } from '../../integrations/neon-storage.js';
 
@@ -69,6 +70,42 @@ router.post('/membership', requireAuth, async (req, res, next) => {
       note: req.body?.note,
     });
     res.status(201).json({ member });
+  } catch (e) {
+    next(e);
+  }
+});
+
+/* ---------------------------------------------------------- event tickets */
+
+router.post('/events/:id/checkout', optionalAuth, async (req, res, next) => {
+  try {
+    res.status(201).json(
+      await community.createTicketCheckout({
+        eventId: req.params.id,
+        tierId: req.body?.tierId,
+        quantity: req.body?.quantity,
+        name: req.body?.name,
+        phone: req.body?.phone,
+        userId: req.user?.id,
+        publicBase: payments.youpiPublicBase(req),
+      }),
+    );
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.get('/events/checkout/:orderId', async (req, res, next) => {
+  try {
+    res.json(await community.getTicketCheckout(req.params.orderId));
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.post('/events/checkout/:orderId/confirm', async (req, res, next) => {
+  try {
+    res.json(await community.confirmTicketCheckout(req.params.orderId, { utr: req.body?.utr }));
   } catch (e) {
     next(e);
   }

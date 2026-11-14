@@ -13,8 +13,8 @@ interface __BaseEnv_Env {
 	JWT_ACCESS_TTL: "7d";
 	JWT_REFRESH_TTL: "30d";
 	NEON_STORAGE_REGION: "us-east-2";
-	YOUPI_API_URL: "https://movie-booking-1-fl6i.onrender.com/youpi";
-	YOUPI_PUBLIC_BASE_URL: "https://movie-booking-1-fl6i.onrender.com";
+	YOUPI_API_URL: "https://movie-booking-2-3owk.onrender.com/youpi";
+	YOUPI_PUBLIC_BASE_URL: "https://movie-booking-2-3owk.onrender.com";
 	APP_BASE_URL: "https://konkani-samudai.vercel.app";
 	YOUPI_FRAME_ANCESTORS: "https://konkani-samudai.vercel.app,http://localhost:5175";
 	JWT_SECRET: string;

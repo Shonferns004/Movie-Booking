@@ -41,22 +41,39 @@ export async function handleRedeploy(request: Request, env: Env): Promise<Respon
 	}
 
 	const script = bindings.CF_SCRIPT_NAME || 'movie-worker';
-	const endpoint = `https://api.cloudflare.com/client/v4/accounts/${bindings.CF_ACCOUNT_ID}/workers/scripts/${script}/deployments`;
+	const account = bindings.CF_ACCOUNT_ID;
+	const base = `https://api.cloudflare.com/client/v4/accounts/${account}/workers/scripts/${script}`;
+	const deploymentsEndpoint = `${base}/deployments`;
 	const headers = {
 		authorization: `Bearer ${bindings.CF_API_TOKEN}`,
 		'content-type': 'application/json',
 	};
 
-	const list = await fetch(endpoint, { headers });
+	// The list endpoint returns `result.deployments`, newest first.
+	const list = await fetch(deploymentsEndpoint, { headers });
 	const listBody: any = await list.json().catch(() => ({}));
 	if (!list.ok) {
 		return json({ error: 'Cloudflare API rejected the listing request', status: list.status, detail: listBody }, 502);
 	}
 
-	const versionId = listBody?.result?.[0]?.versions?.[0]?.version_id;
+	let versionId = listBody?.result?.deployments?.[0]?.versions?.[0]?.version_id;
+
+	// Fall back to the versions list if the script has no deployment record yet.
+	if (!versionId) {
+		const versions = await fetch(`${base}/versions?per_page=1`, { headers });
+		const versionsBody: any = await versions.json().catch(() => ({}));
+		if (!versions.ok) {
+			return json(
+				{ error: 'Cloudflare API rejected the versions request', status: versions.status, detail: versionsBody },
+				502,
+			);
+		}
+		versionId = versionsBody?.result?.items?.[0]?.id;
+	}
+
 	if (!versionId) return json({ error: 'no uploaded version found to deploy' }, 502);
 
-	const deploy = await fetch(endpoint, {
+	const deploy = await fetch(deploymentsEndpoint, {
 		method: 'POST',
 		headers,
 		body: JSON.stringify({
@@ -71,6 +88,7 @@ export async function handleRedeploy(request: Request, env: Env): Promise<Respon
 			ok: deploy.ok,
 			script,
 			versionId,
+			deploymentId: deployBody?.result?.id,
 			deployedAt: new Date().toISOString(),
 			detail: deploy.ok ? undefined : deployBody,
 		},

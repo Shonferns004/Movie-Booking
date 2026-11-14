@@ -378,6 +378,21 @@ export async function handleYoupiWebhook(rawBody, signature) {
   const payload = JSON.parse(rawBody.toString('utf8'));
   const event = String(payload.event || '').toUpperCase();
   const isSuccess = event === 'SUCCESS';
+
+  // Community event passes have no booking row: settle them directly.
+  const communityOrderId = payload.metadata?.communityOrderId;
+  if (communityOrderId) {
+    if (isSuccess) {
+      await pool.query(
+        `UPDATE community_ticket_orders
+            SET status='paid', utr=coalesce($2, utr), updated_at=now()
+          WHERE provider_order_id=$1`,
+        [communityOrderId, payload.utr || null],
+      );
+    }
+    return { received: true, community: true, status: isSuccess ? 'paid' : 'failed' };
+  }
+
   return processPaymentEvent({
     provider: 'youpi',
     providerEventId: payload.paymentId ? `youpi-${payload.paymentId}` : null,
@@ -391,8 +406,54 @@ export async function handleYoupiWebhook(rawBody, signature) {
   });
 }
 
-/** Poll YOUPI for the authoritative status of a payment session. */
-export async function getYoupiStatus(paymentId) {
+/**
+ * Create a YOUPI checkout session that is not tied to a movie booking (community
+ * event passes). The caller stores the returned payment id on its own row.
+ */
+export async function createYoupiSession({
+  orderId,
+  amountMinor,
+  currency = 'INR',
+  description,
+  returnUrl,
+  metadata,
+  customer,
+}) {
+  const gateway = youpiApi();
+  let res;
+  try {
+    res = await fetch(`${gateway}/api/v1/payments`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(env.YOUPI_MERCHANT_ID ? { 'X-Merchant-Id': env.YOUPI_MERCHANT_ID } : {}),
+        'Idempotency-Key': orderId,
+      },
+      body: JSON.stringify({
+        orderId,
+        amount: toRupees(amountMinor),
+        currency,
+        description,
+        returnUrl,
+        customer: customer && (customer.email || customer.phone || customer.fullName)
+          ? { email: customer.email, phoneNumber: customer.phone, fullName: customer.fullName }
+          : undefined,
+        metadata,
+      }),
+    });
+  } catch (e) {
+    console.error('[youpi] gateway unreachable:', gateway, e?.message || e);
+    throw serviceUnavailable('payment gateway is unreachable — check YOUPI_API_URL');
+  }
+
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw badRequest(body.error || body.message || `youpi create payment failed (${res.status})`);
+  }
+  return body;
+}
+
+/** Poll YOUPI for the authoritative status of a payment session. */export async function getYoupiStatus(paymentId) {
   const gatewayBase = youpiApi();
   let res;
   try {

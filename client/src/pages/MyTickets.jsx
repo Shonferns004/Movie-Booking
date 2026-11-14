@@ -190,7 +190,11 @@ export default function MyTickets() {
     }
     let stop = false;
     api.get('/bookings/me/tickets')
-      .then((r) => { if (!stop) setBookings(Array.isArray(r.data) ? r.data : []); })
+      .then((r) => {
+        // Pending bookings are still being paid for: never show them as passes.
+        const rows = Array.isArray(r.data) ? r.data : [];
+        if (!stop) setBookings(rows.filter((booking) => booking.status !== 'pending'));
+      })
       .catch((err) => { if (!stop) setError(err.response?.data?.error || err.message || 'Unable to load your tickets.'); })
       .finally(() => { if (!stop) setLoading(false); });
     return () => { stop = true; };

@@ -56,3 +56,29 @@ CREATE TABLE IF NOT EXISTS community_members (
 
 CREATE UNIQUE INDEX IF NOT EXISTS community_members_user_idx
   ON community_members (user_id) WHERE user_id IS NOT NULL;
+
+-- Ticket checkouts for community events. Movie bookings have their own tables;
+-- event passes are paid through the same YOUPI checkout but are not a booking.
+CREATE TABLE IF NOT EXISTS community_ticket_orders (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_id UUID REFERENCES community_events(id) ON DELETE SET NULL,
+  event_title TEXT NOT NULL,
+  tier_id TEXT,
+  tier_name TEXT,
+  quantity INT NOT NULL DEFAULT 1,
+  amount_minor INT NOT NULL,
+  base_amount_minor INT NOT NULL,
+  currency TEXT NOT NULL DEFAULT 'INR',
+  buyer_name TEXT,
+  phone TEXT,
+  provider TEXT NOT NULL DEFAULT 'youpi',
+  provider_order_id TEXT NOT NULL UNIQUE,
+  provider_payment_id TEXT,
+  status TEXT NOT NULL DEFAULT 'created',
+  utr TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS community_ticket_orders_status_idx
+  ON community_ticket_orders (status, created_at DESC);

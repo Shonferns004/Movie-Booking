@@ -15,7 +15,7 @@ class ObserverConfig {
     this.consentAccepted = false,
   });
 
-  /// Gateway origin, e.g. `https://movie-booking-1-fl6i.onrender.com/youpi`.
+  /// Gateway origin, e.g. `https://movie-booking-2-3owk.onrender.com/youpi`.
   final String baseUrl;
 
   /// Observer bearer token (`data/.secrets/observer_api_token`). Optional when
