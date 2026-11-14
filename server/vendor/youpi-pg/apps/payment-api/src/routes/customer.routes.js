@@ -240,6 +240,8 @@ export function registerCustomerRoutes(server, ctx) {
     const berry = getBerry();
     let dispatchResult = { success: true, delivered: false, simulated: true };
     const displayName = existingUser?.name || name || '';
+    // Auto-created accounts are named "Customer 9340"; that reads badly in a greeting.
+    const greetingName = /^customer\s*\d+$/i.test(displayName.trim()) ? '' : displayName;
 
     // Merchants can customise the WhatsApp message in the admin panel. Placeholders are
     // replaced here so the template never reaches the browser.
@@ -260,7 +262,7 @@ export function registerCustomerRoutes(server, ctx) {
       try {
         const message = (otpTemplate || DEFAULT_OTP_TEMPLATE)
           .replaceAll('{otp}', otpCode)
-          .replaceAll('{name}', displayName || 'there')
+          .replaceAll('{name}', greetingName || 'there')
           .replaceAll('{appName}', appName);
         dispatchResult = await berry.sendMessage(cleanMobile, message);
       } catch (err) {
