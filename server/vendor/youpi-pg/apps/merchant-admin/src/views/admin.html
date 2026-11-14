@@ -1589,6 +1589,37 @@
                 </div>
               </div>
 
+              <!-- SECTION 1B: CUSTOMER MESSAGE TEMPLATES -->
+              <div class="settings-group-box">
+                <div class="group-box-title">
+                  ✉️ 1b. Customer Messages (WhatsApp)
+                </div>
+
+                <label style="display:block; font-size:0.82rem; font-weight:700; margin-bottom:0.35rem;">OTP message
+                  (login / verification)</label>
+                <textarea id="settingOtpMessage" rows="5"
+                  placeholder="Default: 🔐 *Konkani Samudai Verification Code*&#10;&#10;Hello {name}! Your one-time login OTP is: *{otp}*&#10;&#10;⏱ Valid for 5 minutes. Do not share this code with anyone."
+                  style="width:100%; font-family:monospace; font-size:0.82rem; resize:vertical;"></textarea>
+                <div style="font-size:0.72rem; color:var(--text-muted); margin-top:0.35rem; line-height:1.5;">
+                  Placeholders: <code>{otp}</code> · <code>{name}</code> · <code>{appName}</code>. Leave blank to use the
+                  built-in message.
+                </div>
+
+                <label style="display:block; font-size:0.82rem; font-weight:700; margin:0.9rem 0 0.35rem;">Ticket PDF
+                  caption (WhatsApp)</label>
+                <textarea id="settingTicketMessage" rows="4"
+                  placeholder="Default: 🎟️ Your {appName} tickets for {movie} are attached. Seats {seats}. Booking {reference}."
+                  style="width:100%; font-family:monospace; font-size:0.82rem; resize:vertical;"></textarea>
+                <div style="font-size:0.72rem; color:var(--text-muted); margin-top:0.35rem; line-height:1.5;">
+                  Placeholders: <code>{name}</code> · <code>{movie}</code> · <code>{theatre}</code> ·
+                  <code>{seats}</code> · <code>{reference}</code> · <code>{appName}</code>. Leave blank to use the
+                  built-in caption.
+                </div>
+
+                <button type="button" class="btn btn-success" style="margin-top:0.6rem;"
+                  onclick="saveMerchantBrandingAndToggles()">Save messages</button>
+              </div>
+
               <!-- SECTION 2: VISUAL THEME & COLOR PALETTE -->
               <div class="settings-group-box">
                 <div class="group-box-title">
@@ -3280,32 +3311,9 @@
               <button class="btn btn-secondary" onclick="fetchWhatsAppStatus(true)">🔄 Check Status</button>
             </div>
 
-            <div style="margin-top:1rem; border-top:1px solid var(--border); padding-top:1rem;">
-              <div style="font-size:0.9rem; font-weight:800; margin-bottom:0.65rem;">✉️ Message templates</div>
-
-              <label style="display:block; font-size:0.82rem; font-weight:700; margin-bottom:0.35rem;">OTP message
-                (WhatsApp)</label>
-              <textarea id="settingOtpMessage" rows="5"
-                placeholder="Default: Your Konkani Samudai verification code is {otp}"
-                style="width:100%; font-family:monospace; font-size:0.82rem; resize:vertical;"></textarea>
-              <div style="font-size:0.72rem; color:var(--text-muted); margin-top:0.35rem; line-height:1.5;">
-                Placeholders: <code>{otp}</code> · <code>{name}</code> · <code>{appName}</code>. Leave blank to use the
-                built-in message.
-              </div>
-
-              <label style="display:block; font-size:0.82rem; font-weight:700; margin:0.9rem 0 0.35rem;">Ticket PDF
-                caption (WhatsApp)</label>
-              <textarea id="settingTicketMessage" rows="4"
-                placeholder="Default: Your {appName} tickets for {movie} are attached. Booking {reference}."
-                style="width:100%; font-family:monospace; font-size:0.82rem; resize:vertical;"></textarea>
-              <div style="font-size:0.72rem; color:var(--text-muted); margin-top:0.35rem; line-height:1.5;">
-                Placeholders: <code>{name}</code> · <code>{movie}</code> · <code>{theatre}</code> ·
-                <code>{seats}</code> · <code>{reference}</code> · <code>{appName}</code>. Leave blank to use the
-                built-in caption.
-              </div>
-
-              <button type="button" class="btn btn-success" style="margin-top:0.6rem;"
-                onclick="saveMerchantBrandingAndToggles()">Save messages</button>
+            <div style="margin-top:1rem; border-top:1px solid var(--border); padding-top:1rem; font-size:0.78rem; color:var(--text-muted); line-height:1.6;">
+              💬 The OTP message and the ticket PDF caption are editable in
+              <strong>Store Settings → Branding → “Customer Messages (WhatsApp)”</strong>.
             </div>
           </div>
         </div>
