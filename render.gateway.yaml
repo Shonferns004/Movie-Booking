@@ -36,6 +36,8 @@ services:
 
       # Postgres keeps the gateway data across restarts. Same Neon URL as the API;
       # the gateway uses its own `youpi` schema, separate from the booking tables.
+      # IMPORTANT: leave this unset and the gateway falls back to SQLite on Render's
+      # ephemeral disk, so every redeploy/restart wipes the saved branding and settings.
       - key: YOUPI_DATABASE_URL
         sync: false
 

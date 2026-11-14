@@ -1687,7 +1687,7 @@
       const trustBadgeEl = document.getElementById('headerTrustBadge');
       const trustBadgeTextEl = document.getElementById('headerTrustBadgeText');
       if (trustBadgeEl) {
-        if (b.hideTrustBadge) {
+        if (b.hideTrustBadge || hideAppName) {
           trustBadgeEl.style.display = 'none';
         } else {
           trustBadgeEl.style.display = 'inline-flex';
@@ -1749,7 +1749,7 @@
       const pcTrust = document.getElementById('pcTrustBadge');
       const pcTrustText = document.getElementById('pcTrustBadgeText');
       if (pcTrust) {
-        if (b.hideTrustBadge) {
+        if (b.hideTrustBadge || hideAppName) {
           pcTrust.style.display = 'none';
         } else {
           pcTrust.style.display = 'inline-flex';

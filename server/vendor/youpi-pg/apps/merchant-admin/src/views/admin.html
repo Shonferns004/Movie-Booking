@@ -1574,7 +1574,7 @@
                     <label
                       style="font-size:0.78rem; color:var(--text-muted); display:flex; align-items:center; gap:0.35rem; cursor:pointer; margin-top:0.4rem;">
                       <input type="checkbox" id="settingHideAppName" onchange="updateLiveWhiteLabelPreview()" />
-                      <span>Hide this gateway title on checkout</span>
+                      <span>Hide this gateway title and verified badge on checkout</span>
                     </label>
                   </div>
                 </div>
@@ -4721,7 +4721,7 @@
       const trustBadgeBox = document.getElementById('mockupTrustBadge');
       const trustBadgeTextEl = document.getElementById('mockupTrustBadgeText');
       if (trustBadgeBox) {
-        trustBadgeBox.style.display = hideTrustBadge ? 'none' : 'inline-flex';
+        trustBadgeBox.style.display = (hideTrustBadge || hideAppName) ? 'none' : 'inline-flex';
         if (trustBadgeTextEl) {
           trustBadgeTextEl.textContent = trustBadgeText || (hideAppName ? 'Verified Business' : `${appName} Verified Business`);
         }

@@ -49,7 +49,7 @@ function getNodePool() {
       // Neon (and other managed Postgres) close idle sockets server-side. Closing them
       // here first avoids a stale client surfacing as ECONNRESET on the next request.
       idleTimeoutMillis: 30_000,
-      connectionTimeoutMillis: 15_000,
+      connectionTimeoutMillis: 60_000,
       keepAlive: true,
       ssl: sslFor(env.DATABASE_URL),
     });
