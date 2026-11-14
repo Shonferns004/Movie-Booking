@@ -51,25 +51,68 @@ router.get('/', async (req, res, next) => {
 
 router.get('/membership', requireAuth, async (req, res, next) => {
   try {
-    const member = await community.getMembershipForUser(req.user.id);
-    res.json({ member, plans: community.MEMBERSHIP_PLANS });
+    const [member, plan] = await Promise.all([
+      community.getMembershipForUser(req.user.id),
+      community.getMembershipPlan(),
+    ]);
+    res.json({ member, plan });
   } catch (e) {
     next(e);
   }
 });
 
-router.post('/membership', requireAuth, async (req, res, next) => {
+router.post('/membership/checkout', requireAuth, async (req, res, next) => {
   try {
-    const profile = await community.getUserProfile(req.user.id);
-    const member = await community.subscribeMember({
-      userId: req.user.id,
-      plan: req.body?.plan,
-      phone: req.body?.phone,
-      name: req.body?.name || profile?.display_name,
-      email: profile?.email,
-      note: req.body?.note,
-    });
-    res.status(201).json({ member });
+    res.status(201).json(
+      await community.createMembershipCheckout({
+        userId: req.user.id,
+        name: req.body?.name,
+        phone: req.body?.phone,
+        publicBase: payments.youpiPublicBase(req),
+      }),
+    );
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.get('/membership/checkout/:orderId', requireAuth, async (req, res, next) => {
+  try {
+    res.json(await community.getMembershipCheckout(req.params.orderId, req.user.id));
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.post('/membership/checkout/:orderId/confirm', requireAuth, async (req, res, next) => {
+  try {
+    res.json(
+      await community.confirmMembershipCheckout(req.params.orderId, req.user.id, {
+        utr: req.body?.utr,
+      }),
+    );
+  } catch (e) {
+    next(e);
+  }
+});
+
+/* ----------------------------------------------------- membership pricing */
+
+router.get('/admin/membership', adminOnly, async (req, res, next) => {
+  try {
+    res.json({ plan: await community.getMembershipPlan() });
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.patch('/admin/membership', adminOnly, async (req, res, next) => {
+  try {
+    const rupees = Number(req.body?.rupees);
+    const amountMinor = Number.isFinite(rupees) && rupees > 0
+      ? Math.round(rupees * 100)
+      : req.body?.amountMinor;
+    res.json({ plan: await community.setMembershipAmount(amountMinor) });
   } catch (e) {
     next(e);
   }

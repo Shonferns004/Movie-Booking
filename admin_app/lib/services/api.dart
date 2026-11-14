@@ -401,6 +401,32 @@ class Api {
     return (data['members'] as List?) ?? const [];
   }
 
+  static Future<Map<String, dynamic>> getMembershipSettings(String token) async {
+    final data = await _getMap(
+      token,
+      '/community/admin/membership',
+      'Failed to load membership settings',
+    );
+    return (data['plan'] as Map?)?.cast<String, dynamic>() ?? const {};
+  }
+
+  static Future<Map<String, dynamic>> updateMembershipAmount(
+    String token,
+    int amountMinor,
+  ) async {
+    final res = await _request(
+      token,
+      'PATCH',
+      '/community/admin/membership',
+      body: {'amountMinor': amountMinor},
+    );
+    if (res.statusCode != 200) {
+      throw Exception('Failed to update membership price: ${res.body}');
+    }
+    final data = jsonDecode(res.body);
+    return (data['plan'] as Map?)?.cast<String, dynamic>() ?? const {};
+  }
+
   static Future<void> createCommunityMember(String token, Map<String, dynamic> data) async {
     final res = await _request(token, 'POST', '/community/admin/members', body: data);
     if (res.statusCode != 201) throw Exception('Failed to add member: ${res.body}');

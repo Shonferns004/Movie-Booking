@@ -401,6 +401,31 @@ export async function handleYoupiWebhook(rawBody, signature) {
     return { received: true, community: true, status: isSuccess ? 'paid' : 'failed' };
   }
 
+  // Memberships have their own checkout and activate the member on success.
+  const membershipOrderId = payload.metadata?.membershipOrderId;
+  if (membershipOrderId) {
+    if (isSuccess) {
+      await pool.query(
+        `WITH settled AS (
+           UPDATE community_membership_orders
+              SET status='paid', utr=coalesce($2, utr), updated_at=now()
+            WHERE provider_order_id=$1
+            RETURNING *
+         )
+         INSERT INTO community_members (user_id, name, email, phone, plan, amount_minor, status)
+         SELECT user_id, name, email, phone, 'annual', base_amount_minor, 'active'
+           FROM settled WHERE user_id IS NOT NULL
+         ON CONFLICT (user_id) WHERE user_id IS NOT NULL DO UPDATE
+           SET status='active', plan='annual', amount_minor=EXCLUDED.amount_minor,
+               name=coalesce(EXCLUDED.name, community_members.name),
+               phone=coalesce(EXCLUDED.phone, community_members.phone),
+               updated_at=now()`,
+        [membershipOrderId, payload.utr || null],
+      );
+    }
+    return { received: true, membership: true, status: isSuccess ? 'paid' : 'failed' };
+  }
+
   return processPaymentEvent({
     provider: 'youpi',
     providerEventId: payload.paymentId ? `youpi-${payload.paymentId}` : null,

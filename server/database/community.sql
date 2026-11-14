@@ -82,3 +82,36 @@ CREATE TABLE IF NOT EXISTS community_ticket_orders (
 
 CREATE INDEX IF NOT EXISTS community_ticket_orders_status_idx
   ON community_ticket_orders (status, created_at DESC);
+
+-- Single membership price, editable from the admin app.
+CREATE TABLE IF NOT EXISTS community_settings (
+  key TEXT PRIMARY KEY,
+  value JSONB NOT NULL DEFAULT '{}'::jsonb,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+INSERT INTO community_settings (key, value)
+VALUES ('membership', '{"label":"Annual membership","amountMinor":120000}'::jsonb)
+ON CONFLICT (key) DO NOTHING;
+
+-- YOUPI checkouts for memberships (separate from movie bookings and event passes).
+CREATE TABLE IF NOT EXISTS community_membership_orders (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  name TEXT,
+  phone TEXT,
+  email TEXT,
+  amount_minor INT NOT NULL,
+  base_amount_minor INT NOT NULL,
+  currency TEXT NOT NULL DEFAULT 'INR',
+  provider TEXT NOT NULL DEFAULT 'youpi',
+  provider_order_id TEXT NOT NULL UNIQUE,
+  provider_payment_id TEXT,
+  status TEXT NOT NULL DEFAULT 'created',
+  utr TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS community_membership_orders_status_idx
+  ON community_membership_orders (status, created_at DESC);

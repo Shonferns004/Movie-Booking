@@ -3,13 +3,13 @@ import { Link, useParams } from 'react-router-dom';
 import api, { assetUrl } from '../services/api.js';
 
 const C = {
-  ink: '#131315',
-  tide: '#1B1B1D',
-  shell: '#E5E1E4',
-  kokum: '#F5C542',
-  mango: '#F5C542',
-  green: '#BBCBB6',
-  muted: '#A9A29E',
+  ink: '#0A2A31',
+  tide: '#123E47',
+  shell: '#EFEBE0',
+  kokum: '#C2305E',
+  mango: '#F4B63F',
+  green: '#78C9A6',
+  muted: '#93A6A8',
 };
 
 const WEEKDAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
@@ -28,14 +28,14 @@ const STYLES = `
 .kk-display { font-family: 'Fraunces', Georgia, serif; }
 
 .kk-date { transition: background-color .18s ease, color .18s ease, border-color .18s ease, transform .18s ease, box-shadow .18s ease; }
-.kk-date:not(:disabled):hover { background-color: rgba(229, 225, 228, .07); }
-.kk-date.is-active { background-color: #F5C542; border-color: #F5C542; color: #131315; box-shadow: 0 10px 26px rgba(245, 197, 66, .3); }
+.kk-date:not(:disabled):hover { background-color: rgba(239, 235, 224, .07); }
+.kk-date.is-active { background-color: #C2305E; border-color: #C2305E; color: #fff; box-shadow: 0 10px 26px rgba(194, 48, 94, .3); }
 
 .kk-time { transition: background-color .18s ease, border-color .18s ease, transform .18s ease, box-shadow .18s ease; }
-.kk-time:not(.is-disabled):hover { transform: translateY(-2px); background-color: rgba(229, 225, 228, .08); box-shadow: 0 10px 22px rgba(0, 0, 0, .22); }
+.kk-time:not(.is-disabled):hover { transform: translateY(-2px); background-color: rgba(239, 235, 224, .08); box-shadow: 0 10px 22px rgba(0, 0, 0, .22); }
 
 .kk-filter { transition: background-color .18s ease, color .18s ease, border-color .18s ease; }
-.kk-filter:not(.is-active):hover { background-color: rgba(229, 225, 228, .07); }
+.kk-filter:not(.is-active):hover { background-color: rgba(239, 235, 224, .07); }
 
 .kk-reveal { animation: kk-fade-up .5s ease both; }
 @keyframes kk-fade-up { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
@@ -275,12 +275,12 @@ export default function MovieDetails() {
 
   if (movieLoading) {
     return (
-      <div className="kk-md flex min-h-screen items-center justify-center bg-[#131315] px-4 text-[#E5E1E4]">
+      <div className="kk-md flex min-h-screen items-center justify-center bg-[#0A2A31] px-4 text-[#EFEBE0]">
         <style>{STYLES}</style>
         <div className="w-full max-w-sm text-center">
-          <div className="mx-auto h-16 w-16 animate-pulse rounded-2xl bg-[#1B1B1D]" />
+          <div className="mx-auto h-16 w-16 animate-pulse rounded-2xl bg-[#123E47]" />
           <p className="kk-display mt-5 text-xl font-bold">Preparing your screening...</p>
-          <p className="mt-2 text-sm text-[#E5E1E4]/55">A little movie magic is on its way.</p>
+          <p className="mt-2 text-sm text-[#EFEBE0]/55">A little movie magic is on its way.</p>
         </div>
       </div>
     );
@@ -288,14 +288,14 @@ export default function MovieDetails() {
 
   if (movieError || !movie) {
     return (
-      <div className="kk-md flex min-h-screen flex-col items-center justify-center bg-[#131315] px-5 text-center text-[#E5E1E4]">
+      <div className="kk-md flex min-h-screen flex-col items-center justify-center bg-[#0A2A31] px-5 text-center text-[#EFEBE0]">
         <style>{STYLES}</style>
-        <p className="text-xs font-bold uppercase tracking-[.2em] text-[#F5C542]">404 · Film unavailable</p>
+        <p className="text-xs font-bold uppercase tracking-[.2em] text-[#F4B63F]">404 · Film unavailable</p>
         <h1 className="kk-display mt-3 text-3xl font-bold">We couldn't find this film.</h1>
-        <p className="mt-3 max-w-md text-sm text-[#E5E1E4]/65">
+        <p className="mt-3 max-w-md text-sm text-[#EFEBE0]/65">
           It may have been removed or the link may be incorrect.
         </p>
-        <Link to="/movies" className="mt-6 rounded-xl bg-[#F5C542] px-5 py-3 text-sm font-bold text-[#131315]">
+        <Link to="/movies" className="mt-6 rounded-xl bg-[#C2305E] px-5 py-3 text-sm font-bold text-white">
           Back to movies
         </Link>
       </div>
@@ -310,11 +310,11 @@ export default function MovieDetails() {
   const totalShows = shows.length;
 
   return (
-    <div className="kk-md min-h-screen bg-[#131315] text-[#E5E1E4]">
+    <div className="kk-md min-h-screen bg-[#0A2A31] text-[#EFEBE0]">
       <style>{STYLES}</style>
 
       {/* Movie header */}
-      <section className="relative overflow-hidden border-b border-[#E5E1E4]/10">
+      <section className="relative overflow-hidden border-b border-[#EFEBE0]/10">
         {poster && (
           <img
             src={poster}
@@ -323,12 +323,12 @@ export default function MovieDetails() {
             className="pointer-events-none absolute inset-0 h-full w-full scale-110 object-cover opacity-20 blur-3xl"
           />
         )}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#131315]/70 via-[#131315]/90 to-[#131315]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0A2A31]/70 via-[#0A2A31]/90 to-[#0A2A31]" />
 
         <div className="relative mx-auto max-w-6xl px-4 pb-8 pt-6 sm:px-6">
           <Link
             to="/movies"
-            className="inline-flex items-center gap-2 rounded-full border border-[#E5E1E4]/15 bg-[#131315]/40 px-4 py-2 text-xs font-semibold text-[#E5E1E4]/75 backdrop-blur transition hover:border-[#F5C542]/60 hover:text-[#F5C542]"
+            className="inline-flex items-center gap-2 rounded-full border border-[#EFEBE0]/15 bg-[#0A2A31]/40 px-4 py-2 text-xs font-semibold text-[#EFEBE0]/75 backdrop-blur transition hover:border-[#F4B63F]/60 hover:text-[#F4B63F]"
           >
             <span aria-hidden="true">←</span> All movies
           </Link>
@@ -342,7 +342,7 @@ export default function MovieDetails() {
                   className="aspect-[3/4] w-full rounded-xl object-cover shadow-2xl shadow-black/50 ring-1 ring-white/10"
                 />
               ) : (
-                <div className="flex aspect-[3/4] w-full items-center justify-center rounded-xl bg-[#1B1B1D] p-3 text-center text-[10px] font-bold uppercase tracking-widest text-[#E5E1E4]/70">
+                <div className="flex aspect-[3/4] w-full items-center justify-center rounded-xl bg-[#123E47] p-3 text-center text-[10px] font-bold uppercase tracking-widest text-[#EFEBE0]/70">
                   Konkani Cinema
                 </div>
               )}
@@ -355,22 +355,22 @@ export default function MovieDetails() {
 
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 {runtimeLabel(movie.duration_minutes) && (
-                  <span className="rounded-full border border-[#E5E1E4]/20 px-3 py-1 text-xs font-medium text-[#E5E1E4]/75">
+                  <span className="rounded-full border border-[#EFEBE0]/20 px-3 py-1 text-xs font-medium text-[#EFEBE0]/75">
                     Movie runtime: {runtimeLabel(movie.duration_minutes)}
                   </span>
                 )}
-                <span className="rounded border border-[#E5E1E4]/30 px-2 py-0.5 text-xs font-bold text-[#E5E1E4]/85">
+                <span className="rounded border border-[#EFEBE0]/30 px-2 py-0.5 text-xs font-bold text-[#EFEBE0]/85">
                   {movie.certification || 'UA'}
                 </span>
                 {movie.language && (
-                  <span className="rounded-full border border-[#E5E1E4]/20 px-3 py-1 text-xs font-medium text-[#E5E1E4]/75">
+                  <span className="rounded-full border border-[#EFEBE0]/20 px-3 py-1 text-xs font-medium text-[#EFEBE0]/75">
                     {movie.language}
                   </span>
                 )}
                 {genres.map((genre) => (
                   <span
                     key={genre}
-                    className="rounded-full border border-[#E5E1E4]/15 px-3 py-1 text-xs font-medium text-[#E5E1E4]/60"
+                    className="rounded-full border border-[#EFEBE0]/15 px-3 py-1 text-xs font-medium text-[#EFEBE0]/60"
                   >
                     {genre}
                   </span>
@@ -378,7 +378,7 @@ export default function MovieDetails() {
               </div>
 
               {movie.synopsis && (
-                <p className="mt-4 max-w-3xl text-sm leading-7 text-[#E5E1E4]/70">
+                <p className="mt-4 max-w-3xl text-sm leading-7 text-[#EFEBE0]/70">
                   {movie.synopsis}
                 </p>
               )}
@@ -386,11 +386,11 @@ export default function MovieDetails() {
               <div className="mt-5 flex flex-wrap items-center gap-3">
                 <a
                   href="#showtimes"
-                  className="inline-flex items-center gap-2 rounded-lg bg-[#F5C542] px-5 py-2.5 text-sm font-bold text-[#131315] shadow-lg shadow-black/20 transition hover:bg-[#C49517]"
+                  className="inline-flex items-center gap-2 rounded-lg bg-[#C2305E] px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-black/20 transition hover:bg-[#a82651]"
                 >
                   Book tickets <span aria-hidden="true">↓</span>
                 </a>
-                <span className="text-xs text-[#E5E1E4]/50">
+                <span className="text-xs text-[#EFEBE0]/50">
                   {totalShows > 0
                     ? `${totalShows} ${totalShows === 1 ? 'show' : 'shows'} scheduled`
                     : 'Showtimes will appear here'}
@@ -402,7 +402,7 @@ export default function MovieDetails() {
       </section>
 
       {/* Date + filters */}
-      <div className="sticky top-[72px] z-30 border-b border-[#E5E1E4]/10 bg-[#131315]/95 backdrop-blur-xl">
+      <div className="sticky top-[72px] z-30 border-b border-[#EFEBE0]/10 bg-[#0A2A31]/95 backdrop-blur-xl">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="flex items-center gap-3 overflow-x-auto py-2.5">
             <div className="flex shrink-0 items-stretch gap-1">
@@ -419,7 +419,7 @@ export default function MovieDetails() {
                     }}
                     aria-pressed={active}
                     className={`kk-date flex min-w-[62px] shrink-0 flex-col items-center rounded-lg border px-2.5 py-1.5 disabled:cursor-not-allowed disabled:opacity-35 ${active ? 'is-active' : ''}`}
-                    style={{ borderColor: active ? C.kokum : 'rgba(229, 225, 228,.14)' }}
+                    style={{ borderColor: active ? C.kokum : 'rgba(239,235,224,.14)' }}
                   >
                     <span className="text-[9px] font-bold uppercase tracking-[.12em] opacity-70">
                       {WEEKDAYS[day.date.getDay()]}
@@ -433,7 +433,7 @@ export default function MovieDetails() {
               })}
             </div>
 
-            <span className="mx-1 h-8 w-px shrink-0 bg-[#E5E1E4]/[0.12]" aria-hidden="true" />
+            <span className="mx-1 h-8 w-px shrink-0 bg-[#EFEBE0]/[0.12]" aria-hidden="true" />
 
             <div className="flex shrink-0 items-center gap-1">
               {TIME_FILTERS.map((filter) => {
@@ -446,12 +446,12 @@ export default function MovieDetails() {
                     aria-pressed={active}
                     className={`kk-filter shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold ${
                       active
-                        ? 'is-active bg-[#E5E1E4] text-[#131315]'
-                        : 'border border-[#E5E1E4]/15 text-[#E5E1E4]/65'
+                        ? 'is-active bg-[#EFEBE0] text-[#0A2A31]'
+                        : 'border border-[#EFEBE0]/15 text-[#EFEBE0]/65'
                     }`}
                   >
                     {filter.label}
-                    <span className={`ml-1.5 text-[10px] ${active ? 'text-[#131315]/60' : 'text-[#E5E1E4]/40'}`}>
+                    <span className={`ml-1.5 text-[10px] ${active ? 'text-[#0A2A31]/60' : 'text-[#EFEBE0]/40'}`}>
                       {filterCounts[filter.key]}
                     </span>
                   </button>
@@ -460,7 +460,7 @@ export default function MovieDetails() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-3 pb-2 text-[10px] font-semibold uppercase tracking-[.14em] text-[#E5E1E4]/45">
+          <div className="flex items-center justify-between gap-3 pb-2 text-[10px] font-semibold uppercase tracking-[.14em] text-[#EFEBE0]/45">
             <span>
               {activeDate ? `${prettyDate(activeDate.date)} · ${filteredShows.length} ${filteredShows.length === 1 ? 'show' : 'shows'}` : 'No date selected'}
             </span>
@@ -480,21 +480,21 @@ export default function MovieDetails() {
       <main id="showtimes" className="mx-auto max-w-6xl px-4 pb-20 pt-7 sm:px-6">
         <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[.2em] text-[#F5C542]">Select your screening</p>
+            <p className="text-xs font-bold uppercase tracking-[.2em] text-[#C2305E]">Select your screening</p>
             <h2 className="kk-display mt-1.5 text-2xl font-bold sm:text-3xl">
-              Showtimes<span className="text-[#F5C542]">.</span>
+              Showtimes<span className="text-[#F4B63F]">.</span>
             </h2>
           </div>
-          <span className="inline-flex items-center gap-2 rounded-full border border-[#E5E1E4]/15 bg-[#1B1B1D] px-4 py-2 text-xs font-semibold text-[#E5E1E4]/75">
-            <span className="h-2 w-2 rounded-full bg-[#F5C542]" />
+          <span className="inline-flex items-center gap-2 rounded-full border border-[#EFEBE0]/15 bg-[#123E47] px-4 py-2 text-xs font-semibold text-[#EFEBE0]/75">
+            <span className="h-2 w-2 rounded-full bg-[#F4B63F]" />
             {showsLoading ? 'Loading screenings...' : `${theatres.length} ${theatres.length === 1 ? 'cinema' : 'cinemas'}`}
           </span>
         </div>
 
         {showsError ? (
-          <div className="rounded-2xl border border-[#F5C542]/40 bg-[#1B1B1D] p-6">
+          <div className="rounded-2xl border border-[#C2305E]/40 bg-[#123E47] p-6">
             <h3 className="kk-display text-xl font-bold">Showtimes couldn't load.</h3>
-            <p className="mt-2 text-sm text-[#E5E1E4]/65">Please check your connection and try again.</p>
+            <p className="mt-2 text-sm text-[#EFEBE0]/65">Please check your connection and try again.</p>
             <button
               type="button"
               onClick={() => {
@@ -508,7 +508,7 @@ export default function MovieDetails() {
                   })
                   .finally(() => setShowsLoading(false));
               }}
-              className="mt-4 rounded-lg bg-[#F5C542] px-4 py-2 text-sm font-bold text-[#131315]"
+              className="mt-4 rounded-lg bg-[#C2305E] px-4 py-2 text-sm font-bold text-white"
             >
               Try again
             </button>
@@ -516,7 +516,7 @@ export default function MovieDetails() {
         ) : showsLoading && shows.length === 0 ? (
           <div className="grid gap-4 lg:grid-cols-2">
             {[1, 2].map((n) => (
-              <div key={n} className="h-44 animate-pulse rounded-2xl bg-[#1B1B1D]" />
+              <div key={n} className="h-44 animate-pulse rounded-2xl bg-[#123E47]" />
             ))}
           </div>
         ) : theatres.length > 0 ? (
@@ -524,18 +524,18 @@ export default function MovieDetails() {
             {theatres.map((theatre, index) => (
               <article
                 key={theatre.key}
-                className="kk-reveal rounded-2xl border border-[#E5E1E4]/[0.12] bg-[#1B1B1D]/85 p-5 shadow-lg shadow-black/10 sm:p-6"
+                className="kk-reveal rounded-2xl border border-[#EFEBE0]/[0.12] bg-[#123E47]/85 p-5 shadow-lg shadow-black/10 sm:p-6"
                 style={{ animationDelay: `${index * 70}ms` }}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
                     <h3 className="truncate text-base font-semibold sm:text-lg">{theatre.name}</h3>
-                    <p className="mt-1 truncate text-xs text-[#E5E1E4]/50">
+                    <p className="mt-1 truncate text-xs text-[#EFEBE0]/50">
                       {theatre.auditoriums.join(' · ') || 'Screening room'}
                     </p>
-                    <p className="mt-1.5 text-[11px] font-semibold text-[#BBCBB6]">Cancellation available</p>
+                    <p className="mt-1.5 text-[11px] font-semibold text-[#78C9A6]">Cancellation available</p>
                   </div>
-                  <span className="material-symbols-outlined shrink-0 text-[#E5E1E4]/35" aria-hidden="true">
+                  <span className="material-symbols-outlined shrink-0 text-[#EFEBE0]/35" aria-hidden="true">
                     favorite_border
                   </span>
                 </div>
@@ -549,12 +549,12 @@ export default function MovieDetails() {
             ))}
           </div>
         ) : (
-          <div className="rounded-2xl border border-dashed border-[#E5E1E4]/20 bg-[#1B1B1D]/50 px-6 py-14 text-center">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#131315] text-[#F5C542]">
+          <div className="rounded-2xl border border-dashed border-[#EFEBE0]/20 bg-[#123E47]/50 px-6 py-14 text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#0A2A31] text-[#F4B63F]">
               <span className="material-symbols-outlined">event_busy</span>
             </div>
             <h3 className="kk-display mt-4 text-2xl font-bold">No shows here yet.</h3>
-            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#E5E1E4]/60">
+            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#EFEBE0]/60">
               {timeFilter !== 'all'
                 ? 'No screenings match this time of day. Try another filter or date.'
                 : 'There are no screenings for this date. Pick another date above.'}
@@ -563,7 +563,7 @@ export default function MovieDetails() {
               <button
                 type="button"
                 onClick={() => setTimeFilter('all')}
-                className="mt-5 rounded-lg border border-[#F5C542]/40 px-4 py-2 text-sm font-semibold text-[#F5C542] transition hover:bg-[#F5C542] hover:text-[#131315]"
+                className="mt-5 rounded-lg border border-[#F4B63F]/40 px-4 py-2 text-sm font-semibold text-[#F4B63F] transition hover:bg-[#F4B63F] hover:text-[#0A2A31]"
               >
                 Show all times
               </button>
@@ -572,12 +572,12 @@ export default function MovieDetails() {
         )}
 
         {/* About */}
-        <section className="mt-12 border-t border-[#E5E1E4]/15 pt-8">
+        <section className="mt-12 border-t border-[#EFEBE0]/15 pt-8">
           <h2 className="kk-display text-2xl font-bold">About the movie</h2>
-          <p className="mt-3 max-w-3xl text-sm leading-7 text-[#E5E1E4]/65">
+          <p className="mt-3 max-w-3xl text-sm leading-7 text-[#EFEBE0]/65">
             {movie.synopsis || 'The story awaits. More details coming soon.'}
           </p>
-          <div className="mt-5 flex flex-wrap gap-2 text-xs text-[#E5E1E4]/55">
+          <div className="mt-5 flex flex-wrap gap-2 text-xs text-[#EFEBE0]/55">
             {runtimeLabel(movie.duration_minutes) && <span>Runtime {runtimeLabel(movie.duration_minutes)}</span>}
             {movie.language && <span>· {movie.language}</span>}
             {movie.certification && <span>· {movie.certification}</span>}
@@ -586,12 +586,12 @@ export default function MovieDetails() {
         </section>
       </main>
 
-      <footer className="border-t border-[#E5E1E4]/10 bg-[#131315]">
-        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-6 text-xs text-[#E5E1E4]/50 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <span className="kk-display text-base font-bold text-[#E5E1E4]">
-            Konkani Samudai<span className="text-[#F5C542]">.</span>
+      <footer className="border-t border-[#EFEBE0]/10 bg-[#071E23]">
+        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-6 text-xs text-[#EFEBE0]/50 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <span className="kk-display text-base font-bold text-[#EFEBE0]">
+            Konkani Samudai<span className="text-[#F4B63F]">.</span>
           </span>
-          <Link to="/movies" className="transition hover:text-[#F5C542]">Back to all movies ↑</Link>
+          <Link to="/movies" className="transition hover:text-[#F4B63F]">Back to all movies ↑</Link>
         </div>
       </footer>
     </div>

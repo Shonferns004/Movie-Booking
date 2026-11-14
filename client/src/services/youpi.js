@@ -68,7 +68,7 @@ export async function openYoupiCheckout(order, { name, phone, email, description
       description,
       portalUrl: order.portalUrl,
       apiUrl: order.apiUrl,
-      theme: { color: '#F5C542' },
+      theme: { color: '#C2305E' },
       customer: {
         name: name || undefined,
         email: email || undefined,

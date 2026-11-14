@@ -11,11 +11,36 @@ import { createYoupiSession, getYoupiStatus } from '../payments/service.js';
  * manages it through the functions below.
  */
 
-export const MEMBERSHIP_PLANS = {
-  single: { label: 'Single', amountMinor: 60000 },
-  family: { label: 'Family', amountMinor: 120000 },
-  patron: { label: 'Patron', amountMinor: 500000 },
-};
+export const DEFAULT_MEMBERSHIP = { label: 'Annual membership', amountMinor: 120000 };
+
+/** The single membership price, managed from the admin app. */
+export async function getMembershipPlan() {
+  const { rows } = await pool.query("SELECT value FROM community_settings WHERE key='membership'");
+  const value = rows[0]?.value || {};
+  const amountMinor = Number(value.amountMinor);
+  return {
+    label: value.label || DEFAULT_MEMBERSHIP.label,
+    amountMinor:
+      Number.isFinite(amountMinor) && amountMinor >= 1000
+        ? amountMinor
+        : DEFAULT_MEMBERSHIP.amountMinor,
+  };
+}
+
+export async function setMembershipAmount(amountMinor) {
+  const amount = Math.round(Number(amountMinor));
+  if (!Number.isFinite(amount) || amount < 1000) throw badRequest('amount must be at least ₹10');
+  if (amount > 10000000) throw badRequest('amount is too large');
+
+  const plan = { ...DEFAULT_MEMBERSHIP, amountMinor: amount };
+  await pool.query(
+    `INSERT INTO community_settings (key, value, updated_at)
+     VALUES ('membership', $1::jsonb, now())
+     ON CONFLICT (key) DO UPDATE SET value=$1::jsonb, updated_at=now()`,
+    [JSON.stringify(plan)],
+  );
+  return plan;
+}
 
 const asTiers = (value) => (Array.isArray(value) ? value : []);
 
@@ -67,7 +92,7 @@ function memberRow(row) {
 /* ------------------------------------------------------------------ public */
 
 export async function getPublicPage() {
-  const [hero, events, notices, members] = await Promise.all([
+  const [hero, events, notices, members, membership] = await Promise.all([
     pool.query(
       `SELECT id, url, caption FROM hero_images
         WHERE active = TRUE ORDER BY sort_order, created_at`,
@@ -81,12 +106,14 @@ export async function getPublicPage() {
         WHERE published = TRUE ORDER BY sort_order, created_at DESC LIMIT 20`,
     ),
     pool.query('SELECT count(*)::int AS n FROM community_members'),
+    getMembershipPlan(),
   ]);
 
   return {
     hero: hero.rows,
     events: events.rows.map(eventRow),
     notices: notices.rows.map(noticeRow),
+    membership,
     stats: {
       members: members.rows[0]?.n ?? 0,
       events: events.rows.length,
@@ -147,7 +174,7 @@ export async function createEvent(data) {
       data.venue || null,
       data.blurb || null,
       Array.isArray(data.tags) ? data.tags : [],
-      data.accent || '#F5C542',
+      data.accent || '#F5B841',
       JSON.stringify(asTiers(data.tiers)),
       data.published !== false,
       data.sortOrder ?? null,
@@ -245,18 +272,16 @@ export async function listMembers() {
 
 export async function createMember(data) {
   if (!data?.name || !String(data.name).trim()) throw badRequest('name is required');
-  const planKey = MEMBERSHIP_PLANS[data.plan] ? data.plan : 'family';
-  const plan = MEMBERSHIP_PLANS[planKey];
+  const plan = await getMembershipPlan();
   const { rows } = await pool.query(
     `INSERT INTO community_members (user_id, name, email, phone, plan, amount_minor, status, note)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+     VALUES ($1,$2,$3,$4,'annual',$5,$6,$7)
      RETURNING *`,
     [
       data.userId || null,
       String(data.name).trim(),
       data.email || null,
       data.phone || null,
-      planKey,
       data.amountMinor ?? plan.amountMinor,
       data.status || 'active',
       data.note || null,
@@ -283,7 +308,7 @@ export async function updateMember(id, data) {
       data.name ?? null,
       data.email ?? null,
       data.phone ?? null,
-      MEMBERSHIP_PLANS[data.plan] ? data.plan : null,
+      'annual',
       data.amountMinor ?? null,
       data.status ?? null,
       data.note ?? null,
@@ -299,29 +324,212 @@ export async function deleteMember(id) {
   return { deleted: true };
 }
 
-/** A signed-in visitor subscribes; one membership per account. */
-export async function subscribeMember({ userId, plan, phone, name, email, note }) {
-  const planKey = MEMBERSHIP_PLANS[plan] ? plan : 'family';
-  const chosen = MEMBERSHIP_PLANS[planKey];
-
-  const existing = await pool.query('SELECT * FROM community_members WHERE user_id=$1', [userId]);
+/** Keeps one membership row per account (partial unique index on user_id). */
+export async function upsertMembershipForUser({ userId, name, phone, email, amountMinor, status = 'active', note }) {
+  const existing = await pool.query('SELECT id FROM community_members WHERE user_id=$1', [userId]);
   if (existing.rows.length) {
     const { rows } = await pool.query(
       `UPDATE community_members
-          SET plan=$2, amount_minor=$3, phone=coalesce($4, phone), note=coalesce($5, note), updated_at=now()
-        WHERE user_id=$1 RETURNING *`,
-      [userId, planKey, chosen.amountMinor, phone || null, note || null],
+          SET name=coalesce($2, name), phone=coalesce($3, phone), email=coalesce($4, email),
+              plan='annual', amount_minor=$5, status=$6, note=coalesce($7, note), updated_at=now()
+        WHERE user_id=$1
+        RETURNING *`,
+      [userId, name || null, phone || null, email || null, amountMinor, status, note || null],
     );
     return memberRow(rows[0]);
   }
 
   const { rows } = await pool.query(
     `INSERT INTO community_members (user_id, name, email, phone, plan, amount_minor, status, note)
-     VALUES ($1,$2,$3,$4,$5,$6,'pending',$7)
+     VALUES ($1,$2,$3,$4,'annual',$5,$6,$7)
      RETURNING *`,
-    [userId, name || 'Member', email || null, phone || null, planKey, chosen.amountMinor, note || null],
+    [userId, name || 'Member', email || null, phone || null, amountMinor, status, note || null],
   );
   return memberRow(rows[0]);
+}
+
+/* ----------------------------------------------------- membership checkout */
+
+function membershipOrderRow(row) {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    name: row.name,
+    phone: row.phone,
+    email: row.email,
+    amountMinor: row.amount_minor,
+    baseAmountMinor: row.base_amount_minor,
+    currency: row.currency,
+    status: row.status,
+    utr: row.utr,
+    orderId: row.provider_order_id,
+    paymentId: row.provider_payment_id,
+    createdAt: row.created_at,
+  };
+}
+
+async function findMembershipOrder(orderId) {
+  const { rows } = await pool.query(
+    'SELECT * FROM community_membership_orders WHERE provider_order_id=$1',
+    [orderId],
+  );
+  if (!rows.length) throw notFound('membership checkout not found');
+  return rows[0];
+}
+
+/** Start a YOUPI checkout for the single annual membership. */
+export async function createMembershipCheckout({ userId, name, phone, publicBase }) {
+  const plan = await getMembershipPlan();
+  const { rows: people } = await pool.query(
+    'SELECT email, mobile, display_name FROM users WHERE id=$1',
+    [userId],
+  );
+  const profile = people[0];
+  if (!profile) throw notFound('account not found');
+
+  const buyerName = String(name || profile.display_name || '').trim() || 'Member';
+  const buyerPhone = String(phone || profile.mobile || '').trim();
+  if (!buyerPhone) throw badRequest('a contact number is required');
+
+  const baseMinor = plan.amountMinor;
+  const { rows: open } = await pool.query(
+    `SELECT amount_minor FROM community_membership_orders
+      WHERE status='created' AND created_at > now() - interval '15 minutes'`,
+  );
+  const used = new Set(open.map((row) => Number(row.amount_minor)));
+  let payableMinor = baseMinor;
+  for (let offset = 1; offset <= 99; offset += 1) {
+    if (!used.has(baseMinor + offset)) {
+      payableMinor = baseMinor + offset;
+      break;
+    }
+  }
+
+  const orderId = `member_${randomToken(8)}`;
+  const appOrigin = (env.APP_BASE_URL || publicBase || '').replace(/\/$/, '');
+  const session = await createYoupiSession({
+    orderId,
+    amountMinor: payableMinor,
+    currency: 'INR',
+    description: `Konkani Samudai membership · ${buyerName}`,
+    returnUrl: `${appOrigin}/?membership=${orderId}`,
+    metadata: { membershipOrderId: orderId, userId },
+    customer: { fullName: buyerName, phone: buyerPhone, email: profile.email || undefined },
+  });
+
+  const { rows } = await pool.query(
+    `INSERT INTO community_membership_orders
+       (user_id, name, phone, email, amount_minor, base_amount_minor,
+        provider_order_id, provider_payment_id, status)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'created')
+     RETURNING *`,
+    [
+      userId,
+      buyerName,
+      buyerPhone,
+      profile.email || null,
+      payableMinor,
+      baseMinor,
+      orderId,
+      session.paymentId || null,
+    ],
+  );
+
+  const base = (publicBase || '').replace(/\/$/, '');
+  return {
+    order: membershipOrderRow(rows[0]),
+    orderId,
+    paymentId: session.paymentId || null,
+    amount: (payableMinor / 100).toFixed(2),
+    amountMinor: payableMinor,
+    baseAmountMinor: baseMinor,
+    currency: 'INR',
+    checkoutUrl: session.paymentId ? `${base}/checkout/${session.paymentId}` : '',
+    scriptUrl: `${base}/youpi.js?v=2`,
+    apiUrl: `${base}/youpi`,
+    portalUrl: base,
+    merchantKey: env.YOUPI_MERCHANT_ID || '',
+    plan,
+  };
+}
+
+export async function getMembershipCheckout(orderId, userId) {
+  const row = await findMembershipOrder(orderId);
+  if (row.user_id !== userId) throw notFound('membership checkout not found');
+
+  let status = row.status;
+  let providerStatus = null;
+
+  if (row.provider_payment_id && status === 'created') {
+    try {
+      const provider = await getYoupiStatus(row.provider_payment_id);
+      providerStatus = String(provider.status || '').toUpperCase();
+      if (providerStatus === 'SUCCESS') {
+        await pool.query(
+          "UPDATE community_membership_orders SET status='paid', updated_at=now() WHERE id=$1",
+          [row.id],
+        );
+        await upsertMembershipForUser({
+          userId: row.user_id,
+          name: row.name,
+          phone: row.phone,
+          email: row.email,
+          amountMinor: row.base_amount_minor,
+          status: 'active',
+        });
+        status = 'paid';
+      } else if (providerStatus === 'FAILED' || providerStatus === 'EXPIRED') {
+        status = providerStatus.toLowerCase();
+        await pool.query(
+          'UPDATE community_membership_orders SET status=$2, updated_at=now() WHERE id=$1',
+          [row.id, status],
+        );
+      }
+    } catch {
+      // Keep it created; the client retries.
+    }
+  }
+
+  return {
+    order: { ...membershipOrderRow(row), status },
+    status,
+    providerStatus,
+    member: status === 'paid' ? await getMembershipForUser(userId) : null,
+  };
+}
+
+export async function confirmMembershipCheckout(orderId, userId, { utr } = {}) {
+  const row = await findMembershipOrder(orderId);
+  if (row.user_id !== userId) throw notFound('membership checkout not found');
+  if (row.status === 'paid') {
+    return { success: true, member: await getMembershipForUser(userId) };
+  }
+  if (!row.provider_payment_id) throw badRequest('this checkout has no payment session');
+
+  const provider = await getYoupiStatus(row.provider_payment_id);
+  if (String(provider.status || '').toUpperCase() !== 'SUCCESS') {
+    return { success: false, status: provider.status };
+  }
+  if (provider.amountPaise && Number(provider.amountPaise) !== Number(row.amount_minor)) {
+    throw badRequest('payment amount mismatch');
+  }
+
+  await pool.query(
+    `UPDATE community_membership_orders
+        SET status='paid', utr=coalesce($2, utr), updated_at=now()
+      WHERE id=$1`,
+    [row.id, utr || null],
+  );
+
+  const member = await upsertMembershipForUser({
+    userId: row.user_id,
+    name: row.name,
+    phone: row.phone,
+    email: row.email,
+    amountMinor: row.base_amount_minor,
+    status: 'active',
+  });
+  return { success: true, member };
 }
 
 export async function getMembershipForUser(userId) {

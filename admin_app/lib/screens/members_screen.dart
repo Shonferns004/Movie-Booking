@@ -15,6 +15,8 @@ class MembersScreen extends StatefulWidget {
 
 class _MembersScreenState extends State<MembersScreen> {
   List<dynamic> _members = [];
+  int _amountMinor = 120000;
+  String _planLabel = 'Annual membership';
   bool _loading = true;
   String? _error;
 
@@ -31,10 +33,16 @@ class _MembersScreenState extends State<MembersScreen> {
       return;
     }
     try {
-      final list = await Api.getCommunityMembers(token);
+      final results = await Future.wait([
+        Api.getCommunityMembers(token),
+        Api.getMembershipSettings(token),
+      ]);
+      final plan = results[1] as Map<String, dynamic>;
       if (!mounted) return;
       setState(() {
-        _members = list;
+        _members = results[0] as List<dynamic>;
+        _amountMinor = (plan['amountMinor'] as num?)?.toInt() ?? _amountMinor;
+        _planLabel = (plan['label'] ?? _planLabel).toString();
         _loading = false;
         _error = null;
       });
@@ -47,48 +55,89 @@ class _MembersScreenState extends State<MembersScreen> {
     }
   }
 
+  Future<void> _editAmount() async {
+    final rupees = (TextEditingController(text: (_amountMinor / 100).toStringAsFixed(0)));
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1E),
+        title: const Text('Membership price'),
+        content: TextField(
+          controller: rupees,
+          autofocus: true,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: const InputDecoration(
+            labelText: 'Amount per year (₹)',
+            helperText: 'Applies to new memberships immediately.',
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Save')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+
+    final value = double.tryParse(rupees.text.trim());
+    if (value == null || value < 10) {
+      if (mounted) AppToast.show(context, 'Enter an amount of at least ₹10.', type: AppToastType.error);
+      return;
+    }
+
+    try {
+      final plan = await Api.updateMembershipAmount(widget.token!, (value * 100).round());
+      if (!mounted) return;
+      setState(() {
+        _amountMinor = (plan['amountMinor'] as num?)?.toInt() ?? _amountMinor;
+        _planLabel = (plan['label'] ?? _planLabel).toString();
+      });
+      AppToast.show(context, 'Membership price updated.', type: AppToastType.success);
+    } catch (e) {
+      if (mounted) {
+        AppToast.show(
+          context,
+          e.toString().replaceFirst('Exception: ', ''),
+          type: AppToastType.error,
+        );
+      }
+    }
+  }
+
   Future<void> _add() async {
     final name = TextEditingController();
     final email = TextEditingController();
     final phone = TextEditingController();
-    var plan = 'family';
 
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialog) => AlertDialog(
-          backgroundColor: const Color(0xFF1A1A1E),
-          title: const Text('Add member'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(controller: name, decoration: const InputDecoration(labelText: 'Name')),
-                TextField(controller: email, decoration: const InputDecoration(labelText: 'Email')),
-                TextField(
-                  controller: phone,
-                  keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(labelText: 'Phone'),
-                ),
-                const SizedBox(height: 10),
-                DropdownButtonFormField<String>(
-                  initialValue: plan,
-                  decoration: const InputDecoration(labelText: 'Plan'),
-                  items: const [
-                    DropdownMenuItem(value: 'single', child: Text('Single · ₹600')),
-                    DropdownMenuItem(value: 'family', child: Text('Family · ₹1,200')),
-                    DropdownMenuItem(value: 'patron', child: Text('Patron · ₹5,000')),
-                  ],
-                  onChanged: (value) => setDialog(() => plan = value ?? 'family'),
-                ),
-              ],
-            ),
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1E),
+        title: const Text('Add member'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: name, decoration: const InputDecoration(labelText: 'Name')),
+              TextField(controller: email, decoration: const InputDecoration(labelText: 'Email')),
+              TextField(
+                controller: phone,
+                keyboardType: TextInputType.phone,
+                decoration: const InputDecoration(labelText: 'Phone'),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Added at the current annual price · ₹${(_amountMinor / 100).toStringAsFixed(0)}',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 11, color: Color(0xFF9E9890)),
+              ),
+            ],
           ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-            ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Add')),
-          ],
         ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Add')),
+        ],
       ),
     );
 
@@ -103,7 +152,6 @@ class _MembersScreenState extends State<MembersScreen> {
         'name': name.text.trim(),
         'email': email.text.trim().isEmpty ? null : email.text.trim(),
         'phone': phone.text.trim().isEmpty ? null : phone.text.trim(),
-        'plan': plan,
       });
       await _load();
       if (mounted) AppToast.show(context, 'Member added.', type: AppToastType.success);
@@ -172,6 +220,70 @@ class _MembersScreenState extends State<MembersScreen> {
     }
   }
 
+  Widget _priceCard() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A1E),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF2A2A2E)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: const Color(0xFFD96B43).withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(
+              Icons.workspace_premium_outlined,
+              size: 20,
+              color: Color(0xFFD96B43),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _planLabel.toUpperCase(),
+                  style: const TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.1,
+                    color: Color(0xFF9E9890),
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  '₹${(_amountMinor / 100).toStringAsFixed(0)} / year',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFFF5EFEB),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          TextButton.icon(
+            onPressed: _editAmount,
+            style: TextButton.styleFrom(foregroundColor: const Color(0xFFD96B43)),
+            icon: const Icon(Icons.edit_outlined, size: 16),
+            label: const Text(
+              'Change',
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -190,30 +302,34 @@ class _MembersScreenState extends State<MembersScreen> {
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: Color(0xFFD96B43)))
-          : _error != null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Text(_error!, style: const TextStyle(color: Color(0xFFE07A52))),
-                  ),
-                )
-              : _members.isEmpty
-                  ? const Center(
-                      child: Text(
-                        'No members yet.',
-                        style: TextStyle(color: Color(0xFF9E9890)),
-                      ),
-                    )
-                  : RefreshIndicator(
-                      color: const Color(0xFFD96B43),
-                      onRefresh: _load,
-                      child: ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
-                        itemCount: _members.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 8),
-                        itemBuilder: (ctx, i) {
+          : Column(
+              children: [
+                _priceCard(),
+                Expanded(
+                  child: _error != null
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Text(_error!, style: const TextStyle(color: Color(0xFFE07A52))),
+                          ),
+                        )
+                      : _members.isEmpty
+                          ? const Center(
+                              child: Text(
+                                'No members yet.',
+                                style: TextStyle(color: Color(0xFF9E9890)),
+                              ),
+                            )
+                          : RefreshIndicator(
+                              color: const Color(0xFFD96B43),
+                              onRefresh: _load,
+                              child: ListView.separated(
+                                padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
+                                itemCount: _members.length,
+                                separatorBuilder: (_, _) => const SizedBox(height: 8),
+                                itemBuilder: (ctx, i) {
                           final member = _members[i];
-                          final plan = (member['plan'] ?? '').toString();
+                          final amount = ((member['amountMinor'] as num?)?.toInt() ?? 0) / 100;
                           final status = (member['status'] ?? '').toString();
                           return Container(
                             padding: const EdgeInsets.all(14),
@@ -251,7 +367,7 @@ class _MembersScreenState extends State<MembersScreen> {
                                       const SizedBox(height: 2),
                                       Text(
                                         [
-                                          plan,
+                                          if (amount > 0) '₹${amount.toStringAsFixed(0)} / year',
                                           if ((member['phone'] ?? '').toString().isNotEmpty)
                                             member['phone'].toString(),
                                           status,
@@ -291,6 +407,9 @@ class _MembersScreenState extends State<MembersScreen> {
                         },
                       ),
                     ),
+                  ),
+                ],
+              ),
     );
   }
 }
