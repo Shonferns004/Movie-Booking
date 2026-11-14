@@ -3281,7 +3281,9 @@
             </div>
 
             <div style="margin-top:1rem; border-top:1px solid var(--border); padding-top:1rem;">
-              <label style="display:block; font-size:0.82rem; font-weight:700; margin-bottom:0.35rem;">OTP Message
+              <div style="font-size:0.9rem; font-weight:800; margin-bottom:0.65rem;">✉️ Message templates</div>
+
+              <label style="display:block; font-size:0.82rem; font-weight:700; margin-bottom:0.35rem;">OTP message
                 (WhatsApp)</label>
               <textarea id="settingOtpMessage" rows="5"
                 placeholder="Default: Your Konkani Samudai verification code is {otp}"
@@ -3290,8 +3292,20 @@
                 Placeholders: <code>{otp}</code> · <code>{name}</code> · <code>{appName}</code>. Leave blank to use the
                 built-in message.
               </div>
+
+              <label style="display:block; font-size:0.82rem; font-weight:700; margin:0.9rem 0 0.35rem;">Ticket PDF
+                caption (WhatsApp)</label>
+              <textarea id="settingTicketMessage" rows="4"
+                placeholder="Default: Your {appName} tickets for {movie} are attached. Booking {reference}."
+                style="width:100%; font-family:monospace; font-size:0.82rem; resize:vertical;"></textarea>
+              <div style="font-size:0.72rem; color:var(--text-muted); margin-top:0.35rem; line-height:1.5;">
+                Placeholders: <code>{name}</code> · <code>{movie}</code> · <code>{theatre}</code> ·
+                <code>{seats}</code> · <code>{reference}</code> · <code>{appName}</code>. Leave blank to use the
+                built-in caption.
+              </div>
+
               <button type="button" class="btn btn-success" style="margin-top:0.6rem;"
-                onclick="saveMerchantBrandingAndToggles()">Save OTP message</button>
+                onclick="saveMerchantBrandingAndToggles()">Save messages</button>
             </div>
           </div>
         </div>
@@ -4792,6 +4806,7 @@
           setVal('settingAppName', branding.appName || 'YOUPI PG');
           setCheck('settingHideAppName', branding.hideAppName);
           setVal('settingOtpMessage', branding.otpMessage);
+          setVal('settingTicketMessage', branding.ticketMessage);
           setVal('settingLogoUrl', branding.logoUrl);
           setVal('settingSidebarNotice', branding.sidebarNotice);
           setVal('settingFooterGuarantee', branding.footerGuarantee);
@@ -5048,6 +5063,7 @@
       const hidePoweredBy = document.getElementById('settingHidePoweredBy')?.checked || false;
       const hideAppName = document.getElementById('settingHideAppName')?.checked || false;
       const otpMessage = (document.getElementById('settingOtpMessage')?.value || '').trim();
+      const ticketMessage = (document.getElementById('settingTicketMessage')?.value || '').trim();
       const cardCounterInstructions = document.getElementById('settingCardCounterInstructions')?.value.trim() || '';
       const termsUrl = document.getElementById('settingTermsUrl')?.value.trim() || '';
 
@@ -5097,6 +5113,7 @@
               hidePoweredBy,
               hideAppName,
               otpMessage: otpMessage || null,
+              ticketMessage: ticketMessage || null,
               sidebarNotice: sidebarNotice || null,
               footerGuarantee: footerGuarantee || null,
               counterInstructions: counterInstructions || null,

@@ -771,6 +771,7 @@ export function registerAdminRoutes(server, ctx) {
     if (inputBranding.hideTrustBadge !== undefined) mergedBranding.hideTrustBadge = Boolean(inputBranding.hideTrustBadge);
     if (inputBranding.hideAppName !== undefined) mergedBranding.hideAppName = Boolean(inputBranding.hideAppName);
     if (inputBranding.otpMessage !== undefined) mergedBranding.otpMessage = inputBranding.otpMessage ? inputBranding.otpMessage.trim() : null;
+    if (inputBranding.ticketMessage !== undefined) mergedBranding.ticketMessage = inputBranding.ticketMessage ? inputBranding.ticketMessage.trim() : null;
     if (inputBranding.hideSubbanner !== undefined) mergedBranding.hideSubbanner = Boolean(inputBranding.hideSubbanner);
     if (inputBranding.hidePoweredBy !== undefined) mergedBranding.hidePoweredBy = Boolean(inputBranding.hidePoweredBy);
     if (inputBranding.hideTimeSavingBanner !== undefined) mergedBranding.hideTimeSavingBanner = Boolean(inputBranding.hideTimeSavingBanner);
@@ -999,6 +1000,7 @@ export function registerAdminRoutes(server, ctx) {
       if (inputBranding.hideTrustBadge !== undefined) mergedBranding.hideTrustBadge = Boolean(inputBranding.hideTrustBadge);
       if (inputBranding.hideAppName !== undefined) mergedBranding.hideAppName = Boolean(inputBranding.hideAppName);
       if (inputBranding.otpMessage !== undefined) mergedBranding.otpMessage = inputBranding.otpMessage ? inputBranding.otpMessage.trim() : null;
+    if (inputBranding.ticketMessage !== undefined) mergedBranding.ticketMessage = inputBranding.ticketMessage ? inputBranding.ticketMessage.trim() : null;
       if (inputBranding.hideSubbanner !== undefined) mergedBranding.hideSubbanner = Boolean(inputBranding.hideSubbanner);
       if (inputBranding.hidePoweredBy !== undefined) mergedBranding.hidePoweredBy = Boolean(inputBranding.hidePoweredBy);
       if (inputBranding.hideTimeSavingBanner !== undefined) mergedBranding.hideTimeSavingBanner = Boolean(inputBranding.hideTimeSavingBanner);

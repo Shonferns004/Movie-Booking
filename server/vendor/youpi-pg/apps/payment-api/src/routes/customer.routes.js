@@ -248,19 +248,21 @@ export function registerCustomerRoutes(server, ctx) {
       : ctx.merchantRepo?.findById?.('00000000-0000-0000-0000-000000000001');
     const branding = merchant?.branding || {};
     const otpTemplate = typeof branding.otpMessage === 'string' ? branding.otpMessage.trim() : '';
+    // Transactional messages are sent by the cinema, so prefer its business name over the
+    // gateway's own brand (which is often hidden from customers entirely).
+    const appName = merchant?.businessName || branding.appName || 'Konkani Samudai';
+    const DEFAULT_OTP_TEMPLATE =
+      `🔐 *${appName} Verification Code*\n\n` +
+      `Hello {name}! Your one-time login OTP is: *{otp}*\n\n` +
+      `⏱ _Valid for 5 minutes. Do not share this code with anyone._`;
 
     if (berry) {
       try {
-        if (otpTemplate) {
-          const appName = branding.appName || merchant?.businessName || 'Konkani Samudai';
-          const message = otpTemplate
-            .replaceAll('{otp}', otpCode)
-            .replaceAll('{name}', displayName || 'there')
-            .replaceAll('{appName}', appName);
-          dispatchResult = await berry.sendMessage(cleanMobile, message);
-        } else {
-          dispatchResult = await berry.sendOtp(cleanMobile, otpCode, displayName);
-        }
+        const message = (otpTemplate || DEFAULT_OTP_TEMPLATE)
+          .replaceAll('{otp}', otpCode)
+          .replaceAll('{name}', displayName || 'there')
+          .replaceAll('{appName}', appName);
+        dispatchResult = await berry.sendMessage(cleanMobile, message);
       } catch (err) {
         console.warn(`[CustomerAuth] WhatsApp dispatch notice: ${err.message}`);
       }
@@ -684,12 +686,13 @@ export function registerCustomerRoutes(server, ctx) {
     try {
       const booking = ctx.db.queryOne(
         `SELECT b.*, s.starts_at, m.title AS movie_title, m.language, m.certification,
-                t.name AS theatre_name, a.name AS auditorium_name
+                t.name AS theatre_name, a.name AS auditorium_name, u.display_name AS customer_name
            FROM public.bookings b
            JOIN public.shows s ON s.id = b.show_id
            JOIN public.movies m ON m.id = s.movie_id
            JOIN public.auditoriums a ON a.id = s.auditorium_id
            JOIN public.theatres t ON t.id = a.theatre_id
+           LEFT JOIN public.users u ON u.id = b.user_id
           WHERE b.booking_reference = ?`,
         [reference],
       );
@@ -731,11 +734,29 @@ export function registerCustomerRoutes(server, ctx) {
       }
 
       const pdf = await buildTicketPdf({ booking, seats, tickets });
+      // The caption is editable in Merchant Admin -> WhatsApp -> Message templates.
+      // Placeholders are expanded here so a template never leaks to the client.
+      const merchant = ctx.merchantRepo?.getDefault
+        ? ctx.merchantRepo.getDefault()
+        : ctx.merchantRepo?.findById?.('00000000-0000-0000-0000-000000000001');
+      const branding = merchant?.branding || {};
+      const appName = merchant?.businessName || branding.appName || 'Konkani Samudai';
+      const ticketTemplate = typeof branding.ticketMessage === 'string' ? branding.ticketMessage.trim() : '';
+      const caption = (ticketTemplate
+        || 'Your {appName} tickets for {movie} are attached. Booking {reference}.')
+        .replaceAll('{name}', booking.customer_name || 'there')
+        .replaceAll('{appName}', appName)
+        .replaceAll('{movie}', booking.movie_title || 'the show')
+        .replaceAll('{theatre}', booking.theatre_name || '')
+        .replaceAll('{seats}', seats.map((seat) => seat.seat_label).filter(Boolean).join(', '))
+        .replaceAll('{reference}', booking.booking_reference)
+        .replaceAll('{bookingReference}', booking.booking_reference);
+
       const result = await sender.sendDocument(
         mobile,
         pdf,
         `tickets-${booking.booking_reference}.pdf`,
-        `Your Konkani Samudai tickets for ${booking.movie_title || 'the show'} are attached. Booking ${booking.booking_reference}.`,
+        caption,
       );
 
       if (!result || result.delivered === false || result.success === false) {
