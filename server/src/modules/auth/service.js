@@ -71,6 +71,19 @@ export async function sendLoginOtp({ mobile }) {
   if (!/^\d{10}$/.test(number)) throw badRequest('Enter a valid 10-digit mobile number');
 
   const data = await gatewayPost('/api/v1/customer/send-otp', { mobileNumber: number });
+
+  // The gateway returns 200 even when its WhatsApp session is offline and the message
+  // is only queued. Surface that clearly instead of telling the user "OTP sent".
+  if (data?.dispatch && data.dispatch.delivered === false) {
+    const error = new Error(
+      data.dispatch.message
+      || 'WhatsApp is not connected. Link the WhatsApp device in the payments admin, then try again.',
+    );
+    error.status = 503;
+    error.expose = true;
+    throw error;
+  }
+
   return {
     success: true,
     mobile: number,

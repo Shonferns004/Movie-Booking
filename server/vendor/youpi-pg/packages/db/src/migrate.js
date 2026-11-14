@@ -93,6 +93,13 @@ export function runMigrations(targetDb) {
         console.warn(`[migrate] customers.${column.split(' ')[0]} alter skipped: ${error.message}`);
       }
     }
+    // The OTP is encrypted (`enc:v1:...`), which is far longer than the old
+    // VARCHAR(10) column. Widen it; otherwise send-otp fails with 22001.
+    try {
+      db.exec(`ALTER TABLE ${schema}.customers ALTER COLUMN otp_code TYPE TEXT;`);
+    } catch (error) {
+      console.warn(`[migrate] customers.otp_code widen skipped: ${error.message}`);
+    }
   }
 
   if (!isPg) {

@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS customers (
     email VARCHAR(255) UNIQUE NOT NULL,
     mobile_number VARCHAR(20) UNIQUE NOT NULL,
     password_hash VARCHAR(255),
-    otp_code VARCHAR(10),
+    otp_code TEXT,
     otp_expires_at TIMESTAMPTZ,
     otp_attempts INT NOT NULL DEFAULT 0,
     is_phone_verified BOOLEAN DEFAULT false,
