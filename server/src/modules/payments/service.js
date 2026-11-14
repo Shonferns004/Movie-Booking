@@ -211,26 +211,73 @@ function toRupees(amountMinor) {
   return (Number(amountMinor || 0) / 100).toFixed(2);
 }
 
+/**
+ * Every open YOUPI checkout gets a unique paise value (₹0.01–₹0.99) added to the
+ * booking total. The SMS observer only sees the amount, so this is what lets the
+ * gateway route a credit to the exact booking even when two users pay in the same
+ * second or one payment arrives before its queued session becomes active.
+ *
+ * Uniqueness is scoped to open/recently-verified payments: abandoned orders free
+ * their amount again after 15 minutes.
+ */
+const VERIFICATION_OFFSET_MAX_MINOR = 99;
+const VERIFICATION_AMOUNT_HOLD_MINUTES = 15;
+
+async function allocatePayableMinor(client, baseMinor) {
+  const base = Number(baseMinor || 0);
+  // Serialise allocation across API instances so two orders can never pick the
+  // same paise offset for the same base amount.
+  await client.query("SELECT pg_advisory_xact_lock(hashtext('youpi-payable-amount'))");
+  const { rows } = await client.query(
+    `SELECT amount_minor FROM payments
+     WHERE (status = 'created' AND created_at > now() - interval '15 minutes')
+        OR (status = 'verified' AND verified_at > now() - interval '15 minutes')`
+  );
+  const used = new Set(rows.map((row) => Number(row.amount_minor)));
+
+  for (let offset = 1; offset <= VERIFICATION_OFFSET_MAX_MINOR; offset += 1) {
+    const candidate = base + offset;
+    if (!used.has(candidate)) return { payableMinor: candidate, offsetMinor: offset };
+  }
+
+  // 99 concurrent bookings with the same total is unlikely; degrade gracefully and
+  // let the gateway's amount match handle it.
+  console.warn('[payments] all verification offsets are in use; falling back to the base amount');
+  return { payableMinor: base, offsetMinor: 0 };
+}
+
 /** Create a YOUPI payment session for a pending booking. */
 export async function createYoupiOrder({ bookingReference, customer, publicBase }) {
-  const { rows } = await pool.query('SELECT * FROM bookings WHERE booking_reference=$1', [bookingReference]);
-  if (!rows.length) throw notFound('booking not found');
-  const booking = rows[0];
-  if (booking.status !== 'pending') throw badRequest('booking not payable');
-
   const orderId = `order_${randomToken(8)}`;
-  const amount = toRupees(booking.total_minor);
+
+  // Allocate the payable amount and reserve the local payment row atomically. The
+  // booking row lock makes a double-click reuse one order rather than two sessions.
+  const { booking, payment, payableMinor, offsetMinor } = await withTransaction(async (client) => {
+    const { rows } = await client.query('SELECT * FROM bookings WHERE booking_reference=$1 FOR UPDATE', [bookingReference]);
+    if (!rows.length) throw notFound('booking not found');
+    const bookingRow = rows[0];
+    if (bookingRow.status !== 'pending') throw badRequest('booking not payable');
+
+    const allocation = await allocatePayableMinor(client, bookingRow.total_minor);
+    const { rows: pays } = await client.query(
+      `INSERT INTO payments (booking_id, provider, provider_order_id, amount_minor, currency, status)
+       VALUES ($1,'youpi',$2,$3,$4,'created') RETURNING *`,
+      [bookingRow.id, orderId, allocation.payableMinor, bookingRow.currency || 'INR']);
+
+    return {
+      booking: bookingRow,
+      payment: pays[0],
+      payableMinor: allocation.payableMinor,
+      offsetMinor: allocation.offsetMinor,
+    };
+  });
+
+  const amount = toRupees(payableMinor);
   // The confirmation page belongs to the customer SPA, which may live on a different
   // origin than this API (for example a Vercel client talking to a Render API). Prefer
   // APP_BASE_URL for that redirect; publicBase is only a same-origin fallback.
   const appOrigin = (env.APP_BASE_URL || publicBase || '').replace(/\/$/, '');
   const returnUrl = `${appOrigin}/booking/${booking.booking_reference}`;
-
-  // reserve a local payment row first so the webhook can be matched
-  const { rows: pays } = await pool.query(
-    `INSERT INTO payments (booking_id, provider, provider_order_id, amount_minor, currency, status)
-     VALUES ($1,'youpi',$2,$3,$4,'created') RETURNING *`,
-    [booking.id, orderId, booking.total_minor, booking.currency || 'INR']);
 
   let session;
   try {
@@ -258,12 +305,12 @@ export async function createYoupiOrder({ bookingReference, customer, publicBase 
     });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) {
-      await pool.query("UPDATE payments SET status='failed', updated_at=now() WHERE id=$1", [pays[0].id]);
+      await pool.query("UPDATE payments SET status='failed', updated_at=now() WHERE id=$1", [payment.id]);
       throw badRequest(body.error || body.message || `youpi create payment failed (${res.status})`);
     }
     session = body;
   } catch (e) {
-    await pool.query("UPDATE payments SET status='failed', updated_at=now() WHERE id=$1", [pays[0].id]);
+    await pool.query("UPDATE payments SET status='failed', updated_at=now() WHERE id=$1", [payment.id]);
     // HttpError = the gateway answered and rejected it; anything else is transport.
     if (e && e.status) throw e;
     console.error('[youpi] gateway unreachable:', env.YOUPI_API_URL, e?.message || e);
@@ -271,7 +318,7 @@ export async function createYoupiOrder({ bookingReference, customer, publicBase 
   }
 
   if (session.paymentId) {
-    await pool.query('UPDATE payments SET provider_payment_id=$1, updated_at=now() WHERE id=$2', [session.paymentId, pays[0].id]);
+    await pool.query('UPDATE payments SET provider_payment_id=$1, updated_at=now() WHERE id=$2', [session.paymentId, payment.id]);
   }
 
   // The gateway is reachable through this server's own port, so the browser always
@@ -279,10 +326,14 @@ export async function createYoupiOrder({ bookingReference, customer, publicBase 
   const base = (publicBase || '').replace(/\/$/, '');
 
   return {
-    payment: pays[0],
+    payment,
     orderId,
     amount,
-    amountMinor: booking.total_minor,
+    amountMinor: payableMinor,
+    // Kept separate for receipts and reconciliation: the ticket still costs the
+    // booking total, while amountMinor is the exact UPI amount to pay.
+    baseAmountMinor: Number(booking.total_minor),
+    verificationOffsetMinor: offsetMinor,
     currency: booking.currency || 'INR',
     provider: 'youpi',
     paymentId: session.paymentId,

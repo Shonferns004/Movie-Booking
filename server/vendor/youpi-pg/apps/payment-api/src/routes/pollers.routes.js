@@ -434,6 +434,28 @@ export function registerPollerRoutes(server, ctx) {
       return;
     }
 
+    // The exact amount may belong to a queued checkout, or the observer may have
+    // forwarded the SMS before the movie API created the session. These are not
+    // permanent failures: ask the observer to retry instead of marking the credit
+    // as failed. The app stops retrying after its matching window.
+    const retryableReasons = new Set([
+      'AMOUNT_MISMATCH',
+      'NO_ACTIVE_SESSION',
+      'SESSION_QUEUED'
+    ]);
+    if (retryableReasons.has(pipeResult.failingCondition)) {
+      ctx.db.execute("UPDATE android_devices SET last_observation_at = CURRENT_TIMESTAMP WHERE id = ?", [deviceId]);
+      HttpServer.json(res, 409, {
+        accepted: false,
+        retry: true,
+        status: 'PENDING',
+        reason: pipeResult.failingCondition,
+        error: pipeResult.failingReason || 'The matching checkout is not ready yet.',
+        pipeline: pipeResult
+      });
+      return;
+    }
+
     if (pipeResult.status === 'REJECTED') {
       ctx.db.execute("UPDATE android_devices SET last_observation_at = CURRENT_TIMESTAMP WHERE id = ?", [deviceId]);
       HttpServer.json(res, 400, {

@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
-import 'screens/news_screen.dart';
-import 'screens/events_screen.dart';
-import 'screens/movies_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/auth_gate.dart';
+import 'screens/scanner_shell.dart' show KkSurface;
 import 'services/auth_service.dart';
 
 class MainShell extends StatefulWidget {
@@ -17,7 +16,7 @@ class MainShell extends StatefulWidget {
 }
 
 class _MainShellState extends State<MainShell> {
-  int _index = 0;
+  int _index = 0; // Home is the default tab
   String? _token;
   bool _loading = true;
 
@@ -47,17 +46,30 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121214),
+      backgroundColor: KkSurface.bg,
       // IndexedStack keeps each tab alive, so switching does not reload everything.
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFFD96B43)))
+          ? const Center(child: CircularProgressIndicator(color: KkSurface.accent))
           : IndexedStack(
               index: _index,
               children: [
+                const _EmptyTab(
+                  icon: LucideIcons.house,
+                  title: 'Home',
+                  message: 'Nothing planned here yet.',
+                ),
+                const _EmptyTab(
+                  icon: LucideIcons.newspaper,
+                  title: 'News',
+                  message: 'Nothing planned here yet.',
+                ),
+                const _EmptyTab(
+                  icon: LucideIcons.calendarDays,
+                  title: 'Events',
+                  message: 'Nothing planned here yet.',
+                ),
+                // The dashboard (formerly the Home page) lives in the Movies tab.
                 const HomeScreen(),
-                NewsScreen(token: _token),
-                EventsScreen(token: _token),
-                MoviesScreen(token: _token),
                 ProfileScreen(
                   token: _token ?? '',
                   shows: const [],
@@ -65,34 +77,103 @@ class _MainShellState extends State<MainShell> {
                 ),
               ],
             ),
-      bottomNavigationBar: NavigationBarTheme(
-        data: NavigationBarThemeData(
-          backgroundColor: const Color(0xFF1A1A1E),
-          indicatorColor: const Color(0xFFD96B43).withValues(alpha: 0.18),
-          labelTextStyle: WidgetStateProperty.all(
-            const TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
-          ),
-          iconTheme: WidgetStateProperty.resolveWith(
-            (states) => IconThemeData(
-              size: 20,
-              color: states.contains(WidgetState.selected)
-                  ? const Color(0xFFD96B43)
-                  : const Color(0xFF8E8E96),
+      bottomNavigationBar: _buildNav(),
+    );
+  }
+
+  /// Same tab bar as the scanner shell: Lucide icons, poppins labels, hairline border.
+  Widget _buildNav() {
+    Widget item(IconData icon, String label, int index) {
+      final active = _index == index;
+      final iconColor = active ? KkSurface.accent : KkSurface.onSurfaceVariant;
+      final labelColor = active ? KkSurface.onSurface : KkSurface.onSurfaceVariant;
+      return Expanded(
+        child: InkWell(
+          onTap: () => setState(() => _index = index),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 24, color: iconColor),
+                const SizedBox(height: 2),
+                Text(
+                  label,
+                  style: GoogleFonts.poppins(
+                    fontSize: 11,
+                    fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+                    color: labelColor,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
-        child: NavigationBar(
-          height: 62,
-          selectedIndex: _index,
-          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-          onDestinationSelected: (i) => setState(() => _index = i),
-          destinations: const [
-            NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
-            NavigationDestination(icon: Icon(Icons.newspaper_outlined), selectedIcon: Icon(Icons.newspaper), label: 'News'),
-            NavigationDestination(icon: Icon(Icons.event_outlined), selectedIcon: Icon(Icons.event), label: 'Events'),
-            NavigationDestination(icon: Icon(Icons.movie_outlined), selectedIcon: Icon(Icons.movie), label: 'Movies'),
-            NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
-          ],
+      );
+    }
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: KkSurface.bg,
+        border: Border(top: BorderSide(color: KkSurface.border)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              item(LucideIcons.house, 'Home', 0),
+              item(LucideIcons.newspaper, 'News', 1),
+              item(LucideIcons.calendarDays, 'Events', 2),
+              item(LucideIcons.film, 'Movies', 3),
+              item(LucideIcons.circleUser, 'Profile', 4),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Placeholder body for the tabs that are not designed yet.
+class _EmptyTab extends StatelessWidget {
+  const _EmptyTab({required this.icon, required this.title, required this.message});
+
+  final IconData icon;
+  final String title;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: KkSurface.bg,
+      body: SafeArea(
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 34, color: KkSurface.containerHighest),
+              const SizedBox(height: 12),
+              Text(
+                title,
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: KkSurface.onSurface,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                message,
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  color: KkSurface.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

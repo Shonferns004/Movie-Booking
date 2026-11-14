@@ -38,6 +38,17 @@ object GatewayClient {
     private const val READ_TIMEOUT_MS = 20_000
     private const val DEFAULT_MERCHANT_ID = "00000000-0000-0000-0000-000000000001"
 
+    /**
+     * A credit whose exact amount does not belong to the currently active checkout
+     * yet (another user is paying, or the session was not created when the SMS
+     * arrived) must stay pending instead of being discarded.
+     */
+    private val RETRYABLE_REASONS = setOf(
+        "AMOUNT_MISMATCH",
+        "NO_ACTIVE_SESSION",
+        "SESSION_QUEUED",
+    )
+
     enum class Kind { SENT, FAILED, RETRY }
 
     data class Outcome(
@@ -379,11 +390,15 @@ object GatewayClient {
                 Outcome(Kind.SENT, response.code, label)
             }
 
-            in 400..499 -> Outcome(
-                Kind.FAILED,
-                response.code,
-                reasonOf(json, response.code),
-            )
+            in 400..499 -> {
+                val reason = json?.optString("reason").orEmpty()
+                val retry = json?.optBoolean("retry") == true || reason in RETRYABLE_REASONS
+                Outcome(
+                    if (retry) Kind.RETRY else Kind.FAILED,
+                    response.code,
+                    reasonOf(json, response.code),
+                )
+            }
 
             else -> Outcome(
                 Kind.RETRY,

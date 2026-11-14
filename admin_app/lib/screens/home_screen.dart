@@ -12,7 +12,6 @@ import '../widgets/app_toast.dart';
 import '../widgets/skeleton.dart';
 import 'scanner_screen.dart';
 import 'scanner_shell.dart';
-import 'profile_screen.dart';
 import 'show_detail_screen.dart';
 import 'movie_planner_screen.dart';
 import '../services/realtime.dart';
@@ -504,12 +503,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _logout(BuildContext context) async {
-    await AuthService.logout();
-    if (!context.mounted) return;
-    Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
-  }
-
   bool get _isAdmin => _roles.contains('ADMIN');
   bool get _isScanner => _roles.contains('SCANNER');
 
@@ -657,59 +650,24 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildHomeHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.center,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Konkani Samudai',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                color: Color(0xFFF5EFEB),
-                letterSpacing: -0.5,
-              ),
-            ),
-            const Text(
-              'Cinema Gazette and Curatorial Control',
-              style: TextStyle(
-                fontSize: 11,
-                color: Color(0xFF9E9890),
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-        GestureDetector(
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => ProfileScreen(token: _token!),
-            ),
-          ),
-          child: const CircleAvatar(
-            radius: 16,
-            backgroundColor: Color(0xFF2F2F37),
-            child: Icon(Icons.person, color: Color(0xFFF5EFEB), size: 16),
+        const Text(
+          'Konkani Samudai',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFFF5EFEB),
+            letterSpacing: -0.5,
           ),
         ),
-        const SizedBox(width: 8),
-        GestureDetector(
-          onTap: () => _logout(context),
-          child: const CircleAvatar(
-            radius: 16,
-            backgroundColor: Color(0xFFD96B43),
-            child: Text(
-              'AD',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 11,
-              ),
-            ),
+        const Text(
+          'Cinema Gazette and Curatorial Control',
+          style: TextStyle(
+            fontSize: 11,
+            color: Color(0xFF9E9890),
+            fontWeight: FontWeight.w500,
           ),
         ),
       ],

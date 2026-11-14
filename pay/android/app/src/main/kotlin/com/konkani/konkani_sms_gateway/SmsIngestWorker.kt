@@ -116,14 +116,26 @@ class SmsIngestWorker(
                 )
 
                 GatewayClient.Kind.RETRY -> {
-                    store.updateEvent(
-                        event.copy(
-                            httpStatus = outcome.httpStatus,
-                            message = outcome.message,
-                            attempts = event.attempts + 1,
-                        ),
-                    )
-                    shouldRetry = true
+                    val ageMs = System.currentTimeMillis() - event.receivedAt
+                    if (ageMs > MAX_RETRY_AGE_MS) {
+                        store.updateEvent(
+                            event.copy(
+                                status = STATUS_FAILED,
+                                httpStatus = outcome.httpStatus,
+                                message = "No matching checkout within 15 minutes - ${outcome.message}",
+                                attempts = event.attempts + 1,
+                            ),
+                        )
+                    } else {
+                        store.updateEvent(
+                            event.copy(
+                                httpStatus = outcome.httpStatus,
+                                message = outcome.message,
+                                attempts = event.attempts + 1,
+                            ),
+                        )
+                        shouldRetry = true
+                    }
                 }
             }
         }
@@ -134,6 +146,7 @@ class SmsIngestWorker(
     companion object {
         private const val UNIQUE_WORK = "konkani-sms-ingest"
         private const val MAX_ATTEMPTS = 20
+        private const val MAX_RETRY_AGE_MS = 15 * 60 * 1000L
 
         /** Idempotent enqueue from the receiver, the UI and the retry action. */
         fun enqueue(context: Context) {

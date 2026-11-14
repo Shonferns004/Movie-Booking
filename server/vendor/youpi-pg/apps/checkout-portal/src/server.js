@@ -220,6 +220,15 @@ export class CheckoutServer {
   renderHtml(paymentId, state) {
     let html = this.loadTemplateWithPartials();
 
+    // Hide the verified-badge block at the HTML level too, so it never flashes before
+    // the client-side state render (and stays hidden if that request is slow/fails).
+    if (state?.branding?.hideAppName || state?.branding?.hideTrustBadge) {
+      html = html.replace(
+        '</head>',
+        '<style id="youpi-brand-badge-visibility">#headerTrustBadge,#pcTrustBadge,.rzp-secured-by{display:none !important;}</style></head>'
+      );
+    }
+
     const appName = state?.branding?.appName || 'YouPI PG';
     const primaryColor = state?.branding?.primaryColor || '#0b63e5';
     const merchantName = state?.merchantName || 'Merchant Checkout';

@@ -606,16 +606,43 @@ export class PaymentVerificationPipeline {
     // =========================================================================
     let stage4;
 
+    // The payable amount is the checkout's unique identifier: the movie API adds a
+    // distinct paise offset to every open order. If this account currently has a
+    // different session active, route the credit to the open session that owns this
+    // exact amount instead of rejecting it. The owning session may still be QUEUED
+    // behind the active one; that is handled below.
+    if (session && parsedData?.amountPaise &&
+        BigInt(session.amountPaise) !== BigInt(parsedData.amountPaise)) {
+      const accountId = session.receivingAccountId || input.receivingAccountId;
+      if (accountId) {
+        const matchRow = this.db.queryOne(`
+          SELECT * FROM payment_sessions
+          WHERE receiving_account_id = ? AND status IN ('ACTIVE', 'PROCESSING', 'QUEUED')
+            AND amount_paise = ?
+          ORDER BY created_at DESC LIMIT 1
+        `, [accountId, Number(parsedData.amountPaise)]);
+        if (matchRow) session = this.sessionRepo.mapRow(matchRow);
+      }
+    }
+
     if (!session && parsedData?.amountPaise) {
-      // Amount alone is not an identifier: two merchants can legitimately have an identical
-      // in-flight amount. Only fall back on amount when the VPA the credit landed on is known,
-      // and then only within that VPA's merchant.
+      // Scoped by receiving account first, then by the VPA named in the message.
+      // Amount alone is still not trusted across merchants.
+      if (input.receivingAccountId) {
+        const accountMatch = this.db.queryOne(`
+          SELECT * FROM payment_sessions
+          WHERE receiving_account_id = ? AND status IN ('ACTIVE', 'PROCESSING', 'QUEUED')
+            AND amount_paise = ?
+          ORDER BY created_at DESC LIMIT 1
+        `, [input.receivingAccountId, Number(parsedData.amountPaise)]);
+        if (accountMatch) session = this.sessionRepo.mapRow(accountMatch);
+      }
       const scopeByVpa = observedVpa || (parsedData.vpa ? String(parsedData.vpa).toLowerCase() : null);
-      if (scopeByVpa) {
+      if (!session && scopeByVpa) {
         const matchRow = this.db.queryOne(`
           SELECT ps.* FROM payment_sessions ps
           JOIN payment_receiving_accounts ra ON ps.receiving_account_id = ra.id
-          WHERE ps.status IN ('ACTIVE', 'PROCESSING')
+          WHERE ps.status IN ('ACTIVE', 'PROCESSING', 'QUEUED')
             AND ps.amount_paise = ?
             AND LOWER(ra.upi_id) = ?
           ORDER BY ps.created_at DESC LIMIT 1
@@ -643,6 +670,30 @@ export class PaymentVerificationPipeline {
         stage3,
         stage4,
         parsed: parsedData
+      });
+    }
+
+    // A queued session owns this exact amount, but it is waiting for the account's
+    // active slot. Do not reject the credit: the observer retries and the queue
+    // promotes the session when the active checkout finishes.
+    if (session.status === PaymentStatus.QUEUED) {
+      stage4 = {
+        stage: 4,
+        name: 'VERIFICATION',
+        status: 'PENDING',
+        reason: 'SESSION_QUEUED',
+        details: 'The payment matches a queued checkout. Retry when that checkout becomes active.'
+      };
+      return buildResult({
+        finalStatus: 'UNRESOLVED',
+        failingStage: 4,
+        failingCondition: 'SESSION_QUEUED',
+        failingReason: stage4.details,
+        stage2,
+        stage3,
+        stage4,
+        parsed: parsedData,
+        session
       });
     }
 

@@ -48,8 +48,6 @@ const rupees = (minor = 0) => new Intl.NumberFormat('en-IN', {
   maximumFractionDigits: 2,
 }).format(Number(minor || 0) / 100);
 
-const wholeRupees = (minor = 0) => `₹${Math.round(Number(minor || 0) / 100).toLocaleString('en-IN')}`;
-
 function formatShowDate(value) {
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return '';
@@ -213,6 +211,11 @@ export default function Checkout() {
   }
 
   const totalMinor = Number(hold.totalMinor || 0);
+  // The gateway adds a unique paise offset to every open order, so the exact UPI
+  // amount identifies this booking. `amountMinor` from the order is authoritative
+  // once the order exists; before that, the ticket total is the best estimate.
+  const payableMinor = Number(order?.amountMinor || totalMinor);
+  const verificationOffsetMinor = Math.max(0, Number(order?.verificationOffsetMinor || 0));
   const seatCount = Number(hold.seatCount || heldSeats.length || 0);
   const currency = hold.currency || 'INR';
   const title = movie?.title || showMeta?.movie_title || 'Your booking';
@@ -384,7 +387,7 @@ export default function Checkout() {
     }
   }
 
-  const payLabel = loading ? 'Opening secure payment…' : `Pay ${rupees(totalMinor)}`;
+  const payLabel = loading ? 'Opening secure payment…' : `Pay ${rupees(payableMinor)}`;
 
   return (
     <div className="kk-checkout min-h-screen bg-[#0A2A31] pb-32 text-[#EFEBE0]">
@@ -493,13 +496,25 @@ export default function Checkout() {
               <span className="text-[#0A2A31]/65">Taxes</span>
               <span className="text-[11px] font-semibold uppercase tracking-wide text-[#0A2A31]/45">Included</span>
             </div>
+            {verificationOffsetMinor > 0 && (
+              <div className="flex items-center justify-between gap-4">
+                <span className="inline-flex items-center gap-1.5 text-[#0A2A31]/65">
+                  Payment verification
+                  <span className="material-symbols-outlined cursor-help text-[14px] text-[#0A2A31]/35" title="A unique paise amount lets the gateway match your UPI credit to this exact booking.">info</span>
+                </span>
+                <span className="font-semibold tabular-nums">+ {rupees(verificationOffsetMinor)}</span>
+              </div>
+            )}
           </div>
 
           <div className="mt-4 flex items-end justify-between gap-4 border-t border-dashed border-[#0A2A31]/25 pt-4">
             <span className="text-sm font-semibold">Order total</span>
-            <span className="kk-display text-2xl font-bold tabular-nums">{rupees(totalMinor)}</span>
+            <span className="kk-display text-2xl font-bold tabular-nums">{rupees(payableMinor)}</span>
           </div>
-          <p className="mt-2 text-[10px] text-[#0A2A31]/45">Payable in {currency} · you will be charged {wholeRupees(totalMinor)}</p>
+          <p className="mt-2 text-[10px] text-[#0A2A31]/45">
+            Payable in {currency}. A small verification amount (up to ₹0.99) is added to the
+            exact UPI amount so your payment is matched to this booking automatically.
+          </p>
         </section>
 
         {/* Contact */}
@@ -624,7 +639,10 @@ export default function Checkout() {
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="min-w-0">
             <p className="text-[10px] font-bold uppercase tracking-[.14em] text-[#0A2A31]/45">Order total</p>
-            <p className="kk-display truncate text-xl font-bold leading-tight">{rupees(totalMinor)}</p>
+            <p className="kk-display truncate text-xl font-bold leading-tight">{rupees(payableMinor)}</p>
+            {verificationOffsetMinor > 0 && (
+              <p className="text-[9px] text-[#0A2A31]/45">incl. {rupees(verificationOffsetMinor)} verification</p>
+            )}
           </div>
           <button
             type="button"
