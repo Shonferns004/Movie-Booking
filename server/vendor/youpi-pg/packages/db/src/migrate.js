@@ -69,6 +69,32 @@ export function runMigrations(targetDb) {
   // Execute schema DDL
   db.exec(schemaSql);
 
+  if (isPg) {
+    // `CREATE TABLE IF NOT EXISTS` never adds columns to an existing table. Older
+    // `youpi.customers` tables can therefore miss the OTP columns, which makes
+    // customer send-otp fail with a 500. Heal them in place.
+    const schema = db.schema || 'youpi';
+    const customerColumns = [
+      'otp_code TEXT',
+      'otp_expires_at TIMESTAMPTZ',
+      'otp_attempts INT NOT NULL DEFAULT 0',
+      'is_phone_verified BOOLEAN DEFAULT false',
+      'ban_reason TEXT',
+      'banned_at TIMESTAMPTZ',
+      'unbanned_at TIMESTAMPTZ',
+      'last_device TEXT',
+      'last_login_at TIMESTAMPTZ',
+      'updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()',
+    ];
+    for (const column of customerColumns) {
+      try {
+        db.exec(`ALTER TABLE ${schema}.customers ADD COLUMN IF NOT EXISTS ${column};`);
+      } catch (error) {
+        console.warn(`[migrate] customers.${column.split(' ')[0]} alter skipped: ${error.message}`);
+      }
+    }
+  }
+
   if (!isPg) {
     // Alter table columns if migrating existing databases
     try { db.exec("ALTER TABLE payment_sessions ADD COLUMN verification_level INTEGER DEFAULT 0;"); } catch {}

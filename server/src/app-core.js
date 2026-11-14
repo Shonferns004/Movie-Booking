@@ -107,7 +107,12 @@ export function createApp({
     credentials: true,
   }));
 
-  app.use('/api/v1/auth', rateLimit({ windowMs: 15 * 60 * 1000, max: 30, keyPrefix: 'auth' }));
+  // Limit only the sensitive auth actions. Token refreshes are automatic and should
+  // not consume the login budget.
+  app.use(
+    ['/api/v1/auth/login', '/api/v1/auth/register', '/api/v1/auth/otp/send', '/api/v1/auth/otp/verify'],
+    rateLimit({ windowMs: 15 * 60 * 1000, max: 30, keyPrefix: 'auth' })
+  );
   app.use('/api/v1/payments', rateLimit({ windowMs: 60 * 1000, max: 30, keyPrefix: 'payments' }));
 
   app.use(express.json({ limit: '10mb', verify: (req, res, buf) => { req.rawBody = buf; } }));
@@ -138,7 +143,12 @@ const rateLimitBuckets = new Map();
 
 function rateLimit({ windowMs, max, keyPrefix }) {
   return (req, res, next) => {
-    const ip = req.ip || req.connection?.remoteAddress || 'unknown';
+    // Behind Cloudflare Workers `req.ip` can be empty/shared; the real client address
+    // is in CF-Connecting-IP (or the first X-Forwarded-For entry). Without this, every
+    // visitor shares one bucket and the whole app 429s at once.
+    const forwarded = req.headers['cf-connecting-ip']
+      || String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+    const ip = forwarded || req.ip || req.connection?.remoteAddress || 'unknown';
     const key = keyPrefix + ':' + ip;
     const now = Date.now();
     let bucket = rateLimitBuckets.get(key);
