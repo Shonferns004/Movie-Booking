@@ -11,7 +11,22 @@ export const VENDOR_ROOT = path.resolve(__dirname, '../../../vendor/youpi-pg');
 /** Merchant the gateway seeds on first boot. */
 export const DEFAULT_MERCHANT_ID = '00000000-0000-0000-0000-000000000001';
 
+/** Public movie API that receives YOUPI webhooks when nothing else is configured. */
+const DEFAULT_PUBLIC_API_URL = (
+  process.env.MOVIE_API_PUBLIC_URL || 'https://movie-worker.konkani-samudai.workers.dev'
+).replace(/\/+$/, '');
+
 let startPromise = null;
+
+/** True for loopback targets, which cannot receive webhooks from a hosted gateway. */
+function isLoopbackUrl(value) {
+  try {
+    const host = new URL(value).hostname.toLowerCase().replace(/^\[|\]$/g, '');
+    return ['127.0.0.1', 'localhost', '0.0.0.0', '::1'].includes(host);
+  } catch {
+    return false;
+  }
+}
 
 function vendorUrl(...parts) {
   return pathToFileURL(path.join(VENDOR_ROOT, ...parts)).href;
@@ -95,16 +110,37 @@ async function configureMerchant() {
     merchantRepo.findAll()[0];
   if (!merchant) return null;
 
-  const webhookUrl =
-    gatewayEnv.YOUPI_WEBHOOK_URL || `http://127.0.0.1:${env.API_PORT}/api/v1/payments/webhooks/youpi`;
+  const configuredWebhookUrl = String(gatewayEnv.YOUPI_WEBHOOK_URL || '').trim();
+  const storedWebhookUrl = String(merchant.webhookUrl || '').trim();
+  const isProduction = process.env.NODE_ENV === 'production';
+  const fallbackWebhookUrl = isProduction
+    ? `${DEFAULT_PUBLIC_API_URL}/api/v1/payments/webhooks/youpi`
+    : `http://127.0.0.1:${env.API_PORT}/api/v1/payments/webhooks/youpi`;
+  // An explicit env value wins, then the URL already stored with the gateway (set in
+  // the admin panel). A stored loopback URL is only honoured locally: on a hosted
+  // gateway it makes every webhook POST to the gateway itself, which answers 404 and
+  // leaves the booking pending after a successful payment.
+  const usableStoredUrl = storedWebhookUrl && !(isProduction && isLoopbackUrl(storedWebhookUrl));
+  const webhookUrl = configuredWebhookUrl || (usableStoredUrl ? storedWebhookUrl : fallbackWebhookUrl);
+
   const updates = {};
   if (merchant.webhookUrl !== webhookUrl) updates.webhookUrl = webhookUrl;
-  if (env.YOUPI_WEBHOOK_SECRET && merchant.webhookSecret !== env.YOUPI_WEBHOOK_SECRET) {
+  // The merchant secret lives with the gateway data (Neon), so it survives restarts.
+  // Only seed it from the environment when none is stored: overwriting a working
+  // secret on boot silently breaks both webhook signatures and the status lookups
+  // that the checkout uses to confirm a booking. Rotate it from the admin panel.
+  if (!merchant.webhookSecret && env.YOUPI_WEBHOOK_SECRET) {
     updates.webhookSecret = env.YOUPI_WEBHOOK_SECRET;
   }
   if (Object.keys(updates).length) {
     merchantRepo.update(merchant.id, updates);
     console.log(`[YOUPI] merchant ${merchant.id} webhook -> ${webhookUrl}`);
+  }
+  if (isProduction && isLoopbackUrl(webhookUrl)) {
+    console.warn(
+      '[YOUPI] webhook URL points at loopback. Hosted deployments cannot reach it - ' +
+      `set YOUPI_WEBHOOK_URL to ${fallbackWebhookUrl}`
+    );
   }
 
   if (env.YOUPI_UPI_ID) {
@@ -151,22 +187,7 @@ export function startYoupiGateway() {
     const { createPaymentApp } = await import(vendorUrl('apps', 'payment-api', 'src', 'index.js'));
     const { CheckoutServer } = await import(vendorUrl('apps', 'checkout-portal', 'src', 'server.js'));
 
-    // WhatsApp provider: Baileys keeps its linked-device state in Neon, so Render
-    // restarts/deploys no longer force a re-pair. Set WHATSAPP_PROVIDER=berry to use
-    // the old Berry implementation.
-    let whatsappService = null;
-    const whatsappProvider = String(process.env.WHATSAPP_PROVIDER || 'baileys').toLowerCase();
-    if (whatsappProvider !== 'berry') {
-      try {
-        const { createBaileysService } = await import('./whatsapp-baileys.js');
-        whatsappService = await createBaileysService();
-        console.log('[YOUPI] WhatsApp provider: Baileys (auth state in Neon)');
-      } catch (error) {
-        console.warn('[YOUPI] Baileys unavailable, falling back to Berry:', error.message);
-      }
-    }
-
-    const core = createPaymentApp(null, whatsappService ? { whatsappBerryService: whatsappService } : {});
+    const core = createPaymentApp();
     await new Promise((resolve, reject) => {
       core.rawServer.once('error', reject);
       core.rawServer.listen(gatewayEnv.YOUPI_GATEWAY_API_PORT, '127.0.0.1', resolve);
@@ -218,7 +239,6 @@ export function startYoupiGateway() {
       observerPort: observer ? observer.port : null,
       gmailPort: gmail ? gmail.port : null,
       close: async () => {
-        if (whatsappService) await whatsappService.close();
         if (gmail) await gmail.close();
         if (observer) await observer.close();
         if (admin) await admin.close();

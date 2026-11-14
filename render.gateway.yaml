@@ -58,7 +58,10 @@ services:
         sync: false
 
       # Where the gateway posts payment confirmations: the Worker's webhook route.
-      # e.g. https://movie-worker.<subdomain>.workers.dev/api/v1/payments/webhooks/youpi
+      # This is the most important value in this file. If it is unset the gateway
+      # falls back to the public Worker URL in code for production, but set it
+      # explicitly in the dashboard:
+      #   https://movie-worker.<subdomain>.workers.dev/api/v1/payments/webhooks/youpi
       - key: YOUPI_WEBHOOK_URL
         sync: false
 
@@ -85,14 +88,17 @@ services:
         value: Konkani Samudai
       - key: YOUPI_MERCHANT_ID
         value: 00000000-0000-0000-0000-000000000001
+      # Seeds the merchant webhook secret the first time the gateway boots on an
+      # empty database. Afterwards the value stored in the gateway database (view and
+      # rotate it in the admin panel) is authoritative, and the Worker's
+      # YOUPI_WEBHOOK_SECRET must equal it.
       - key: YOUPI_WEBHOOK_SECRET
         sync: false
+      # Public movie API used for webhook fallbacks when YOUPI_WEBHOOK_URL is unset.
+      - key: MOVIE_API_PUBLIC_URL
+        value: https://movie-worker.konkani-samudai.workers.dev
       - key: YOUPI_CLIENT_API_BASE
         value: /youpi
-      # WhatsApp provider. Baileys stores its linked-device state in Neon
-      # (`youpi.wa_auth`), so it survives restarts. Set to `berry` to use the old one.
-      - key: WHATSAPP_PROVIDER
-        value: baileys
       - key: YOUPI_ALLOW_ADMIN
         value: true
       - key: YOUPI_ADMIN_ENABLED
