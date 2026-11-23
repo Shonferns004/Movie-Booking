@@ -525,7 +525,27 @@ export function registerPollerRoutes(server, ctx) {
 
     // Canonical runtime URL derivation (Part C2)
     const runtime = resolveRuntimeUrls(merchant?.branding || {});
-    const baseUrl = runtime.apiUrl;
+    // The Android observer runs on a phone, so a loopback URL is useless. Prefer the
+    // public origin this deployment is reachable on, then append the proxy prefix the
+    // movie API exposes the gateway under.
+    const requestOrigin = (() => {
+      const origin = String(req.headers.origin || '').trim();
+      if (origin) return origin;
+      try { return new URL(String(req.headers.referer || '')).origin; } catch { return ''; }
+    })();
+    const envBase = (process.env.BASE_CHECKOUT_URL || process.env.YOUPI_PUBLIC_BASE_URL || '')
+      .trim()
+      .replace(/\/+$/, '');
+    const isLoopbackBase = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(?::|\/|$)/i.test(envBase);
+    const publicBase = (isLoopbackBase && requestOrigin ? requestOrigin : envBase || requestOrigin)
+      .replace(/\/+$/, '');
+    const clientBase = (process.env.YOUPI_CLIENT_API_BASE || '/youpi').trim().replace(/\/+$/, '');
+    const proxyBase = clientBase
+      ? (clientBase.startsWith('/') ? clientBase : `/${clientBase}`)
+      : '';
+    const baseUrl = publicBase
+      ? (proxyBase && !publicBase.endsWith(proxyBase) ? `${publicBase}${proxyBase}` : publicBase)
+      : runtime.apiUrl;
     const token = enrollmentSecret;
     const sessionId = crypto.randomUUID();
     const expiresAt = Date.now() + (10 * 60 * 1000); // 10 minutes
@@ -545,7 +565,7 @@ export function registerPollerRoutes(server, ctx) {
     };
 
     const pairingPayload = JSON.stringify(pairingPayloadObj);
-    const qrSvg = generateQrSvg(pairingPayload, 260);
+    const qrSvg = generateQrSvg(pairingPayload, 320);
 
     const rawDevices = ctx.db.query(`
       SELECT id, device_name, device_model, is_active, last_heartbeat_at, last_observation_at, created_at
