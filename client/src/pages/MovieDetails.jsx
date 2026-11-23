@@ -314,7 +314,7 @@ export default function MovieDetails() {
       <style>{STYLES}</style>
 
       {/* Movie header */}
-      <section className="relative overflow-hidden border-b border-[#F2F0EC]/10">
+      <section className="relative mx-auto mt-3 max-w-6xl overflow-hidden rounded-[30px] border border-[#F2F0EC]/10 sm:mt-4">
         {poster && (
           <img
             src={poster}
@@ -325,7 +325,7 @@ export default function MovieDetails() {
         )}
         <div className="absolute inset-0 bg-gradient-to-b from-[#1E2227]/70 via-[#1E2227]/90 to-[#1E2227]" />
 
-        <div className="relative mx-auto max-w-6xl px-4 pb-8 pt-6 sm:px-6">
+        <div className="relative px-5 pb-8 pt-6 sm:px-8">
           <Link
             to="/movies"
             className="inline-flex items-center gap-2 rounded-full border border-[#F2F0EC]/15 bg-[#1E2227]/40 px-4 py-2 text-xs font-semibold text-[#F2F0EC]/75 backdrop-blur transition hover:border-[#C8FF1F]/60 hover:text-[#C8FF1F]"

@@ -411,81 +411,143 @@ export default function Home() {
           </p>
 
           {featured ? (
-            <div
-              className="flex touch-pan-y select-none items-stretch"
-              onWheel={onWheel}
-              onPointerDown={onDown}
-              onPointerUp={onUp}
-              onPointerLeave={() => (startX.current = null)}
-              onDragStart={(e) => e.preventDefault()}
-            >
-            <SideTicket side="left" movie={prevMovie} poster={prevMovie && posterOf(prevMovie)} onClick={() => step(-1)} />
-            <div
-              key={featured.id}
-              style={{ '--dir': `${dir * 48}px` }}
-              className="kk-ticket-in relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden rounded-3xl shadow-2xl shadow-black/40 md:flex-row"
-            >
-              {/* Main ticket body */}
-              <div className="relative flex flex-1 gap-4 bg-[#B5AFA6] p-4 text-[#1E2227] sm:gap-6 sm:p-8 md:items-stretch">
-                <Tilt className="w-24 shrink-0 self-start sm:w-40 md:w-56 lg:w-64">
+            <div className="kk-shell">
+              <div className="kk-hero-split">
+                {/* Poster hero */}
+                <div className="relative min-h-[330px] overflow-hidden sm:min-h-[440px]">
                   <img
+                    key={featured.id}
                     src={posterOf(featured)}
                     alt={`Poster for ${featured.title}`}
-                    className="kk-poster-in aspect-[3/4] w-full rounded-xl object-cover shadow-xl"
+                    className="kk-poster-in absolute inset-0 h-full w-full object-cover"
                   />
-                </Tilt>
-                <div className="flex min-w-0 flex-1 flex-col justify-between gap-4 sm:gap-6">
-                  <div>
-                    <p
-                      className="kk-rise flex flex-wrap items-center gap-2 text-sm font-semibold text-[#1E2227]"
-                      style={{ animationDelay: '120ms' }}
-                    >
+                  <div
+                    aria-hidden="true"
+                    className="absolute inset-0 bg-gradient-to-t from-[#171B1F] via-[#171B1F]/35 to-transparent"
+                  />
+
+                  <div className="absolute left-4 top-4 flex items-center gap-2 sm:left-6 sm:top-6">
+                    <span className="kk-rail-label rounded-full bg-[#14181B]/60 px-3 py-1.5 backdrop-blur">
                       Now showing
-                      {isNew(featured) && <NewTag />}
-                    </p>
-                    <h1 className="kk-display mt-2 text-2xl font-black leading-[1.05] sm:text-4xl md:text-5xl lg:text-6xl">
+                    </span>
+                    {isNew(featured) && <NewTag />}
+                  </div>
+
+                  <div className="absolute right-4 top-4 flex items-center gap-2 sm:right-6 sm:top-6">
+                    <button
+                      type="button"
+                      aria-label="Previous film"
+                      onClick={() => step(-1)}
+                      className="kk-circle !h-10 !w-10"
+                    >
+                      <span className="material-symbols-outlined text-[20px]">chevron_left</span>
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Next film"
+                      onClick={() => step(1)}
+                      className="kk-circle !h-10 !w-10"
+                    >
+                      <span className="material-symbols-outlined text-[20px]">chevron_right</span>
+                    </button>
+                  </div>
+
+                  <div className="absolute inset-x-0 bottom-0 p-5 sm:p-8">
+                    <h1 className="kk-display text-3xl font-black leading-[0.95] tracking-[-0.03em] drop-shadow-[0_6px_24px_rgba(0,0,0,0.55)] sm:text-5xl lg:text-6xl">
                       <Words text={featured.title} />
                     </h1>
-                    <p
-                      className="kk-rise mt-3 line-clamp-3 max-w-md text-xs leading-relaxed text-[#1E2227]/75 sm:mt-4 sm:line-clamp-4 sm:text-sm"
-                      style={{ animationDelay: '520ms' }}
-                    >
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {[
+                        featured.language || 'English',
+                        `${featured.duration_minutes || 120} min`,
+                        featured.certification || 'UA',
+                        featured.genre || 'Drama',
+                      ].filter(Boolean).map((chip) => (
+                        <span
+                          key={chip}
+                          className="rounded-full border border-[#F2F0EC]/20 bg-[#14181B]/45 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[#F2F0EC]/80 backdrop-blur"
+                        >
+                          {chip}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Details */}
+                <div className="flex flex-col justify-between gap-6 p-5 sm:p-8">
+                  <div>
+                    <p className="kk-rail-label">Featured film</p>
+                    <p className="mt-3 line-clamp-4 text-sm leading-relaxed text-[#F2F0EC]/75">
                       {featured.synopsis || 'Synopsis coming soon.'}
                     </p>
                   </div>
 
+                  <dl className="grid grid-cols-2 gap-x-4 gap-y-5">
+                    {[
+                      ['Language', featured.language || 'English'],
+                      ['Runtime', `${featured.duration_minutes || 120} min`],
+                      ['Genre', featured.genre || 'Drama'],
+                      ['Release', featured.release_date
+                        ? new Date(featured.release_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+                        : 'TBA'],
+                    ].map(([label, value], i) => (
+                      <div key={label} className="kk-rise" style={{ animationDelay: `${180 + i * 70}ms` }}>
+                        <dt className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#B5AFA6]">{label}</dt>
+                        <dd className="kk-display mt-1 text-lg font-bold leading-tight">{value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+
+                  <Link
+                    to={`/movies/${featured.slug || featured.id}`}
+                    className="kk-btn inline-flex items-center justify-center gap-2 rounded-full bg-[#C8FF1F] px-6 py-3.5 text-sm font-bold text-[#1E2227] hover:bg-[#A8D819] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1E2227]"
+                  >
+                    <span className="material-symbols-outlined text-[19px]">local_activity</span>
+                    Book seats
+                  </Link>
                 </div>
               </div>
 
-              {/* Perforation with notches */}
-              <div aria-hidden="true" className="relative h-0 md:h-auto md:w-0">
-                <div className="absolute -top-3 left-0 h-6 w-6 rounded-full bg-[#1E2227] md:-left-3 md:top-0 md:-translate-y-1/2" />
-                <div className="absolute -bottom-3 right-0 h-6 w-6 rounded-full bg-[#1E2227] md:-left-3 md:bottom-0 md:right-auto md:translate-y-1/2" />
-              </div>
+              {/* Notch + editorial strip */}
+              <div className="relative border-t border-[#F2F0EC]/10 px-5 pb-6 pt-10 sm:px-8 sm:pb-8">
+                <button type="button" className="kk-play-notch" aria-label="Play trailer">
+                  <span className="material-symbols-outlined text-[30px]">play_arrow</span>
+                </button>
 
-              {/* Stub */}
-              <div className="flex flex-col justify-between gap-6 border-t-2 border-dashed border-[#1E2227]/40 bg-[#1E2227] p-6 text-[#F2F0EC] md:w-64 md:border-l-2 md:border-t-0">
-                <dl className="space-y-4 text-sm">
-                  {[
-                    ['Language', featured.language || 'English'],
-                    ['Runtime', `${featured.duration_minutes || 120} min`],
-                    ['Genre', featured.genre || 'Drama'],
-                    ['Release', featured.release_date ? new Date(featured.release_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'TBA'],
-                  ].map(([label, value], i) => (
-                    <div key={label} className="kk-rise" style={{ animationDelay: `${350 + i * 90}ms` }}>
-                      <dt className="text-xs font-medium text-[#B5AFA6]">{label}</dt>
-                      <dd className="kk-display text-xl font-bold">{value}</dd>
-                    </div>
-                  ))}
-                </dl>
-                <Link
-                  to={`/movies/${featured.slug || featured.id}`}
-                  className="kk-btn rounded-xl bg-[#C8FF1F] px-5 py-3 text-center text-sm font-semibold text-[#1E2227] hover:bg-[#A8D819] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1E2227]"
-                >
-                  Book seats
-                </Link>
+                <div className="flex flex-col gap-7 pt-4 md:flex-row md:items-center md:justify-between">
+                  <div className="flex gap-3">
+                    {movies.slice(0, 2).map((movie, i) => (
+                      <button
+                        key={movie.id}
+                        type="button"
+                        onClick={() => go(movies.indexOf(movie))}
+                        aria-label={movie.title}
+                        className="kk-poster-card !flex-[0_0_104px] text-left sm:!flex-[0_0_126px]"
+                      >
+                        <img src={posterOf(movie)} alt="" loading="lazy" />
+                        <span className="absolute inset-x-2 bottom-2 z-10 line-clamp-2 text-[9px] font-bold uppercase tracking-[0.08em] text-[#F2F0EC]">
+                          {movie.title}
+                        </span>
+                        {i === 0 && (
+                          <span className="absolute right-1.5 top-1.5 z-10 rounded-full bg-[#C8FF1F] px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.08em] text-[#171B1F]">
+                            New
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="max-w-sm">
+                    <p className="kk-rail-label">Curated for the Samudai</p>
+                    <h2 className="kk-display-xl mt-2">Discover your next favourite story</h2>
+                  </div>
+
+                  <div className="kk-avatar-round shrink-0">
+                    <img src={posterOf(featured)} alt="" />
+                  </div>
+                </div>
               </div>
-            </div>
             </div>
           ) : (
             <div className="kk-skeleton h-[420px] rounded-3xl" />
@@ -495,7 +557,7 @@ export default function Home() {
           {movies.length > 1 && (
             <div
               ref={railRef}
-              className="mt-5 flex gap-3 overflow-x-auto px-1 pb-2 pt-1"
+              className="kk-rail mt-6 px-1"
               role="tablist"
               aria-label="Choose a movie"
             >
@@ -508,10 +570,10 @@ export default function Home() {
                     aria-selected={active}
                     aria-label={m.title}
                     onClick={() => go(i)}
-                    className={`relative h-24 w-[4.5rem] shrink-0 overflow-hidden rounded-lg transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#C8FF1F] ${
+                    className={`kk-poster-card !flex-[0_0_82px] text-left sm:!flex-[0_0_96px] ${
                       active
-                        ? '-translate-y-1 scale-105 ring-2 ring-[#C8FF1F]'
-                        : 'opacity-50 hover:-translate-y-0.5 hover:opacity-100'
+                        ? 'ring-2 ring-[#C8FF1F] ring-offset-2 ring-offset-[#1E2227]'
+                        : 'opacity-55 hover:opacity-100'
                     }`}
                   >
                     <img src={posterOf(m)} alt="" className="h-full w-full object-cover" />

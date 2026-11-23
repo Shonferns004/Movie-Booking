@@ -1,19 +1,20 @@
     :root {
-      --ypg-blue: #0b63e5;
-      --ypg-blue-dark: #0957cb;
-      --ypg-navy: #0b1526;
-      --ypg-header-gradient: linear-gradient(180deg, #0b63e5 0%, #0957cb 100%);
-      --ypg-bg: #f8fafc;
+      --ypg-blue: #1E2227;
+      --ypg-blue-dark: #2E353D;
+      --ypg-navy: #14181B;
+      --ypg-header-gradient: linear-gradient(180deg, #1E2227 0%, #14181B 100%);
+      --ypg-bg: #F2F0EC;
       --ypg-card: #ffffff;
-      --ypg-text-dark: #0f172a;
-      --ypg-text-muted: #64748b;
-      --ypg-border: #e2e8f0;
-      --ypg-border-light: #eef2f6;
-      --ypg-green: #0d9f67;
-      --ypg-green-bg: #e6f9f0;
-      --ypg-offer-bg: #eff6ff;
-      --ypg-offer-border: #dbeafe;
-      --ypg-danger: #ef4444;
+      --ypg-text-dark: #1E2227;
+      --ypg-text-muted: #6B6761;
+      --ypg-border: #D8D3CB;
+      --ypg-border-light: #E7E3DC;
+      --ypg-green: #4F6B12;
+      --ypg-green-bg: #EDF6D6;
+      --ypg-offer-bg: #F2F0EC;
+      --ypg-offer-border: #D8D3CB;
+      --ypg-danger: #C85B4E;
+      --ypg-lime: #C8FF1F;
       --ypg-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     }
 
@@ -185,12 +186,12 @@
       position: absolute;
       width: 12px;
       height: 12px;
-      background: #0b63e5;
+      background: #C8FF1F;
       border: 2px solid #ffffff;
       border-radius: 50%;
       top: 8px;
       left: 20px;
-      box-shadow: 0 0 8px rgba(11, 99, 229, 0.6);
+      box-shadow: 0 0 8px rgba(200, 255, 31, 0.6);
       animation: ypgOrbitAnimation 1.5s infinite linear;
     }
 
@@ -1010,7 +1011,7 @@
     .ypg-queue-number {
       font-size: 36px;
       font-weight: 900;
-      color: #1d4ed8;
+      color: #3C4A10;
       margin: 8px 0;
     }
 
@@ -1980,7 +1981,7 @@
       border-radius: 10px;
       font-size: 14px;
       font-weight: 700;
-      color: #0b63e5;
+      color: #1E2227;
       cursor: pointer;
       margin-top: 14px;
       transition: all 0.2s;
@@ -2578,9 +2579,9 @@
       }
 
       .ypg-pc-method-card.is-active {
-        border-color: var(--ypg-blue, #0b63e5);
+        border-color: var(--ypg-lime, #C8FF1F);
         background: #eff6ff;
-        box-shadow: 0 0 0 1px var(--ypg-blue, #0b63e5);
+        box-shadow: 0 0 0 1px var(--ypg-lime, #C8FF1F);
       }
 
       .ypg-pc-method-card.disabled {

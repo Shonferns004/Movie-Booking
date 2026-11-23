@@ -194,7 +194,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       child: Text(
                         _displayName,
                         overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.poppins(
+                        style: GoogleFonts.publicSans(
                           fontSize: 20,
                           fontWeight: FontWeight.w600,
                           color: KkSurface.onSurface,
@@ -211,7 +211,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       child: Text(
                         _roleLabel.toUpperCase(),
-                        style: GoogleFonts.poppins(
+                        style: GoogleFonts.publicSans(
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
                           letterSpacing: 0.8,
@@ -245,7 +245,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               Text(
                 'TOTAL TICKETS SCANNED',
-                style: GoogleFonts.poppins(
+                style: GoogleFonts.publicSans(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.8,
@@ -259,7 +259,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 10),
           Text(
             _scans.length.toString(),
-            style: GoogleFonts.poppins(
+            style: GoogleFonts.publicSans(
               fontSize: 40,
               fontWeight: FontWeight.w700,
               height: 1,
@@ -288,7 +288,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               Text(
                 'SCANNED PER MOVIE',
-                style: GoogleFonts.poppins(
+                style: GoogleFonts.publicSans(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.8,
@@ -303,7 +303,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           if (rows.isEmpty)
             Text(
               'No movie scans yet',
-              style: GoogleFonts.poppins(
+              style: GoogleFonts.publicSans(
                 fontSize: 13,
                 color: KkSurface.onSurfaceVariant,
               ),
@@ -324,7 +324,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           child: Text(
                             r['title'] as String,
                             overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.poppins(
+                            style: GoogleFonts.publicSans(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
                               color: KkSurface.onSurface,
@@ -334,7 +334,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const SizedBox(width: 8),
                         Text(
                           '$count',
-                          style: GoogleFonts.poppins(
+                          style: GoogleFonts.publicSans(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
                             color: KkSurface.accent,
@@ -386,7 +386,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Expanded(
               child: Text(
                 'No tickets scanned yet',
-                style: GoogleFonts.poppins(
+                style: GoogleFonts.publicSans(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   color: KkSurface.onSurface,
@@ -402,7 +402,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       children: [
         Text(
           'Recent scans',
-          style: GoogleFonts.poppins(
+          style: GoogleFonts.publicSans(
             fontSize: 13,
             fontWeight: FontWeight.w600,
             color: KkSurface.onSurface,
@@ -446,7 +446,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         '${s['result'] ?? 'UNKNOWN'}'
                             '${s['rejection_reason'] != null && s['rejection_reason'].toString().isNotEmpty ? ' • ${s['rejection_reason']}' : ''}',
                         overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.poppins(
+                        style: GoogleFonts.publicSans(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
                           color: KkSurface.onSurface,
@@ -454,7 +454,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       Text(
                         '${s['scanned_at'] ?? ''}',
-                        style: GoogleFonts.poppins(
+                        style: GoogleFonts.publicSans(
                           fontSize: 11,
                           color: KkSurface.onSurfaceVariant,
                         ),
@@ -474,7 +474,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   child: Text(
                     valid ? 'Valid' : 'Rejected',
-                    style: GoogleFonts.poppins(
+                    style: GoogleFonts.publicSans(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                       color: valid
@@ -532,7 +532,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         icon: const Icon(LucideIcons.logOut, size: 20),
         label: Text(
           'LOG OUT',
-          style: GoogleFonts.poppins(
+          style: GoogleFonts.publicSans(
             fontSize: 14,
             fontWeight: FontWeight.w700,
             letterSpacing: 0.8,

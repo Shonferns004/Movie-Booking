@@ -114,41 +114,49 @@ function Nav() {
 
   return (
     <header
-      className={`${onHome ? 'fixed' : 'sticky'} inset-x-0 top-0 z-50 font-['Public_Sans',system-ui,sans-serif] text-[#F2F0EC] transition-all duration-300 ${
-        overHero
-          ? 'kk-nav-over'
-          : 'border-b border-[#F2F0EC]/10 bg-[#171B1F]/95 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.9)] backdrop-blur-xl'
-      }`}
+      className={`${onHome ? 'fixed' : 'sticky'} inset-x-0 top-0 z-50 px-3 pt-3 font-['Public_Sans',system-ui,sans-serif] text-[#F2F0EC] transition-all duration-300 sm:px-4 sm:pt-4`}
     >
-      <div className="mx-auto flex h-[74px] max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
-        <Link
-          to="/"
-          aria-label="Konkani Samudai home"
-          className="group flex min-w-0 items-center gap-3 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#C8FF1F]"
+      <div className="mx-auto flex max-w-7xl items-center gap-2.5">
+        <div
+          className={`flex h-14 min-w-0 items-center gap-1.5 rounded-full border pl-1.5 pr-1.5 backdrop-blur-2xl transition-colors duration-300 ${
+            overHero
+              ? 'border-[#F2F0EC]/20 bg-[#171B1F]/45'
+              : 'border-[#F2F0EC]/12 bg-[#171B1F]/92 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.9)]'
+          }`}
         >
-          <BrandMark />
-          <span className="block whitespace-nowrap font-['Fraunces',Georgia,serif] text-[21px] font-bold leading-none tracking-tight sm:text-[23px]">
-            Konkani <span className="italic text-[#C8FF1F]">Samudai</span>
-          </span>
-        </Link>
+          <Link
+            to="/"
+            aria-label="Konkani Samudai home"
+            className="group flex min-w-0 items-center gap-2.5 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#C8FF1F]"
+          >
+            <BrandMark />
+            <span className="hidden whitespace-nowrap pr-1 font-['Fraunces',Georgia,serif] text-[19px] font-bold leading-none tracking-tight sm:block sm:text-[20px]">
+              Konkani <span className="italic text-[#C8FF1F]">Samudai</span>
+            </span>
+          </Link>
 
-        <nav aria-label="Primary navigation" className="ml-auto hidden items-center gap-7 md:flex">
-          {links.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              className={({ isActive }) => `kk-nav-link${isActive ? ' is-active' : ''}`}
-            >
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
+          <nav aria-label="Primary navigation" className="hidden items-center gap-1 pl-1 md:flex">
+            {links.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                className={({ isActive }) => `kk-nav-pill${isActive ? ' is-active' : ''}`}
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+        </div>
 
-        <div className="ml-auto flex shrink-0 items-center gap-2 md:ml-7">
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          <Link to="/movies" aria-label="Browse movies" className="kk-circle">
+            <span className="material-symbols-outlined text-[20px]">search</span>
+          </Link>
+
           <Link
             to="/movies"
-            className="kk-shine kk-shine-slow hidden h-10 items-center gap-2 rounded-full bg-[#C8FF1F] px-4 text-[10.5px] font-bold uppercase tracking-[0.1em] text-[#171B1F] shadow-[0_10px_24px_-14px_rgba(200,255,31,0.9)] transition-all hover:-translate-y-0.5 hover:bg-[#D9FF66] lg:inline-flex"
+            className="kk-shine kk-shine-slow hidden h-12 items-center gap-2 rounded-full bg-[#C8FF1F] px-5 text-[10.5px] font-bold uppercase tracking-[0.1em] text-[#171B1F] shadow-[0_10px_24px_-14px_rgba(200,255,31,0.9)] transition-all hover:-translate-y-0.5 hover:bg-[#D9FF66] lg:inline-flex"
           >
             <span className="material-symbols-outlined text-[17px]">local_activity</span>
             Book tickets
@@ -162,7 +170,7 @@ function Nav() {
                 aria-haspopup="menu"
                 aria-expanded={accountOpen}
                 aria-label="Account menu"
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-[#C8FF1F] text-[#171B1F] shadow-[0_8px_20px_-10px_rgba(200,255,31,0.9)] ring-2 ring-[#C8FF1F]/25 transition-all hover:-translate-y-0.5 hover:ring-[#C8FF1F]/70"
+                className="kk-circle kk-circle-lime"
               >
                 <span className="material-symbols-outlined text-[21px]">person</span>
               </button>
@@ -215,9 +223,8 @@ function Nav() {
               )}
             </div>
           ) : (
-            <Link to="/login" className={authClass}>
-              <span className="material-symbols-outlined text-[17px]">person</span>
-              <span className="hidden sm:inline">Sign in</span>
+            <Link to="/login" aria-label="Sign in" className={`kk-circle${onHome && !scrolled ? '' : ''}`}>
+              <span className="material-symbols-outlined text-[20px]">person</span>
             </Link>
           )}
 
@@ -230,7 +237,7 @@ function Nav() {
               setMobileOpen((open) => !open);
               setAccountOpen(false);
             }}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-[#F2F0EC]/15 text-[#F2F0EC] transition-colors hover:border-[#C8FF1F] hover:text-[#C8FF1F] md:hidden"
+            className="kk-circle md:hidden"
           >
             <span className="material-symbols-outlined">{mobileOpen ? 'close' : 'menu'}</span>
           </button>
@@ -239,8 +246,8 @@ function Nav() {
 
       <div
         id="mobile-navigation"
-        className={`grid overflow-hidden border-t border-[#F2F0EC]/10 bg-[#171B1F] transition-[grid-template-rows,opacity] duration-300 md:hidden ${
-          mobileOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] border-transparent opacity-0'
+        className={`mx-auto mt-2 max-w-7xl overflow-hidden rounded-3xl border border-[#F2F0EC]/12 bg-[#171B1F]/96 backdrop-blur-2xl transition-all duration-300 md:hidden ${
+          mobileOpen ? 'max-h-[460px] opacity-100' : 'max-h-0 border-transparent opacity-0'
         }`}
       >
         <nav aria-label="Mobile navigation" className="min-h-0 overflow-hidden">
@@ -251,7 +258,7 @@ function Nav() {
                 to={item.to}
                 end={item.end}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 rounded-xl px-3 py-3 text-[11px] font-bold uppercase tracking-[0.14em] transition-colors ${
+                  `flex items-center gap-3 rounded-2xl px-3 py-3 text-[11px] font-bold uppercase tracking-[0.14em] transition-colors ${
                     isActive ? 'bg-[#C8FF1F]/10 text-[#C8FF1F]' : 'text-[#F2F0EC]/70 hover:bg-[#F2F0EC]/[0.05] hover:text-[#F2F0EC]'
                   }`
                 }
@@ -262,7 +269,7 @@ function Nav() {
             ))}
             <Link
               to="/movies"
-              className="kk-shine kk-shine-slow mt-2 inline-flex items-center justify-center gap-2 rounded-xl bg-[#C8FF1F] px-3 py-3 text-[10.5px] font-bold uppercase tracking-[0.12em] text-[#171B1F]"
+              className="kk-shine kk-shine-slow mt-2 inline-flex items-center justify-center gap-2 rounded-full bg-[#C8FF1F] px-3 py-3 text-[10.5px] font-bold uppercase tracking-[0.12em] text-[#171B1F]"
             >
               <span className="material-symbols-outlined text-[17px]">local_activity</span>
               Book movie tickets

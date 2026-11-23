@@ -11,24 +11,24 @@ import 'scanner_screen.dart';
 
 /// Material 3 surface palette (matches the design tokens used by the web UI).
 class KkSurface {
-  static const bg = Color(0xFF131315);
-  static const containerLow = Color(0xFF1B1B1D);
-  static const container = Color(0xFF201F21);
-  static const containerHigh = Color(0xFF2A2A2C);
-  static const containerHighest = Color(0xFF353437);
-  static const onSurface = Color(0xFFE5E1E4);
-  static const onSurfaceVariant = Color(0xFFDDC0B7);
-  static const primary = Color(0xFFFFB59C);
-  static const accent = Color(0xFFD96B43);
-  static const accentBorder = Color(0xFFE07148);
-  static const border = Color(0xFF26262A);
-  static const secondaryContainer = Color(0xFF3C4B3A);
-  static const onSecondaryContainer = Color(0xFFA9BAA5);
-  static const secondary = Color(0xFFBBCBB6);
-  static const error = Color(0xFFFFB4AB);
-  static const outline = Color(0xFFA58B83);
-  static const outlineVariant = Color(0xFF56423C);
-  static const onPrimary = Color(0xFF5C1900);
+  static const bg = Color(0xFF1E2227);
+  static const containerLow = Color(0xFF1A1E23);
+  static const container = Color(0xFF262C33);
+  static const containerHigh = Color(0xFF2E353D);
+  static const containerHighest = Color(0xFF343B43);
+  static const onSurface = Color(0xFFF2F0EC);
+  static const onSurfaceVariant = Color(0xFFB5AFA6);
+  static const primary = Color(0xFFC8FF1F);
+  static const accent = Color(0xFFC8FF1F);
+  static const accentBorder = Color(0xFFC8FF1F);
+  static const border = Color(0xFF3A4148);
+  static const secondaryContainer = Color(0xFF2E353D);
+  static const onSecondaryContainer = Color(0xFFF2F0EC);
+  static const secondary = Color(0xFFB5AFA6);
+  static const error = Color(0xFFF08A80);
+  static const outline = Color(0xFF8C877F);
+  static const outlineVariant = Color(0xFF4A5158);
+  static const onPrimary = Color(0xFF171B1F);
 }
 
 /// Scanner shell with a bottom tab bar (Home / Profile).
@@ -322,7 +322,7 @@ class _ScannerShellState extends State<ScannerShell> {
                     const SizedBox(height: 2),
                     Text(
                       _showSubtitle(s),
-                      style: GoogleFonts.poppins(
+                      style: GoogleFonts.publicSans(
                         fontSize: 13,
                         color: KkSurface.onSurfaceVariant,
                       ),
@@ -375,7 +375,7 @@ class _ScannerShellState extends State<ScannerShell> {
               const SizedBox(width: 12),
               Text(
                 'Scanned tickets: ${widget.scannedCount}',
-                style: GoogleFonts.poppins(
+                style: GoogleFonts.publicSans(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                   color: KkSurface.onSurface,
@@ -408,7 +408,7 @@ class _ScannerShellState extends State<ScannerShell> {
           const SizedBox(width: 8),
           Text(
             'Manual entry fallback',
-            style: GoogleFonts.poppins(
+            style: GoogleFonts.publicSans(
               fontSize: 13,
               color: KkSurface.onSurfaceVariant,
             ),
@@ -418,7 +418,7 @@ class _ScannerShellState extends State<ScannerShell> {
             onPressed: _busy ? null : _manualEntry,
             child: Text(
               'Enter ticket code',
-              style: GoogleFonts.poppins(
+              style: GoogleFonts.publicSans(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
                 color: KkSurface.primary,
@@ -447,7 +447,7 @@ class _ScannerShellState extends State<ScannerShell> {
       children: [
         Text(
           'Recent gate activity',
-          style: GoogleFonts.poppins(
+          style: GoogleFonts.publicSans(
             fontSize: 13,
             fontWeight: FontWeight.w600,
             color: KkSurface.onSurface,
@@ -490,7 +490,7 @@ class _ScannerShellState extends State<ScannerShell> {
                       Text(
                         '${s['result'] ?? 'UNKNOWN'}'
                             '${s['rejection_reason'] != null && s['rejection_reason'].toString().isNotEmpty ? ' • ${s['rejection_reason']}' : ''}',
-                        style: GoogleFonts.poppins(
+                        style: GoogleFonts.publicSans(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
                           color: KkSurface.onSurface,
@@ -498,7 +498,7 @@ class _ScannerShellState extends State<ScannerShell> {
                       ),
                       Text(
                         '${s['scanned_at'] ?? ''}',
-                        style: GoogleFonts.poppins(
+                        style: GoogleFonts.publicSans(
                           fontSize: 11,
                           color: KkSurface.onSurfaceVariant,
                         ),
@@ -516,7 +516,7 @@ class _ScannerShellState extends State<ScannerShell> {
                   ),
                   child: Text(
                     valid ? 'Valid' : 'Rejected',
-                    style: GoogleFonts.poppins(
+                    style: GoogleFonts.publicSans(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                       color: valid
@@ -550,7 +550,7 @@ class _ScannerShellState extends State<ScannerShell> {
                 const SizedBox(height: 2),
                 Text(
                   label,
-                  style: GoogleFonts.poppins(
+                  style: GoogleFonts.publicSans(
                     fontSize: 11,
                     fontWeight: active ? FontWeight.w600 : FontWeight.w500,
                     color: labelColor,
@@ -642,7 +642,7 @@ class _ScanButtonState extends State<_ScanButton> {
                 const SizedBox(height: 8),
                 Text(
                   'START',
-                  style: GoogleFonts.poppins(
+                  style: GoogleFonts.publicSans(
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 1.4,
@@ -651,7 +651,7 @@ class _ScanButtonState extends State<_ScanButton> {
                 ),
                 Text(
                   'SCANNING',
-                  style: GoogleFonts.poppins(
+                  style: GoogleFonts.publicSans(
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 1.4,
@@ -723,7 +723,7 @@ class _IosSheetButton extends StatelessWidget {
                 ],
                 Text(
                   label,
-                  style: GoogleFonts.poppins(
+                  style: GoogleFonts.publicSans(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.2,
@@ -803,7 +803,7 @@ class _ManualEntrySheetState extends State<_ManualEntrySheet> {
             Text(
               'Type the reference printed under the QR code.',
               textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(
+              style: GoogleFonts.publicSans(
                 fontSize: 13,
                 color: KkSurface.onSurfaceVariant,
               ),
@@ -820,14 +820,14 @@ class _ManualEntrySheetState extends State<_ManualEntrySheet> {
                   keyboardType: TextInputType.text,
                   textInputAction: TextInputAction.done,
                   onSubmitted: (_) => _submit(),
-                  style: GoogleFonts.poppins(
+                  style: GoogleFonts.publicSans(
                     fontSize: 14,
                     letterSpacing: 1.2,
                     color: KkSurface.onSurface,
                   ),
                   decoration: InputDecoration(
                     hintText: 'TKT-XXXXXXXX',
-                    hintStyle: GoogleFonts.poppins(
+                    hintStyle: GoogleFonts.publicSans(
                       fontSize: 13,
                       letterSpacing: 1.2,
                       color: KkSurface.onSurfaceVariant,

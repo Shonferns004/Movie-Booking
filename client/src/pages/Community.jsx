@@ -266,6 +266,7 @@ export default function Community() {
         isMember={Boolean(myMembership)}
       />
       <Marquee />
+      <FeatureRail movie={nextMovie} events={events} images={hero} onPick={setTicketEvent} />
       <Events events={events} onPick={setTicketEvent} />
       <Notices notices={notices} />
       <PhotoLibrary images={page?.gallery?.length ? page.gallery : hero} />
@@ -494,6 +495,81 @@ function MovieStrip({ movie, className = '' }) {
         </p>
       </div>
     </Link>
+  );
+}
+
+function FeatureRail({ movie, events, images, onPick }) {
+  const event = events?.[0];
+  const poster = movie?.thumbnail ? assetUrl(movie.thumbnail) : '';
+  const round = images?.[0]?.url || poster;
+  if (!movie && !event) return null;
+
+  return (
+    <section className="relative mx-auto max-w-[1180px] px-4 py-8 sm:px-8 lg:py-12">
+      <div className="kk-shell">
+        <div className="relative overflow-hidden px-5 pb-8 pt-14 sm:px-8">
+          <button
+            type="button"
+            className="kk-play-notch kk-play-notch--inline"
+            aria-label="Open the featured film"
+            onClick={() => movie && window.location.assign(`/movies/${movie.id}`)}
+          >
+            <span className="material-symbols-outlined text-[30px]">play_arrow</span>
+          </button>
+
+          <div className="flex flex-col gap-8 pt-6 md:flex-row md:items-center md:justify-between">
+            <div className="flex gap-3 sm:gap-4">
+              {movie && (
+                <Link
+                  to={`/movies/${movie.id}`}
+                  className="kk-poster-card !flex-[0_0_112px] sm:!flex-[0_0_140px]"
+                >
+                  {poster ? (
+                    <img src={poster} alt="" loading="lazy" />
+                  ) : (
+                    <div className="grid h-full place-items-center text-[#B5AFA6]">
+                      <span className="material-symbols-outlined">movie</span>
+                    </div>
+                  )}
+                  <span className="absolute inset-x-2 bottom-2 z-10 line-clamp-2 text-[9px] font-bold uppercase tracking-[0.08em] text-[#F2F0EC]">
+                    {movie.title}
+                  </span>
+                </Link>
+              )}
+              {event && (
+                <button
+                  type="button"
+                  onClick={() => onPick(event)}
+                  className="kk-poster-card !flex-[0_0_112px] text-left sm:!flex-[0_0_140px]"
+                >
+                  <div className="flex h-full flex-col justify-between bg-[#C8FF1F] p-3 text-[#171B1F]">
+                    <span className="text-[8px] font-black uppercase tracking-[0.16em]">Next event</span>
+                    <span className="font-['Fraunces',Georgia,serif] text-[17px] font-black uppercase leading-[0.95]">
+                      {event.title}
+                    </span>
+                    <span className="text-[8px] font-bold uppercase tracking-[0.1em]">{event.date}</span>
+                  </div>
+                </button>
+              )}
+            </div>
+
+            <div className="max-w-md">
+              <p className="kk-rail-label">Curated for the Samudai</p>
+              <h2 className="kk-display-xl mt-2 text-[#F2F0EC]">Discover your next favourite story</h2>
+              <p className="mt-3 text-sm leading-relaxed text-[#F2F0EC]/65">
+                Films, festivals and community nights — all in one place.
+              </p>
+            </div>
+
+            {round && (
+              <div className="kk-avatar-round hidden shrink-0 sm:block">
+                <img src={round} alt="" />
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 
