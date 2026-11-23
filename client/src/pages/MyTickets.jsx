@@ -8,12 +8,12 @@ import EventTicketArtwork from '../components/EventTicketArtwork.jsx';
 import StyledQr from '../components/StyledQr.jsx';
 
 const COLORS = {
-  ink: '#0A2A31',
-  tide: '#123E47',
-  shell: '#EFEBE0',
-  kokum: '#C2305E',
-  mango: '#F4B63F',
-  deep: '#071E23',
+  ink: '#1E2227',
+  tide: '#262C33',
+  shell: '#F2F0EC',
+  kokum: '#C8FF1F',
+  mango: '#C8FF1F',
+  deep: '#171B1F',
 };
 
 function TicketPassModal({ booking, onClose, onDownload }) {
@@ -43,28 +43,28 @@ function TicketPassModal({ booking, onClose, onDownload }) {
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[80] flex items-end justify-center bg-[#04161A]/80 backdrop-blur-md sm:items-center sm:p-6"
+      className="fixed inset-0 z-[80] flex items-end justify-center bg-[#14181B]/80 backdrop-blur-md sm:items-center sm:p-6"
       role="dialog"
       aria-modal="true"
       aria-label="Your ticket"
       onClick={onClose}
     >
       <div
-        className="kk-pass-sheet max-h-[93vh] w-full overflow-y-auto rounded-t-[28px] bg-[#F8F3E7] text-[#0A2A31] shadow-[0_40px_100px_-40px_rgba(0,0,0,0.8)] sm:max-w-[820px] sm:rounded-[26px]"
+        className="kk-pass-sheet max-h-[93vh] w-full overflow-y-auto rounded-t-[28px] bg-[#F2F0EC] text-[#1E2227] shadow-[0_40px_100px_-40px_rgba(0,0,0,0.8)] sm:max-w-[820px] sm:rounded-[26px]"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-[#0A2A31]/15 sm:hidden" />
+        <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-[#1E2227]/15 sm:hidden" />
 
         <div className="p-5 sm:p-7">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
-              <p className="text-[9px] font-bold uppercase tracking-[0.24em] text-[#0A2A31]/45">
+              <p className="text-[9px] font-bold uppercase tracking-[0.24em] text-[#1E2227]/45">
                 Booking confirmed
               </p>
               <h2 className="mt-1 truncate font-['Fraunces',Georgia,serif] text-[25px] font-bold leading-tight sm:text-[30px]">
                 {booking.title}
               </h2>
-              <p className="mt-1 text-[10px] uppercase tracking-[0.12em] text-[#0A2A31]/55">
+              <p className="mt-1 text-[10px] uppercase tracking-[0.12em] text-[#1E2227]/55">
                 {[booking.language, booking.certification].filter(Boolean).join(' · ') || 'Movie ticket'}
               </p>
             </div>
@@ -72,7 +72,7 @@ function TicketPassModal({ booking, onClose, onDownload }) {
               type="button"
               onClick={onClose}
               aria-label="Close ticket"
-              className="shrink-0 rounded-full border border-[#0A2A31]/15 p-2 text-[#0A2A31]/60 transition-colors hover:text-[#0A2A31]"
+              className="shrink-0 rounded-full border border-[#1E2227]/15 p-2 text-[#1E2227]/60 transition-colors hover:text-[#1E2227]"
             >
               <span className="material-symbols-outlined text-[18px]">close</span>
             </button>
@@ -84,7 +84,7 @@ function TicketPassModal({ booking, onClose, onDownload }) {
                 seats.map((seat) =>
                   seat.ticket_reference ? (
                     <div key={seat.seat_label} className="flex flex-col items-center">
-                      <div className="overflow-hidden rounded-2xl border border-[#0A2A31]/10">
+                      <div className="overflow-hidden rounded-2xl border border-[#1E2227]/10">
                         <StyledQr
                           value={seat.ticket_reference}
                           size={single ? 196 : 128}
@@ -93,14 +93,14 @@ function TicketPassModal({ booking, onClose, onDownload }) {
                           margin={8}
                         />
                       </div>
-                      <span className="mt-1.5 text-[9px] font-bold uppercase tracking-[0.16em] text-[#0A2A31]/55">
+                      <span className="mt-1.5 text-[9px] font-bold uppercase tracking-[0.16em] text-[#1E2227]/55">
                         {seat.seat_label}
                       </span>
                     </div>
                   ) : null,
                 )
               ) : (
-                <p className="py-8 text-center text-[11px] text-[#0A2A31]/50">QR issued after payment.</p>
+                <p className="py-8 text-center text-[11px] text-[#1E2227]/50">QR issued after payment.</p>
               )}
             </div>
 
@@ -126,7 +126,7 @@ function TicketPassModal({ booking, onClose, onDownload }) {
                 </div>
               </div>
 
-              <div className="mt-2 flex items-center justify-between text-[9px] uppercase tracking-[0.14em] text-[#0A2A31]/50">
+              <div className="mt-2 flex items-center justify-between text-[9px] uppercase tracking-[0.14em] text-[#1E2227]/50">
                 <span>{seatClass || 'Standard'}</span>
                 <span className="truncate font-mono tracking-[0.04em]">{booking.booking_reference}</span>
               </div>
@@ -134,7 +134,7 @@ function TicketPassModal({ booking, onClose, onDownload }) {
               <button
                 type="button"
                 onClick={() => onDownload(booking)}
-                className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-[#0A2A31] py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#F8F3E7] transition-transform hover:-translate-y-0.5"
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-[#1E2227] py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#F2F0EC] transition-transform hover:-translate-y-0.5"
               >
                 <span className="material-symbols-outlined text-[16px]">download</span>
                 Download ticket
@@ -276,7 +276,7 @@ export default function MyTickets() {
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Public+Sans:wght@400;500;600;700&display=swap');
         .kk-wallet{font-family:'Public Sans',system-ui,sans-serif}
         .kk-ticket-display{font-family:'Fraunces',Georgia,serif}
-        .kk-wallet-card{background:${COLORS.tide};border:1px solid rgba(239,235,224,.1);box-shadow:0 12px 36px rgba(0,0,0,.15)}
+        .kk-wallet-card{background:${COLORS.tide};border:1px solid rgba(242,240,236,.1);box-shadow:0 12px 36px rgba(0,0,0,.15)}
         .kk-wallet-tab{transition:background .2s ease,color .2s ease,transform .2s ease}
         .kk-wallet-tab:focus-visible{outline:2px solid ${COLORS.mango};outline-offset:2px}
         .kk-ticket-art{transition:transform .25s ease,box-shadow .25s ease;print-color-adjust:exact;-webkit-print-color-adjust:exact}
@@ -316,7 +316,7 @@ export default function MyTickets() {
               </div>
             </div>
             <div className="flex items-center gap-2 rounded-full border px-3 py-2 text-xs" style={{ borderColor: `${COLORS.shell}24`, background: `${COLORS.tide}80`, color: `${COLORS.shell}C9` }}>
-              <span className="h-2 w-2 rounded-full" style={{ background: '#67C69A' }} />
+              <span className="h-2 w-2 rounded-full" style={{ background: '#B6E36A' }} />
               Digital QR entry
             </div>
           </div>
@@ -386,7 +386,7 @@ export default function MyTickets() {
                   setPreviewBooking(booking);
                 }
               }}
-              className="min-w-0 cursor-pointer rounded-[22px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#F4B63F]"
+              className="min-w-0 cursor-pointer rounded-[22px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#C8FF1F]"
             >
               <TicketArtwork booking={booking} />
             </div>
@@ -396,11 +396,11 @@ export default function MyTickets() {
             <Link
               key={pass.id}
               to={`/event-ticket/${pass.orderId}`}
-              className="group block rounded-[22px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#F4B63F]"
+              className="group block rounded-[22px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#C8FF1F]"
             >
               <EventTicketArtwork ticket={pass} backgroundUrl={eventBackground} />
-              <p className="mt-2 flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.14em] text-[#EFEBE0]/40">
-                <span className="material-symbols-outlined text-[14px] text-[#F4B63F]">confirmation_number</span>
+              <p className="mt-2 flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.14em] text-[#F2F0EC]/40">
+                <span className="material-symbols-outlined text-[14px] text-[#C8FF1F]">confirmation_number</span>
                 Event pass · tap to open &amp; download
               </p>
             </Link>

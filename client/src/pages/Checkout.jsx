@@ -4,13 +4,13 @@ import api from '../services/api.js';
 import { loadYoupiScript } from '../services/youpi.js';
 
 const C = {
-  ink: '#0A2A31',
-  tide: '#123E47',
-  shell: '#EFEBE0',
-  kokum: '#C2305E',
-  mango: '#F4B63F',
-  green: '#1E5B3C',
-  greenSoft: '#E7F3EA',
+  ink: '#1E2227',
+  tide: '#262C33',
+  shell: '#F2F0EC',
+  kokum: '#C8FF1F',
+  mango: '#C8FF1F',
+  green: '#B6E36A',
+  greenSoft: '#232A1C',
 };
 
 const rupees = (minor = 0) => new Intl.NumberFormat('en-IN', {
@@ -41,7 +41,7 @@ const STYLES = `
 .kk-checkout { font-family: 'Public Sans', system-ui, sans-serif; }
 .kk-display { font-family: 'Fraunces', Georgia, serif; }
 .kk-pay { transition: background-color .2s ease, transform .2s ease, opacity .2s ease; }
-.kk-pay:not(:disabled):hover { background-color: #a82651; transform: translateY(-1px); }
+.kk-pay:not(:disabled):hover { background-color: #A8D819; transform: translateY(-1px); }
 .kk-row { transition: background-color .16s ease; }
 .kk-row:hover { background-color: rgba(10,42,49,.04); }
 .kk-toast { animation: kk-checkout-in .22s ease both; }
@@ -166,15 +166,15 @@ export default function Checkout() {
 
   if (!hold) {
     return (
-      <main className="kk-checkout min-h-screen bg-[#0A2A31] px-5 py-16 text-[#EFEBE0]">
+      <main className="kk-checkout min-h-screen bg-[#1E2227] px-5 py-16 text-[#F2F0EC]">
         <style>{STYLES}</style>
-        <div className="mx-auto max-w-lg rounded-3xl border border-[#EFEBE0]/10 bg-[#123E47] p-8 text-center shadow-2xl">
-          <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#C2305E]/15 text-[#C2305E]">
+        <div className="mx-auto max-w-lg rounded-3xl border border-[#F2F0EC]/10 bg-[#262C33] p-8 text-center shadow-2xl">
+          <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#C8FF1F]/15 text-[#C8FF1F]">
             <span className="material-symbols-outlined text-3xl">confirmation_number</span>
           </span>
           <h1 className="kk-display text-2xl font-semibold">No active seat hold</h1>
-          <p className="mt-2 text-sm leading-6 text-[#EFEBE0]/65">Choose your seats first, then return here to complete your booking.</p>
-          <Link to="/movies" className="mt-6 inline-flex items-center justify-center rounded-full bg-[#C2305E] px-6 py-3 text-sm font-semibold text-[#EFEBE0] transition hover:bg-[#d34270]">
+          <p className="mt-2 text-sm leading-6 text-[#F2F0EC]/65">Choose your seats first, then return here to complete your booking.</p>
+          <Link to="/movies" className="mt-6 inline-flex items-center justify-center rounded-full bg-[#C8FF1F] px-6 py-3 text-sm font-semibold text-[#F2F0EC] transition hover:bg-[#D6FF5C]">
             Browse movies
           </Link>
         </div>
@@ -362,25 +362,25 @@ export default function Checkout() {
   const payLabel = loading ? 'Opening secure payment…' : `Pay ${rupees(payableMinor)}`;
 
   return (
-    <div className="kk-checkout min-h-screen bg-[#0A2A31] pb-32 text-[#EFEBE0]">
+    <div className="kk-checkout min-h-screen bg-[#1E2227] pb-32 text-[#F2F0EC]">
       <style>{STYLES}</style>
 
       {/* Show bar */}
-      <div className="sticky top-[72px] z-30 border-b border-[#EFEBE0]/10 bg-[#0A2A31]/95 backdrop-blur-xl">
+      <div className="sticky top-[72px] z-30 border-b border-[#F2F0EC]/10 bg-[#1E2227]/95 backdrop-blur-xl">
         <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3 sm:px-6">
           <button
             type="button"
             onClick={() => navigate(-1)}
             aria-label="Back to seats"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[#EFEBE0]/70 transition hover:bg-[#EFEBE0]/10 hover:text-[#EFEBE0]"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[#F2F0EC]/70 transition hover:bg-[#F2F0EC]/10 hover:text-[#F2F0EC]"
           >
             <span className="material-symbols-outlined text-[20px]">arrow_back_ios_new</span>
           </button>
           <div className="min-w-0 flex-1">
             <h1 className="kk-display truncate text-base font-bold leading-tight sm:text-xl">{title}</h1>
-            <p className="truncate text-[10px] text-[#EFEBE0]/55 sm:text-xs">
+            <p className="truncate text-[10px] text-[#F2F0EC]/55 sm:text-xs">
               {startsAt ? `${formatShowDate(startsAt)} | ${formatShowTime(startsAt)}` : 'Secure checkout'}
-              {cinema && <span className="mx-1.5 text-[#EFEBE0]/25">|</span>}
+              {cinema && <span className="mx-1.5 text-[#F2F0EC]/25">|</span>}
               {cinema}
             </p>
           </div>
@@ -395,7 +395,7 @@ export default function Checkout() {
 
       <main className="mx-auto max-w-3xl space-y-4 px-4 py-6 sm:px-6">
         {/* Ticket summary */}
-        <section className="overflow-hidden rounded-2xl text-[#0A2A31] shadow-2xl" style={{ background: C.shell }}>
+        <section className="overflow-hidden rounded-2xl text-[#1E2227] shadow-2xl" style={{ background: C.shell }}>
           <div className="p-5 sm:p-6">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
@@ -403,14 +403,14 @@ export default function Checkout() {
                 <p className="mt-1 text-sm font-semibold">
                   {startsAt ? `${formatShowDate(startsAt)} | ${formatShowTime(startsAt)}` : 'Showtime confirmed'}
                 </p>
-                <p className="mt-1 text-xs text-[#0A2A31]/55">
+                <p className="mt-1 text-xs text-[#1E2227]/55">
                   {[movie?.language, movie?.certification, screen ? `Audi ${screen}` : ''].filter(Boolean).join(' · ') || 'Cinema screening'}
                 </p>
 
                 <div className="mt-4 space-y-1 text-sm">
                   {seatGroups.length ? seatGroups.map(([category, labels]) => (
                     <p key={category} className="font-medium">
-                      <span className="text-[#0A2A31]/60">{category} - </span>
+                      <span className="text-[#1E2227]/60">{category} - </span>
                       {labels.join(', ')}
                     </p>
                   )) : (
@@ -418,10 +418,10 @@ export default function Checkout() {
                   )}
                 </div>
 
-                <p className="mt-3 text-xs leading-5 text-[#0A2A31]/60">
+                <p className="mt-3 text-xs leading-5 text-[#1E2227]/60">
                   {cinema}{screen ? ` (${screen})` : ''}
                 </p>
-                <p className="mt-1 inline-flex items-center gap-1.5 text-[11px] text-[#0A2A31]/50">
+                <p className="mt-1 inline-flex items-center gap-1.5 text-[11px] text-[#1E2227]/50">
                   <span className="material-symbols-outlined text-[14px]">schedule</span>
                   Seats held until {formatExpiry(hold.expiresAt)}
                 </p>
@@ -444,57 +444,57 @@ export default function Checkout() {
 
           <div className="px-5 py-4 sm:px-6" style={{ background: C.greenSoft, color: C.green }}>
             <p className="text-xs font-bold">Cancellation Available</p>
-            <p className="mt-1 text-[11px] leading-5 text-[#1E5B3C]/85">
+            <p className="mt-1 text-[11px] leading-5 text-[#B6E36A]/85">
               This venue supports booking cancellation. <span className="underline-offset-2">View cancellation policy</span>
             </p>
           </div>
         </section>
 
         {/* Price breakdown */}
-        <section className="rounded-2xl p-5 text-[#0A2A31] shadow-xl sm:p-6" style={{ background: C.shell }}>
+        <section className="rounded-2xl p-5 text-[#1E2227] shadow-xl sm:p-6" style={{ background: C.shell }}>
           <div className="space-y-3 text-sm">
             <div className="flex items-center justify-between gap-4">
-              <span className="text-[#0A2A31]/65">Ticket(s) price</span>
+              <span className="text-[#1E2227]/65">Ticket(s) price</span>
               <span className="font-semibold tabular-nums">{rupees(totalMinor)}</span>
             </div>
             <div className="flex items-center justify-between gap-4">
-              <span className="inline-flex items-center gap-1.5 text-[#0A2A31]/65">
+              <span className="inline-flex items-center gap-1.5 text-[#1E2227]/65">
                 Convenience fees
-                <span className="material-symbols-outlined cursor-help text-[14px] text-[#0A2A31]/35" title="No booking fee is added on this deployment.">info</span>
+                <span className="material-symbols-outlined cursor-help text-[14px] text-[#1E2227]/35" title="No booking fee is added on this deployment.">info</span>
               </span>
               <span className="font-semibold tabular-nums">₹0.00</span>
             </div>
             <div className="flex items-center justify-between gap-4">
-              <span className="text-[#0A2A31]/65">Taxes</span>
-              <span className="text-[11px] font-semibold uppercase tracking-wide text-[#0A2A31]/45">Included</span>
+              <span className="text-[#1E2227]/65">Taxes</span>
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-[#1E2227]/45">Included</span>
             </div>
             {verificationOffsetMinor > 0 && (
               <div className="flex items-center justify-between gap-4">
-                <span className="inline-flex items-center gap-1.5 text-[#0A2A31]/65">
+                <span className="inline-flex items-center gap-1.5 text-[#1E2227]/65">
                   Payment verification
-                  <span className="material-symbols-outlined cursor-help text-[14px] text-[#0A2A31]/35" title="A unique paise amount lets the gateway match your UPI credit to this exact booking.">info</span>
+                  <span className="material-symbols-outlined cursor-help text-[14px] text-[#1E2227]/35" title="A unique paise amount lets the gateway match your UPI credit to this exact booking.">info</span>
                 </span>
                 <span className="font-semibold tabular-nums">+ {rupees(verificationOffsetMinor)}</span>
               </div>
             )}
           </div>
 
-          <div className="mt-4 flex items-end justify-between gap-4 border-t border-dashed border-[#0A2A31]/25 pt-4">
+          <div className="mt-4 flex items-end justify-between gap-4 border-t border-dashed border-[#1E2227]/25 pt-4">
             <span className="text-sm font-semibold">Order total</span>
             <span className="kk-display text-2xl font-bold tabular-nums">{rupees(payableMinor)}</span>
           </div>
-          <p className="mt-2 text-[10px] text-[#0A2A31]/45">
+          <p className="mt-2 text-[10px] text-[#1E2227]/45">
             Payable in {currency}. A small verification amount (up to ₹0.99) is added to the
             exact UPI amount so your payment is matched to this booking automatically.
           </p>
         </section>
 
         {/* Contact */}
-        <section className="rounded-2xl border border-[#EFEBE0]/10 bg-[#123E47] p-5 shadow-lg shadow-black/10 sm:p-6">
+        <section className="rounded-2xl border border-[#F2F0EC]/10 bg-[#262C33] p-5 shadow-lg shadow-black/10 sm:p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[.16em] text-[#EFEBE0]/45">For sending booking details</p>
-              <p className="mt-1 text-sm font-semibold text-[#EFEBE0]/90">{editingContact ? 'Add a contact' : 'Booking updates'}</p>
+              <p className="text-xs font-bold uppercase tracking-[.16em] text-[#F2F0EC]/45">For sending booking details</p>
+              <p className="mt-1 text-sm font-semibold text-[#F2F0EC]/90">{editingContact ? 'Add a contact' : 'Booking updates'}</p>
             </div>
             <button
               type="button"
@@ -510,18 +510,18 @@ export default function Checkout() {
           {editingContact ? (
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <label className="block sm:col-span-2">
-                <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[.14em] text-[#EFEBE0]/45">Full name (optional)</span>
+                <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[.14em] text-[#F2F0EC]/45">Full name (optional)</span>
                 <input
                   type="text"
                   autoComplete="name"
                   value={name}
                   onChange={(event) => setName(event.target.value)}
                   placeholder="Your name"
-                  className="w-full rounded-lg border border-[#EFEBE0]/[0.12] bg-[#071E23]/70 px-3 py-3 text-sm text-[#EFEBE0] outline-none placeholder:text-[#EFEBE0]/30 focus:border-[#F4B63F]/60"
+                  className="w-full rounded-lg border border-[#F2F0EC]/[0.12] bg-[#171B1F]/70 px-3 py-3 text-sm text-[#F2F0EC] outline-none placeholder:text-[#F2F0EC]/30 focus:border-[#C8FF1F]/60"
                 />
               </label>
               <label className="block">
-                <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[.14em] text-[#EFEBE0]/45">Mobile number</span>
+                <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[.14em] text-[#F2F0EC]/45">Mobile number</span>
                 <input
                   type="tel"
                   inputMode="tel"
@@ -529,32 +529,32 @@ export default function Checkout() {
                   value={mobile}
                   onChange={(event) => setMobile(event.target.value.replace(/[^\d+\s()-]/g, '').slice(0, 20))}
                   placeholder="98765 43210"
-                  className="w-full rounded-lg border border-[#EFEBE0]/[0.12] bg-[#071E23]/70 px-3 py-3 text-sm text-[#EFEBE0] outline-none placeholder:text-[#EFEBE0]/30 focus:border-[#F4B63F]/60"
+                  className="w-full rounded-lg border border-[#F2F0EC]/[0.12] bg-[#171B1F]/70 px-3 py-3 text-sm text-[#F2F0EC] outline-none placeholder:text-[#F2F0EC]/30 focus:border-[#C8FF1F]/60"
                 />
               </label>
               <label className="block">
-                <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[.14em] text-[#EFEBE0]/45">Email address</span>
+                <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[.14em] text-[#F2F0EC]/45">Email address</span>
                 <input
                   type="email"
                   autoComplete="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
                   placeholder="you@example.com"
-                  className="w-full rounded-lg border border-[#EFEBE0]/[0.12] bg-[#071E23]/70 px-3 py-3 text-sm text-[#EFEBE0] outline-none placeholder:text-[#EFEBE0]/30 focus:border-[#F4B63F]/60"
+                  className="w-full rounded-lg border border-[#F2F0EC]/[0.12] bg-[#171B1F]/70 px-3 py-3 text-sm text-[#F2F0EC] outline-none placeholder:text-[#F2F0EC]/30 focus:border-[#C8FF1F]/60"
                 />
               </label>
             </div>
           ) : (
-            <div className="mt-2 space-y-1 text-sm text-[#EFEBE0]/75">
+            <div className="mt-2 space-y-1 text-sm text-[#F2F0EC]/75">
               <p>{mobile.trim() || 'No mobile number added'}</p>
-              <p className="text-[#EFEBE0]/55">{email.trim() || 'No email address added'}</p>
-              <p className="text-[11px] text-[#EFEBE0]/35">Your ticket and QR pass are sent here.</p>
+              <p className="text-[#F2F0EC]/55">{email.trim() || 'No email address added'}</p>
+              <p className="text-[11px] text-[#F2F0EC]/35">Your ticket and QR pass are sent here.</p>
             </div>
           )}
         </section>
 
         {/* Offers */}
-        <section className="overflow-hidden rounded-2xl border border-[#EFEBE0]/10 bg-[#123E47] shadow-lg shadow-black/10">
+        <section className="overflow-hidden rounded-2xl border border-[#F2F0EC]/10 bg-[#262C33] shadow-lg shadow-black/10">
           <button
             type="button"
             onClick={() => setOffersOpen((open) => !open)}
@@ -565,27 +565,27 @@ export default function Checkout() {
               <span className="material-symbols-outlined text-[18px]" style={{ color: C.mango }}>local_activity</span>
               Apply Offers
             </span>
-            <span className="material-symbols-outlined text-[#EFEBE0]/45">{offersOpen ? 'expand_less' : 'chevron_right'}</span>
+            <span className="material-symbols-outlined text-[#F2F0EC]/45">{offersOpen ? 'expand_less' : 'chevron_right'}</span>
           </button>
           {offersOpen && (
-            <div className="border-t border-[#EFEBE0]/10 px-5 py-4 text-xs text-[#EFEBE0]/55 sm:px-6">
+            <div className="border-t border-[#F2F0EC]/10 px-5 py-4 text-xs text-[#F2F0EC]/55 sm:px-6">
               No offers are available for this screening right now.
             </div>
           )}
         </section>
 
-        <p className="px-1 text-[11px] leading-5 text-[#EFEBE0]/45">
+        <p className="px-1 text-[11px] leading-5 text-[#F2F0EC]/45">
           By proceeding, I express my consent to complete this transaction. Your seats stay reserved until {formatExpiry(hold.expiresAt)}.
         </p>
 
         {order?.checkoutUrl && (
-          <p className="px-1 text-[11px] leading-5 text-[#EFEBE0]/40">
+          <p className="px-1 text-[11px] leading-5 text-[#F2F0EC]/40">
             Payment window not appearing?{' '}
             <a
               href={order.checkoutUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="font-semibold text-[#F4B63F] underline-offset-2 hover:text-[#ffd27a]"
+              className="font-semibold text-[#C8FF1F] underline-offset-2 hover:text-[#D9FF66]"
             >
               Open the secure payment page
             </a>
@@ -593,13 +593,13 @@ export default function Checkout() {
         )}
 
         {status && (
-          <div role="status" aria-live="polite" className="flex items-start gap-3 rounded-xl border border-[#F4B63F]/20 bg-[#F4B63F]/[0.07] px-4 py-3 text-sm text-[#F4B63F]">
+          <div role="status" aria-live="polite" className="flex items-start gap-3 rounded-xl border border-[#C8FF1F]/20 bg-[#C8FF1F]/[0.07] px-4 py-3 text-sm text-[#C8FF1F]">
             <span className="material-symbols-outlined text-lg">{loading ? 'progress_activity' : 'info'}</span>
             <span>{status}</span>
           </div>
         )}
         {error && (
-          <div role="alert" className="flex items-start gap-3 rounded-xl border border-[#C2305E]/35 bg-[#C2305E]/10 px-4 py-3 text-sm text-[#ffb5c7]">
+          <div role="alert" className="flex items-start gap-3 rounded-xl border border-[#C8FF1F]/35 bg-[#C8FF1F]/10 px-4 py-3 text-sm text-[#F0B0A6]">
             <span className="material-symbols-outlined text-lg">error</span>
             <span>{error}</span>
           </div>
@@ -607,13 +607,13 @@ export default function Checkout() {
       </main>
 
       {/* Pay bar */}
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#0A2A31]/15 bg-[#EFEBE0] text-[#0A2A31] shadow-[0_-10px_30px_rgba(0,0,0,.25)]">
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#1E2227]/15 bg-[#F2F0EC] text-[#1E2227] shadow-[0_-10px_30px_rgba(0,0,0,.25)]">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-[.14em] text-[#0A2A31]/45">Order total</p>
+            <p className="text-[10px] font-bold uppercase tracking-[.14em] text-[#1E2227]/45">Order total</p>
             <p className="kk-display truncate text-xl font-bold leading-tight">{rupees(payableMinor)}</p>
             {verificationOffsetMinor > 0 && (
-              <p className="text-[9px] text-[#0A2A31]/45">incl. {rupees(verificationOffsetMinor)} verification</p>
+              <p className="text-[9px] text-[#1E2227]/45">incl. {rupees(verificationOffsetMinor)} verification</p>
             )}
           </div>
           <button

@@ -28,7 +28,7 @@ const FALLBACK_EVENTS = [
     venue: 'Samudai Grounds, Margao',
     blurb: 'Forty home kitchens, one afternoon. Solkath, bangda fry, patoleo and the sorpotel contest.',
     tags: ['Food', 'Family'],
-    accent: '#F5B841',
+    accent: '#C8FF1F',
     tiers: [
       { id: 'general', name: 'General entry', price: 299, note: 'All stalls' },
       { id: 'patron', name: 'Patron pass', price: 999, note: 'Entry + tasting table' },
@@ -73,7 +73,7 @@ function viewEvent(event) {
     venue: event.venue || '',
     blurb: event.blurb || '',
     tags: Array.isArray(event.tags) ? event.tags : [],
-    accent: event.accent || '#F5B841',
+    accent: event.accent || '#C8FF1F',
     tiers,
   };
 }
@@ -253,7 +253,7 @@ export default function Community() {
   }, []);
 
   return (
-    <div ref={root} className="community-page relative min-h-screen overflow-hidden bg-[#082328] text-[#F6F1E7]">
+    <div ref={root} className="community-page relative min-h-screen overflow-hidden bg-[#1A1E23] text-[#F2F0EC]">
       <style>{PAGE_CSS}</style>
       <Grain />
 
@@ -338,27 +338,27 @@ function Hero({ images, event, movie, onPick, stats, isMember }) {
           className="absolute inset-0"
           style={{
             background:
-              'linear-gradient(90deg, rgba(4,22,26,0.95) 0%, rgba(4,22,26,0.80) 38%, rgba(4,22,26,0.34) 72%, rgba(4,22,26,0.14) 100%)',
+              'linear-gradient(90deg, rgba(20,24,27,0.95) 0%, rgba(20,24,27,0.80) 38%, rgba(20,24,27,0.34) 72%, rgba(20,24,27,0.14) 100%)',
           }}
         />
-        <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#082328] to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#1A1E23] to-transparent" />
       </div>
 
       <div className="relative mx-auto grid max-w-[1180px] grid-cols-1 items-center gap-8 px-5 pb-10 pt-20 sm:px-8 sm:pt-24 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-12 lg:pb-16 lg:pt-24">
         <div className="w-full max-w-[680px] min-w-0">
-          <p className="js-hero-kicker flex items-center gap-2.5 text-[10px] font-bold uppercase tracking-[0.3em] text-[#F5B841]">
-            <span className="h-px w-9 bg-[#F5B841]/60" />
+          <p className="js-hero-kicker flex items-center gap-2.5 text-[10px] font-bold uppercase tracking-[0.3em] text-[#C8FF1F]">
+            <span className="h-px w-9 bg-[#C8FF1F]/60" />
             Margao · since 1934
           </p>
 
-          <h1 className="js-hero-title mt-4 font-['Fraunces',Georgia,serif] text-[34px] font-bold leading-[1.0] tracking-[-0.035em] text-[#F6F1E7] drop-shadow-[0_4px_24px_rgba(0,0,0,0.45)] sm:mt-5 sm:text-[44px] lg:text-[58px] xl:text-[66px]">
+          <h1 className="js-hero-title mt-4 font-['Fraunces',Georgia,serif] text-[34px] font-bold leading-[1.0] tracking-[-0.035em] text-[#F2F0EC] drop-shadow-[0_4px_24px_rgba(0,0,0,0.45)] sm:mt-5 sm:text-[44px] lg:text-[58px] xl:text-[66px]">
             <span className="js-hero-line block">One community.</span>
             <span className="js-hero-line block">
-              A thousand <em className="not-italic text-[#F5B841]">stories</em>.
+              A thousand <em className="not-italic text-[#C8FF1F]">stories</em>.
             </span>
           </h1>
 
-          <p className="js-hero-copy mt-4 max-w-[480px] text-[14px] leading-[1.65] text-[#F6F1E7]/80 drop-shadow-[0_2px_12px_rgba(0,0,0,0.5)] sm:mt-5 sm:text-[15px] sm:leading-[1.7]">
+          <p className="js-hero-copy mt-4 max-w-[480px] text-[14px] leading-[1.65] text-[#F2F0EC]/80 drop-shadow-[0_2px_12px_rgba(0,0,0,0.5)] sm:mt-5 sm:text-[15px] sm:leading-[1.7]">
             Festivals, food, films and our people — Fugdi nights, Sunday classes and the
             Christmas market, all under one roof.
           </p>
@@ -366,14 +366,14 @@ function Hero({ images, event, movie, onPick, stats, isMember }) {
           <div className="mt-6 flex flex-wrap items-center gap-2.5 sm:mt-8 sm:gap-3">
             <a
               href="#events"
-              className="js-hero-cta group inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[#C2305E] px-5 text-[12px] font-bold tracking-wide text-white shadow-[0_14px_30px_-16px_rgba(194,48,94,0.9)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#d34470] sm:h-12 sm:px-7 sm:text-[13px]"
+              className="js-hero-cta group inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[#C8FF1F] px-5 text-[12px] font-bold tracking-wide text-white shadow-[0_14px_30px_-16px_rgba(200,255,31,0.9)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#D6FF5C] sm:h-12 sm:px-7 sm:text-[13px]"
             >
               Explore events
               <span className="material-symbols-outlined text-[18px] transition-transform group-hover:translate-x-0.5">arrow_forward</span>
             </a>
             <a
               href="#join"
-              className="js-hero-cta group inline-flex h-11 items-center justify-center gap-2 rounded-full border border-[#F6F1E7]/25 bg-[#061D22]/40 px-5 text-[12px] font-semibold text-[#F6F1E7]/90 backdrop-blur transition-all duration-300 hover:-translate-y-0.5 hover:border-[#F5B841] hover:bg-[#F5B841]/10 hover:text-[#F5B841] sm:h-12 sm:px-7 sm:text-[13px]"
+              className="js-hero-cta group inline-flex h-11 items-center justify-center gap-2 rounded-full border border-[#F2F0EC]/25 bg-[#171B1F]/40 px-5 text-[12px] font-semibold text-[#F2F0EC]/90 backdrop-blur transition-all duration-300 hover:-translate-y-0.5 hover:border-[#C8FF1F] hover:bg-[#C8FF1F]/10 hover:text-[#C8FF1F] sm:h-12 sm:px-7 sm:text-[13px]"
             >
               <span className="material-symbols-outlined text-[18px]">
                 {isMember ? 'verified' : 'groups'}
@@ -397,7 +397,7 @@ function Hero({ images, event, movie, onPick, stats, isMember }) {
                   onClick={() => setIndex(position)}
                   aria-label={`Hero image ${position + 1}`}
                   className={`h-1 rounded-full transition-all ${
-                    position === index ? 'w-9 bg-[#F5B841]' : 'w-4 bg-[#F6F1E7]/25 hover:bg-[#F6F1E7]/50'
+                    position === index ? 'w-9 bg-[#C8FF1F]' : 'w-4 bg-[#F2F0EC]/25 hover:bg-[#F2F0EC]/50'
                   }`}
                 />
               ))}
@@ -409,18 +409,18 @@ function Hero({ images, event, movie, onPick, stats, isMember }) {
             <button
               type="button"
               onClick={() => onPick(event)}
-              className="js-hero-cta mt-6 flex w-full max-w-[440px] items-center gap-3 rounded-xl border border-[#F5B841]/25 bg-[#061D22]/55 px-4 py-3 text-left backdrop-blur transition-colors hover:border-[#F5B841]/60 md:hidden"
+              className="js-hero-cta mt-6 flex w-full max-w-[440px] items-center gap-3 rounded-xl border border-[#C8FF1F]/25 bg-[#171B1F]/55 px-4 py-3 text-left backdrop-blur transition-colors hover:border-[#C8FF1F]/60 md:hidden"
             >
               <span
-                className="rounded-md px-2 py-1 text-[9px] font-bold uppercase tracking-[0.16em] text-[#082328]"
+                className="rounded-md px-2 py-1 text-[9px] font-bold uppercase tracking-[0.16em] text-[#1A1E23]"
                 style={{ background: event.accent }}
               >
                 {event.kicker}
               </span>
-              <span className="min-w-0 flex-1 truncate text-[12px] font-semibold text-[#F6F1E7]">
+              <span className="min-w-0 flex-1 truncate text-[12px] font-semibold text-[#F2F0EC]">
                 Next: {event.title}
               </span>
-              <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#F5B841]">Tickets</span>
+              <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#C8FF1F]">Tickets</span>
             </button>
           )}
 
@@ -434,9 +434,9 @@ function Hero({ images, event, movie, onPick, stats, isMember }) {
                 <Stub event={event} onPick={onPick} className="js-stub" primary />
                 <div className="js-seal seal absolute -right-4 -top-5 grid h-[72px] w-[72px] place-items-center rounded-full">
                   <div className="text-center">
-                    <p className="text-[7px] font-bold uppercase tracking-[0.18em] text-[#082328]/70">est.</p>
-                    <p className="font-['Fraunces',Georgia,serif] text-lg font-bold leading-none text-[#082328]">1934</p>
-                    <p className="mt-0.5 text-[6px] font-bold uppercase tracking-[0.14em] text-[#082328]/70">Samudai</p>
+                    <p className="text-[7px] font-bold uppercase tracking-[0.18em] text-[#1A1E23]/70">est.</p>
+                    <p className="font-['Fraunces',Georgia,serif] text-lg font-bold leading-none text-[#1A1E23]">1934</p>
+                    <p className="mt-0.5 text-[6px] font-bold uppercase tracking-[0.14em] text-[#1A1E23]/70">Samudai</p>
                   </div>
                 </div>
               </div>
@@ -456,9 +456,9 @@ function Hero({ images, event, movie, onPick, stats, isMember }) {
 
 function HeroStat({ value, label }) {
   return (
-    <div className="js-hero-stat flex-1 border-t border-[#F6F1E7]/20 pt-3">
-      <dt className="font-['Fraunces',Georgia,serif] text-[26px] font-bold leading-none text-[#F6F1E7]">{value}</dt>
-      <dd className="mt-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-[#F6F1E7]/55">{label}</dd>
+    <div className="js-hero-stat flex-1 border-t border-[#F2F0EC]/20 pt-3">
+      <dt className="font-['Fraunces',Georgia,serif] text-[26px] font-bold leading-none text-[#F2F0EC]">{value}</dt>
+      <dd className="mt-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-[#F2F0EC]/55">{label}</dd>
     </div>
   );
 }
@@ -467,7 +467,7 @@ function MovieStrip({ movie, className = '' }) {
   return (
     <Link
       to={`/movies/${movie.id}`}
-      className={`js-movie-strip kk-shine kk-shine-late group flex items-center gap-3 rounded-2xl border border-[#F5B841]/25 bg-[#061D22]/75 p-3 backdrop-blur transition-colors hover:border-[#F5B841]/60 ${className}`}
+      className={`js-movie-strip kk-shine kk-shine-late group flex items-center gap-3 rounded-2xl border border-[#C8FF1F]/25 bg-[#171B1F]/75 p-3 backdrop-blur transition-colors hover:border-[#C8FF1F]/60 ${className}`}
     >
       {movie.thumbnail ? (
         <img
@@ -481,15 +481,15 @@ function MovieStrip({ movie, className = '' }) {
         </div>
       )}
       <div className="min-w-0 flex-1">
-        <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-[#F5B841]">Now showing</p>
-        <p className="mt-0.5 truncate text-[13px] font-semibold text-[#F6F1E7]">{movie.title}</p>
-        <p className="mt-0.5 truncate text-[10px] text-[#F6F1E7]/50">{movie.meta}</p>
+        <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-[#C8FF1F]">Now showing</p>
+        <p className="mt-0.5 truncate text-[13px] font-semibold text-[#F2F0EC]">{movie.title}</p>
+        <p className="mt-0.5 truncate text-[10px] text-[#F2F0EC]/50">{movie.meta}</p>
       </div>
       <div className="shrink-0 text-right">
         {movie.price ? (
-          <p className="text-[11px] font-bold text-[#F5B841]">₹{movie.price}</p>
+          <p className="text-[11px] font-bold text-[#C8FF1F]">₹{movie.price}</p>
         ) : null}
-        <p className="mt-0.5 text-[8px] font-bold uppercase tracking-[0.12em] text-[#F6F1E7]/50">
+        <p className="mt-0.5 text-[8px] font-bold uppercase tracking-[0.12em] text-[#F2F0EC]/50">
           Book →
         </p>
       </div>
@@ -509,7 +509,7 @@ function Stub({ event, onPick, className = '', primary = false }) {
     >
       <div className="flex items-center justify-between px-5 pb-3 pt-4">
         <span
-          className="rounded-md px-2 py-1 text-[9px] font-bold uppercase tracking-[0.18em] text-[#082328]"
+          className="rounded-md px-2 py-1 text-[9px] font-bold uppercase tracking-[0.18em] text-[#1A1E23]"
           style={{ background: event.accent }}
         >
           {event.kicker}
@@ -520,19 +520,19 @@ function Stub({ event, onPick, className = '', primary = false }) {
         <h3 className="font-['Fraunces',Georgia,serif] text-[24px] font-bold leading-[1.04] tracking-[-0.02em]">
           {event.title}
         </h3>
-        <p className="mt-2 line-clamp-2 text-[11.5px] leading-relaxed text-[#F6F1E7]/55">{event.blurb}</p>
+        <p className="mt-2 line-clamp-2 text-[11.5px] leading-relaxed text-[#F2F0EC]/55">{event.blurb}</p>
       </div>
 
       <div className="stub-perf mx-5 my-4" />
 
       <div className="flex items-end justify-between px-5 pb-5">
         <div>
-          <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-[#F6F1E7]/40">from</p>
-          <p className="font-['Fraunces',Georgia,serif] text-[24px] font-bold text-[#F5B841]">{rupees(from)}</p>
+          <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-[#F2F0EC]/40">from</p>
+          <p className="font-['Fraunces',Georgia,serif] text-[24px] font-bold text-[#C8FF1F]">{rupees(from)}</p>
         </div>
         <div className="text-right">
-          <p className="text-[10px] text-[#F6F1E7]/55">{event.date}</p>
-          <p className="mt-0.5 inline-flex items-center gap-1 text-[10.5px] font-semibold text-[#F6F1E7]/75">
+          <p className="text-[10px] text-[#F2F0EC]/55">{event.date}</p>
+          <p className="mt-0.5 inline-flex items-center gap-1 text-[10.5px] font-semibold text-[#F2F0EC]/75">
             Get tickets
             <span className="material-symbols-outlined text-[13px]">arrow_outward</span>
           </p>
@@ -547,12 +547,12 @@ function Stub({ event, onPick, className = '', primary = false }) {
 function Marquee() {
   const line = [...MARQUEE, ...MARQUEE];
   return (
-    <div className="relative overflow-hidden border-y border-[#F6F1E7]/10 bg-[#061D22] py-4">
+    <div className="relative overflow-hidden border-y border-[#F2F0EC]/10 bg-[#171B1F] py-4">
       <div className="js-marquee-track flex w-max items-center gap-8 whitespace-nowrap">
         {line.map((item, index) => (
           <span key={`${item}-${index}`} className="flex items-center gap-8">
-            <span className="font-['Fraunces',Georgia,serif] text-[15px] italic tracking-tight text-[#F6F1E7]/55">{item}</span>
-            <span className="text-[#F5B841]/70">✦</span>
+            <span className="font-['Fraunces',Georgia,serif] text-[15px] italic tracking-tight text-[#F2F0EC]/55">{item}</span>
+            <span className="text-[#C8FF1F]/70">✦</span>
           </span>
         ))}
       </div>
@@ -568,9 +568,9 @@ function Events({ events, onPick }) {
       <SectionHead kicker="What's coming" title="Upcoming events" note="Tickets online via UPI · passes also at the counter" />
 
       {events.length === 0 ? (
-        <div className="js-reveal mt-10 rounded-3xl border border-[#F6F1E7]/10 bg-[#0C3238]/50 p-10 text-center">
-          <span className="material-symbols-outlined text-[34px] text-[#F5B841]/60">event_busy</span>
-          <p className="mt-3 text-[13px] text-[#F6F1E7]/55">
+        <div className="js-reveal mt-10 rounded-3xl border border-[#F2F0EC]/10 bg-[#242A30]/50 p-10 text-center">
+          <span className="material-symbols-outlined text-[34px] text-[#C8FF1F]/60">event_busy</span>
+          <p className="mt-3 text-[13px] text-[#F2F0EC]/55">
             Nothing on the calendar yet. The committee publishes events from the admin app.
           </p>
         </div>
@@ -602,17 +602,17 @@ function EventCard({ event, onPick }) {
         </span>
       </div>
 
-      <p className="mt-3 px-5 text-[12px] leading-relaxed text-[#F6F1E7]/55">{event.blurb}</p>
+      <p className="mt-3 px-5 text-[12px] leading-relaxed text-[#F2F0EC]/55">{event.blurb}</p>
 
       <div className="mt-4 space-y-1.5 px-5">
         {event.time && (
-          <p className="flex items-center gap-2 text-[11px] text-[#F6F1E7]/50">
+          <p className="flex items-center gap-2 text-[11px] text-[#F2F0EC]/50">
             <span className="material-symbols-outlined text-[14px]">schedule</span>
             {event.time}
           </p>
         )}
         {event.venue && (
-          <p className="flex items-center gap-2 text-[11px] text-[#F6F1E7]/50">
+          <p className="flex items-center gap-2 text-[11px] text-[#F2F0EC]/50">
             <span className="material-symbols-outlined text-[14px]">location_on</span>
             {event.venue}
           </p>
@@ -623,15 +623,15 @@ function EventCard({ event, onPick }) {
 
       <div className="flex items-center justify-between px-5 pb-5">
         <div>
-          <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-[#F6F1E7]/35">from</p>
-          <p className="font-['Fraunces',Georgia,serif] text-xl font-bold text-[#F5B841]">
+          <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-[#F2F0EC]/35">from</p>
+          <p className="font-['Fraunces',Georgia,serif] text-xl font-bold text-[#C8FF1F]">
             {rupees(Math.min(...event.tiers.map((tier) => tier.price)))}
           </p>
         </div>
         <button
           type="button"
           onClick={() => onPick(event)}
-          className="inline-flex items-center gap-1.5 rounded-full bg-[#F6F1E7]/[0.08] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[#F6F1E7] transition-colors hover:bg-[#C2305E] hover:text-white"
+          className="inline-flex items-center gap-1.5 rounded-full bg-[#F2F0EC]/[0.08] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[#F2F0EC] transition-colors hover:bg-[#C8FF1F] hover:text-white"
         >
           Get tickets
           <span className="material-symbols-outlined text-[14px]">north_east</span>
@@ -645,22 +645,22 @@ function EventCard({ event, onPick }) {
 
 function Notices({ notices }) {
   return (
-    <section id="notices" className="scroll-mt-24 relative border-y border-[#F6F1E7]/10 bg-[#061D22]/70">
+    <section id="notices" className="scroll-mt-24 relative border-y border-[#F2F0EC]/10 bg-[#171B1F]/70">
       <div className="mx-auto max-w-[1180px] px-5 py-12 sm:px-8">
         <SectionHead kicker="Noticeboard" title="From the committee" />
 
         {notices.length === 0 ? (
-          <p className="mt-10 text-[13px] text-[#F6F1E7]/45">No notices right now.</p>
+          <p className="mt-10 text-[13px] text-[#F2F0EC]/45">No notices right now.</p>
         ) : (
-          <ul className="mt-10 divide-y divide-[#F6F1E7]/10 border-y border-[#F6F1E7]/10">
+          <ul className="mt-10 divide-y divide-[#F2F0EC]/10 border-y border-[#F2F0EC]/10">
             {notices.map((notice, index) => (
               <li key={notice.id} className="js-reveal group">
                 <div className="flex flex-col gap-3 py-6 sm:flex-row sm:items-baseline sm:gap-8">
                   <div className="flex items-center gap-4 sm:w-52 sm:shrink-0">
-                    <span className="font-['Fraunces',Georgia,serif] text-[13px] font-bold text-[#F5B841]/60">
+                    <span className="font-['Fraunces',Georgia,serif] text-[13px] font-bold text-[#C8FF1F]/60">
                       {String(index + 1).padStart(2, '0')}
                     </span>
-                    <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#F6F1E7]/40">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#F2F0EC]/40">
                       {notice.dateLabel || ''}
                     </span>
                   </div>
@@ -670,12 +670,12 @@ function Notices({ notices }) {
                         {notice.title}
                       </h3>
                       {notice.tag && (
-                        <span className="rounded-full border border-[#F5B841]/30 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.14em] text-[#F5B841]/80">
+                        <span className="rounded-full border border-[#C8FF1F]/30 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.14em] text-[#C8FF1F]/80">
                           {notice.tag}
                         </span>
                       )}
                     </div>
-                    <p className="mt-1.5 max-w-2xl text-[13px] leading-relaxed text-[#F6F1E7]/55">{notice.body}</p>
+                    <p className="mt-1.5 max-w-2xl text-[13px] leading-relaxed text-[#F2F0EC]/55">{notice.body}</p>
                   </div>
                 </div>
               </li>
@@ -737,7 +737,7 @@ function PhotoLibrary({ images }) {
         <SectionHead kicker="Photo library" title="Moments from the Samudai" />
         <Link
           to="/gallery"
-          className="group inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#F5B841] transition-colors hover:text-[#F6F1E7]"
+          className="group inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#C8FF1F] transition-colors hover:text-[#F2F0EC]"
         >
           Open the gallery
           <span className="material-symbols-outlined text-[16px] transition-transform group-hover:translate-x-0.5">
@@ -747,14 +747,14 @@ function PhotoLibrary({ images }) {
       </div>
 
       {list.length === 0 ? (
-        <div className="mt-10 rounded-[22px] border border-[#F6F1E7]/10 bg-[#0C3238]/50 px-6 py-14 text-center">
-          <span className="material-symbols-outlined text-[34px] text-[#F5B841]/60">photo_library</span>
-          <p className="mt-3 text-[12px] text-[#F6F1E7]/55">
+        <div className="mt-10 rounded-[22px] border border-[#F2F0EC]/10 bg-[#242A30]/50 px-6 py-14 text-center">
+          <span className="material-symbols-outlined text-[34px] text-[#C8FF1F]/60">photo_library</span>
+          <p className="mt-3 text-[12px] text-[#F2F0EC]/55">
             Photographs from our festivals and film nights will appear here.
           </p>
           <Link
             to="/gallery"
-            className="mt-5 inline-flex rounded-full bg-[#F6F1E7] px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#082328]"
+            className="mt-5 inline-flex rounded-full bg-[#F2F0EC] px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#1A1E23]"
           >
             Visit the gallery
           </Link>
@@ -768,7 +768,7 @@ function PhotoLibrary({ images }) {
             <Link
               key={image.id}
               to="/gallery"
-              className={`js-photo group relative overflow-hidden rounded-[18px] border border-[#F6F1E7]/10 bg-[#0C3238] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#F5B841] ${
+              className={`js-photo group relative overflow-hidden rounded-[18px] border border-[#F2F0EC]/10 bg-[#242A30] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#C8FF1F] ${
                 index === 0 ? 'col-span-2 row-span-2' : index === 3 ? 'md:row-span-2' : ''
               }`}
             >
@@ -780,12 +780,12 @@ function PhotoLibrary({ images }) {
                   className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
                 />
               </div>
-              <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#04161A]/85 via-transparent to-transparent opacity-75 transition-opacity duration-300 group-hover:opacity-95" />
+              <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#14181B]/85 via-transparent to-transparent opacity-75 transition-opacity duration-300 group-hover:opacity-95" />
               <span className="pointer-events-none absolute bottom-3 left-3 right-3 flex items-end justify-between gap-2">
-                <span className="line-clamp-2 text-[10px] font-semibold uppercase leading-snug tracking-[0.1em] text-[#F6F1E7]/85">
+                <span className="line-clamp-2 text-[10px] font-semibold uppercase leading-snug tracking-[0.1em] text-[#F2F0EC]/85">
                   {image.caption || 'Konkani Samudai'}
                 </span>
-                <span className="material-symbols-outlined shrink-0 text-[16px] text-[#F5B841]/80 opacity-0 transition-opacity group-hover:opacity-100">
+                <span className="material-symbols-outlined shrink-0 text-[16px] text-[#C8FF1F]/80 opacity-0 transition-opacity group-hover:opacity-100">
                   open_in_full
                 </span>
               </span>
@@ -811,11 +811,11 @@ function Join({ onBecomeMember, membership, myMembership }) {
     : '';
 
   return (
-    <section id="join" className="scroll-mt-24 relative border-t border-[#F6F1E7]/10 bg-[#061D22]/70">
+    <section id="join" className="scroll-mt-24 relative border-t border-[#F2F0EC]/10 bg-[#171B1F]/70">
       <div className="mx-auto grid max-w-[1180px] items-center gap-10 px-5 py-10 sm:px-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14 lg:py-14">
         <div className="js-reveal">
           <SectionHead kicker="Join us" title="Become part of the Samudai" />
-          <p className="mt-4 max-w-md text-[14px] leading-[1.75] text-[#F6F1E7]/60">
+          <p className="mt-4 max-w-md text-[14px] leading-[1.75] text-[#F2F0EC]/60">
             Membership gets your family voting rights at the AGM, discounts on every event,
             priority movie seats and a place in the Sunday classes.
           </p>
@@ -827,68 +827,68 @@ function Join({ onBecomeMember, membership, myMembership }) {
               "Scholarships for members' children",
               'Konkani classes, choir and youth wing',
             ].map((point) => (
-              <li key={point} className="flex items-start gap-2.5 text-[12px] leading-relaxed text-[#F6F1E7]/75">
-                <span className="material-symbols-outlined text-[16px] text-[#7FCBA8]">check_circle</span>
+              <li key={point} className="flex items-start gap-2.5 text-[12px] leading-relaxed text-[#F2F0EC]/75">
+                <span className="material-symbols-outlined text-[16px] text-[#B6E36A]">check_circle</span>
                 {point}
               </li>
             ))}
           </ul>
 
           {myMembership && memberSince && (
-            <p className="mt-3 text-[10px] uppercase tracking-[0.14em] text-[#F6F1E7]/40">
+            <p className="mt-3 text-[10px] uppercase tracking-[0.14em] text-[#F2F0EC]/40">
               Member since {memberSince}
             </p>
           )}
         </div>
 
         <div className="js-reveal relative">
-          <div className="relative overflow-hidden rounded-[26px] border border-[#F5B841]/30 bg-gradient-to-br from-[#F5B841]/[0.18] via-[#0C3238] to-[#082328] p-6 shadow-[0_30px_70px_-45px_rgba(0,0,0,0.9)] sm:p-7">
+          <div className="relative overflow-hidden rounded-[26px] border border-[#C8FF1F]/30 bg-gradient-to-br from-[#C8FF1F]/[0.18] via-[#242A30] to-[#1A1E23] p-6 shadow-[0_30px_70px_-45px_rgba(0,0,0,0.9)] sm:p-7">
             <div
               aria-hidden="true"
-              className="absolute -right-12 -top-14 h-44 w-44 rounded-full bg-[#F5B841]/15 blur-3xl"
+              className="absolute -right-12 -top-14 h-44 w-44 rounded-full bg-[#C8FF1F]/15 blur-3xl"
             />
             <div className="relative">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-[9px] font-bold uppercase tracking-[0.24em] text-[#F5B841]">
+                  <p className="text-[9px] font-bold uppercase tracking-[0.24em] text-[#C8FF1F]">
                     Membership
                   </p>
                   <h3 className="mt-1 font-['Fraunces',Georgia,serif] text-[22px] font-bold tracking-[-0.01em]">
                     The Samudai card
                   </h3>
                 </div>
-                <span className="material-symbols-outlined text-[24px] text-[#F5B841]/70">badge</span>
+                <span className="material-symbols-outlined text-[24px] text-[#C8FF1F]/70">badge</span>
               </div>
 
               <div className="mt-5 flex items-end gap-2">
-                <p className="font-['Fraunces',Georgia,serif] text-[42px] font-bold leading-none text-[#F6F1E7]">
+                <p className="font-['Fraunces',Georgia,serif] text-[42px] font-bold leading-none text-[#F2F0EC]">
                   {price}
                 </p>
-                <span className="pb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#F6F1E7]/45">
+                <span className="pb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#F2F0EC]/45">
                   / year
                 </span>
               </div>
-              <p className="mt-2 text-[11px] leading-relaxed text-[#F6F1E7]/55">
+              <p className="mt-2 text-[11px] leading-relaxed text-[#F2F0EC]/55">
                 One plan · covers the whole household
               </p>
 
-              <div className="my-5 h-px bg-[#F6F1E7]/10" />
+              <div className="my-5 h-px bg-[#F2F0EC]/10" />
 
-              <ul className="space-y-2.5 text-[11px] leading-relaxed text-[#F6F1E7]/70">
-                <li className="flex gap-2"><span className="text-[#F5B841]">✦</span> Voting rights at the AGM</li>
-                <li className="flex gap-2"><span className="text-[#F5B841]">✦</span> Member rates on every event</li>
-                <li className="flex gap-2"><span className="text-[#F5B841]">✦</span> Priority seating for film nights</li>
-                <li className="flex gap-2"><span className="text-[#F5B841]">✦</span> A card for the whole family</li>
+              <ul className="space-y-2.5 text-[11px] leading-relaxed text-[#F2F0EC]/70">
+                <li className="flex gap-2"><span className="text-[#C8FF1F]">✦</span> Voting rights at the AGM</li>
+                <li className="flex gap-2"><span className="text-[#C8FF1F]">✦</span> Member rates on every event</li>
+                <li className="flex gap-2"><span className="text-[#C8FF1F]">✦</span> Priority seating for film nights</li>
+                <li className="flex gap-2"><span className="text-[#C8FF1F]">✦</span> A card for the whole family</li>
               </ul>
 
               <button
                 type="button"
                 onClick={onBecomeMember}
-                className="kk-ripple mt-6 w-full rounded-full bg-[#F6F1E7] py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#082328] transition-colors hover:bg-[#F5B841]"
+                className="kk-ripple mt-6 w-full rounded-full bg-[#F2F0EC] py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#1A1E23] transition-colors hover:bg-[#C8FF1F]"
               >
                 {myMembership ? 'View your membership' : 'Start membership'}
               </button>
-              <p className="mt-2.5 text-center text-[9px] text-[#F6F1E7]/35">
+              <p className="mt-2.5 text-center text-[9px] text-[#F2F0EC]/35">
                 {myMembership ? 'Your membership is active' : 'Sign in first · secure UPI payment'}
               </p>
             </div>
@@ -905,15 +905,15 @@ function SectionHead({ kicker, title, note }) {
   return (
     <div className="flex flex-wrap items-end justify-between gap-4">
       <div>
-        <p className="flex items-center gap-3 text-[9px] font-bold uppercase tracking-[0.3em] text-[#F5B841]">
-          <span className="h-px w-8 bg-[#F5B841]/50" />
+        <p className="flex items-center gap-3 text-[9px] font-bold uppercase tracking-[0.3em] text-[#C8FF1F]">
+          <span className="h-px w-8 bg-[#C8FF1F]/50" />
           {kicker}
         </p>
         <h2 className="mt-3 font-['Fraunces',Georgia,serif] text-[32px] font-bold leading-[1.02] tracking-[-0.03em] sm:text-[44px]">
           {title}
         </h2>
       </div>
-      {note && <p className="max-w-[260px] text-[11px] leading-relaxed text-[#F6F1E7]/40">{note}</p>}
+      {note && <p className="max-w-[260px] text-[11px] leading-relaxed text-[#F2F0EC]/40">{note}</p>}
     </div>
   );
 }
@@ -1095,7 +1095,7 @@ function TicketModal({ event, onClose }) {
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-end justify-center bg-[#04161A]/85 backdrop-blur-md sm:items-center sm:p-6"
+      className="fixed inset-0 z-[70] flex items-end justify-center bg-[#14181B]/85 backdrop-blur-md sm:items-center sm:p-6"
       role="dialog"
       aria-modal="true"
       aria-label={`${event.title} tickets`}
@@ -1103,7 +1103,7 @@ function TicketModal({ event, onClose }) {
         if (clickEvent.target === clickEvent.currentTarget) onClose();
       }}
     >
-      <div className="modal-in max-h-[92vh] w-full max-w-[460px] overflow-y-auto rounded-t-[26px] border border-[#F6F1E7]/12 bg-[#0C3238] p-6 shadow-2xl sm:rounded-[26px]">
+      <div className="modal-in max-h-[92vh] w-full max-w-[460px] overflow-y-auto rounded-t-[26px] border border-[#F2F0EC]/12 bg-[#242A30] p-6 shadow-2xl sm:rounded-[26px]">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-[9px] font-bold uppercase tracking-[0.2em]" style={{ color: event.accent }}>
@@ -1112,12 +1112,12 @@ function TicketModal({ event, onClose }) {
             <h3 className="mt-1.5 font-['Fraunces',Georgia,serif] text-[26px] font-bold leading-[1.02] tracking-[-0.02em]">
               {event.title}
             </h3>
-            <p className="mt-1.5 text-[11px] text-[#F6F1E7]/50">{event.venue}</p>
+            <p className="mt-1.5 text-[11px] text-[#F2F0EC]/50">{event.venue}</p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full border border-[#F6F1E7]/15 p-2 text-[#F6F1E7]/60 transition-colors hover:text-[#F6F1E7]"
+            className="rounded-full border border-[#F2F0EC]/15 p-2 text-[#F2F0EC]/60 transition-colors hover:text-[#F2F0EC]"
             aria-label="Close"
           >
             <span className="material-symbols-outlined text-[18px]">close</span>
@@ -1126,18 +1126,18 @@ function TicketModal({ event, onClose }) {
 
         {stage === 'paid' ? (
           <div className="mt-8 text-center">
-            <span className="material-symbols-outlined text-[46px] text-[#7FCBA8]">check_circle</span>
+            <span className="material-symbols-outlined text-[46px] text-[#B6E36A]">check_circle</span>
             <h4 className="mt-3 font-['Fraunces',Georgia,serif] text-[24px] font-bold">You're in.</h4>
-            <p className="mt-2 text-[12px] leading-relaxed text-[#F6F1E7]/65">
+            <p className="mt-2 text-[12px] leading-relaxed text-[#F2F0EC]/65">
               {order?.quantity || quantity} × {order?.tierName || tier.name} · {event.title}
             </p>
-            <p className="mt-1 font-['Fraunces',Georgia,serif] text-[22px] font-bold text-[#F5B841]">
+            <p className="mt-1 font-['Fraunces',Georgia,serif] text-[22px] font-bold text-[#C8FF1F]">
               ₹{order?.amount || total}
             </p>
             {order?.orderId && (
-              <p className="mt-2 font-mono text-[10px] text-[#F6F1E7]/40">Order {order.orderId}</p>
+              <p className="mt-2 font-mono text-[10px] text-[#F2F0EC]/40">Order {order.orderId}</p>
             )}
-            <p className="mt-3 text-[10px] leading-relaxed text-[#F6F1E7]/40">
+            <p className="mt-3 text-[10px] leading-relaxed text-[#F2F0EC]/40">
               Show this order at the counter. Send the committee a copy on WhatsApp and they will
               keep your passes ready.
             </p>
@@ -1145,7 +1145,7 @@ function TicketModal({ event, onClose }) {
               <Link
                 to={`/event-ticket/${order.orderId}`}
                 onClick={onClose}
-                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#F5B841] px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[#082328]"
+                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#C8FF1F] px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[#1A1E23]"
               >
                 <span className="material-symbols-outlined text-[15px]">confirmation_number</span>
                 View your ticket
@@ -1155,7 +1155,7 @@ function TicketModal({ event, onClose }) {
               href={whatsappLink}
               target="_blank"
               rel="noreferrer"
-              className="mt-2 inline-flex items-center gap-2 rounded-full bg-[#7FCBA8] px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[#082328]"
+              className="mt-2 inline-flex items-center gap-2 rounded-full bg-[#B6E36A] px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[#1A1E23]"
             >
               <span className="material-symbols-outlined text-[15px]">chat</span>
               Send details
@@ -1163,7 +1163,7 @@ function TicketModal({ event, onClose }) {
             <button
               type="button"
               onClick={onClose}
-              className="mt-2 block w-full rounded-full border border-[#F6F1E7]/18 py-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#F6F1E7]/70"
+              className="mt-2 block w-full rounded-full border border-[#F2F0EC]/18 py-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#F2F0EC]/70"
             >
               Done
             </button>
@@ -1185,15 +1185,15 @@ function TicketModal({ event, onClose }) {
                     }}
                     className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition-colors ${
                       selected
-                        ? 'border-[#F5B841]/70 bg-[#F5B841]/[0.09]'
-                        : 'border-[#F6F1E7]/10 bg-[#082328]/40 hover:border-[#F6F1E7]/25'
+                        ? 'border-[#C8FF1F]/70 bg-[#C8FF1F]/[0.09]'
+                        : 'border-[#F2F0EC]/10 bg-[#1A1E23]/40 hover:border-[#F2F0EC]/25'
                     }`}
                   >
                     <span>
-                      <span className="block text-[13px] font-semibold text-[#F6F1E7]">{option.name}</span>
-                      {option.note && <span className="block text-[10px] text-[#F6F1E7]/45">{option.note}</span>}
+                      <span className="block text-[13px] font-semibold text-[#F2F0EC]">{option.name}</span>
+                      {option.note && <span className="block text-[10px] text-[#F2F0EC]/45">{option.note}</span>}
                     </span>
-                    <span className="font-['Fraunces',Georgia,serif] text-lg font-bold text-[#F5B841]">
+                    <span className="font-['Fraunces',Georgia,serif] text-lg font-bold text-[#C8FF1F]">
                       {rupees(option.price)}
                     </span>
                   </button>
@@ -1201,8 +1201,8 @@ function TicketModal({ event, onClose }) {
               })}
             </div>
 
-            <div className="mt-3 flex items-center justify-between rounded-xl border border-[#F6F1E7]/10 bg-[#082328]/40 px-4 py-2.5">
-              <span className="text-[11px] uppercase tracking-[0.12em] text-[#F6F1E7]/50">Passes</span>
+            <div className="mt-3 flex items-center justify-between rounded-xl border border-[#F2F0EC]/10 bg-[#1A1E23]/40 px-4 py-2.5">
+              <span className="text-[11px] uppercase tracking-[0.12em] text-[#F2F0EC]/50">Passes</span>
               <div className="flex items-center gap-3">
                 <button
                   type="button"
@@ -1210,7 +1210,7 @@ function TicketModal({ event, onClose }) {
                     setQuantity((value) => Math.max(1, value - 1));
                     resetOrder();
                   }}
-                  className="h-7 w-7 rounded-full border border-[#F6F1E7]/20 text-base leading-none text-[#F6F1E7]/80 hover:border-[#F5B841]"
+                  className="h-7 w-7 rounded-full border border-[#F2F0EC]/20 text-base leading-none text-[#F2F0EC]/80 hover:border-[#C8FF1F]"
                   aria-label="Fewer passes"
                 >
                   −
@@ -1222,7 +1222,7 @@ function TicketModal({ event, onClose }) {
                     setQuantity((value) => Math.min(10, value + 1));
                     resetOrder();
                   }}
-                  className="h-7 w-7 rounded-full border border-[#F6F1E7]/20 text-base leading-none text-[#F6F1E7]/80 hover:border-[#F5B841]"
+                  className="h-7 w-7 rounded-full border border-[#F2F0EC]/20 text-base leading-none text-[#F2F0EC]/80 hover:border-[#C8FF1F]"
                   aria-label="More passes"
                 >
                   +
@@ -1231,10 +1231,10 @@ function TicketModal({ event, onClose }) {
             </div>
 
             {loggedIn && !editDetails ? (
-              <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-[#F6F1E7]/10 bg-[#082328]/40 px-4 py-2.5">
+              <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-[#F2F0EC]/10 bg-[#1A1E23]/40 px-4 py-2.5">
                 <div className="min-w-0">
-                  <p className="text-[8px] font-bold uppercase tracking-[0.16em] text-[#F6F1E7]/40">Paying as</p>
-                  <p className="truncate text-[12px] font-semibold text-[#F6F1E7]">
+                  <p className="text-[8px] font-bold uppercase tracking-[0.16em] text-[#F2F0EC]/40">Paying as</p>
+                  <p className="truncate text-[12px] font-semibold text-[#F2F0EC]">
                     {name}
                     {phone ? ` · ${phone}` : ''}
                   </p>
@@ -1242,7 +1242,7 @@ function TicketModal({ event, onClose }) {
                 <button
                   type="button"
                   onClick={() => setEditDetails(true)}
-                  className="shrink-0 text-[10px] font-bold uppercase tracking-[0.1em] text-[#F5B841]"
+                  className="shrink-0 text-[10px] font-bold uppercase tracking-[0.1em] text-[#C8FF1F]"
                 >
                   Edit
                 </button>
@@ -1253,58 +1253,58 @@ function TicketModal({ event, onClose }) {
                   value={name}
                   onChange={(changeEvent) => setName(changeEvent.target.value)}
                   placeholder="Name (for the pass)"
-                  className="w-full rounded-xl border border-[#F6F1E7]/12 bg-[#082328]/60 px-3 py-2.5 text-[11px] text-[#F6F1E7] outline-none placeholder:text-[#F6F1E7]/25 focus:border-[#F5B841]"
+                  className="w-full rounded-xl border border-[#F2F0EC]/12 bg-[#1A1E23]/60 px-3 py-2.5 text-[11px] text-[#F2F0EC] outline-none placeholder:text-[#F2F0EC]/25 focus:border-[#C8FF1F]"
                 />
                 <input
                   value={phone}
                   onChange={(changeEvent) => setPhone(changeEvent.target.value)}
                   inputMode="tel"
                   placeholder="Mobile number (for the pass)"
-                  className="w-full rounded-xl border border-[#F6F1E7]/12 bg-[#082328]/60 px-3 py-2.5 text-[11px] text-[#F6F1E7] outline-none placeholder:text-[#F6F1E7]/25 focus:border-[#F5B841]"
+                  className="w-full rounded-xl border border-[#F2F0EC]/12 bg-[#1A1E23]/60 px-3 py-2.5 text-[11px] text-[#F2F0EC] outline-none placeholder:text-[#F2F0EC]/25 focus:border-[#C8FF1F]"
                 />
               </div>
             )}
 
-            <div className="mt-4 rounded-[18px] border border-[#F6F1E7]/10 bg-[#061D22] p-4">
-              <div className="flex items-center justify-between text-[11px] text-[#F6F1E7]/60">
+            <div className="mt-4 rounded-[18px] border border-[#F2F0EC]/10 bg-[#171B1F] p-4">
+              <div className="flex items-center justify-between text-[11px] text-[#F2F0EC]/60">
                 <span>Passes</span>
                 <span>{quantity} × {rupees(tier.price)}</span>
               </div>
-              <div className="mt-1 flex items-center justify-between text-[11px] text-[#F6F1E7]/60">
+              <div className="mt-1 flex items-center justify-between text-[11px] text-[#F2F0EC]/60">
                 <span>Ticket total</span>
                 <span>{rupees(total)}</span>
               </div>
               {offsetMinor > 0 && (
-                <div className="mt-1 flex items-center justify-between text-[10px] text-[#F6F1E7]/40">
+                <div className="mt-1 flex items-center justify-between text-[10px] text-[#F2F0EC]/40">
                   <span>Payment verification</span>
                   <span>+ ₹{(offsetMinor / 100).toFixed(2)}</span>
                 </div>
               )}
-              <div className="mt-2 flex items-baseline justify-between border-t border-[#F6F1E7]/10 pt-2">
-                <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#F6F1E7]/45">
+              <div className="mt-2 flex items-baseline justify-between border-t border-[#F2F0EC]/10 pt-2">
+                <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#F2F0EC]/45">
                   Payable
                 </span>
-                <span className="font-['Fraunces',Georgia,serif] text-[24px] font-bold text-[#F5B841]">
+                <span className="font-['Fraunces',Georgia,serif] text-[24px] font-bold text-[#C8FF1F]">
                   ₹{order ? order.amount : total}
                 </span>
               </div>
               {order && offsetMinor > 0 && (
-                <p className="mt-2 text-[9px] leading-relaxed text-[#F6F1E7]/35">
+                <p className="mt-2 text-[9px] leading-relaxed text-[#F2F0EC]/35">
                   A small verification amount identifies your transfer. It is part of the total
                   and goes to the Samudai.
                 </p>
               )}
             </div>
 
-            {notice && <p className="mt-3 text-center text-[11px] text-[#F5B841]/85">{notice}</p>}
-            {error && <p className="mt-3 text-center text-[11px] text-[#F07882]">{error}</p>}
+            {notice && <p className="mt-3 text-center text-[11px] text-[#C8FF1F]/85">{notice}</p>}
+            {error && <p className="mt-3 text-center text-[11px] text-[#F08A80]">{error}</p>}
 
             {order ? (
               <button
                 type="button"
                 onClick={reopen}
                 disabled={busy || waiting}
-                className="mt-4 w-full rounded-full border border-[#F5B841]/45 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#F5B841] transition-colors hover:bg-[#F5B841] hover:text-[#082328] disabled:opacity-60"
+                className="mt-4 w-full rounded-full border border-[#C8FF1F]/45 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#C8FF1F] transition-colors hover:bg-[#C8FF1F] hover:text-[#1A1E23] disabled:opacity-60"
               >
                 {busy ? 'Opening…' : waiting ? 'Waiting for payment…' : 'Reopen secure payment'}
               </button>
@@ -1313,13 +1313,13 @@ function TicketModal({ event, onClose }) {
                 type="button"
                 onClick={pay}
                 disabled={busy}
-                className="mt-4 w-full rounded-full bg-[#C2305E] py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-white disabled:opacity-60"
+                className="mt-4 w-full rounded-full bg-[#C8FF1F] py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-white disabled:opacity-60"
               >
                 {busy ? 'Opening secure payment…' : `Pay ${rupees(total)} with YouPI`}
               </button>
             )}
 
-            <p className="mt-2 text-center text-[9px] text-[#F6F1E7]/35">
+            <p className="mt-2 text-center text-[9px] text-[#F2F0EC]/35">
               Secure UPI checkout · YouPI · passes also at the counter
             </p>
           </>
@@ -1536,12 +1536,12 @@ function MembershipModal({ onClose, plan: initialPlan, onMemberChange }) {
   }
 
   const fieldClass =
-    'w-full rounded-xl border border-[#F6F1E7]/12 bg-[#082328]/70 px-3.5 py-2.5 text-[12px] text-[#F6F1E7] outline-none transition-colors placeholder:text-[#F6F1E7]/25 focus:border-[#F6F1E7]/20 focus:outline-none focus:ring-0 focus-visible:outline-none';
-  const labelClass = 'mb-1.5 block text-[8px] font-bold uppercase tracking-[0.18em] text-[#F6F1E7]/45';
+    'w-full rounded-xl border border-[#F2F0EC]/12 bg-[#1A1E23]/70 px-3.5 py-2.5 text-[12px] text-[#F2F0EC] outline-none transition-colors placeholder:text-[#F2F0EC]/25 focus:border-[#F2F0EC]/20 focus:outline-none focus:ring-0 focus-visible:outline-none';
+  const labelClass = 'mb-1.5 block text-[8px] font-bold uppercase tracking-[0.18em] text-[#F2F0EC]/45';
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-end justify-center bg-[#04161A]/85 backdrop-blur-md sm:items-center sm:p-6"
+      className="fixed inset-0 z-[70] flex items-end justify-center bg-[#14181B]/85 backdrop-blur-md sm:items-center sm:p-6"
       role="dialog"
       aria-modal="true"
       aria-label="Become a member"
@@ -1549,11 +1549,11 @@ function MembershipModal({ onClose, plan: initialPlan, onMemberChange }) {
         if (clickEvent.target === clickEvent.currentTarget) onClose();
       }}
     >
-      <div className="modal-in max-h-[93vh] w-full max-w-[700px] overflow-y-auto rounded-t-[26px] border border-[#F6F1E7]/12 bg-[#0C3238] shadow-2xl sm:rounded-[26px]">
+      <div className="modal-in max-h-[93vh] w-full max-w-[700px] overflow-y-auto rounded-t-[26px] border border-[#F2F0EC]/12 bg-[#242A30] shadow-2xl sm:rounded-[26px]">
         <div className="p-6 sm:p-7">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-[9px] font-bold uppercase tracking-[0.24em] text-[#F5B841]">Membership</p>
+              <p className="text-[9px] font-bold uppercase tracking-[0.24em] text-[#C8FF1F]">Membership</p>
               <h3 className="mt-1.5 font-['Fraunces',Georgia,serif] text-[26px] font-bold leading-[1.02] tracking-[-0.02em]">
                 Join Konkani Samudai
               </h3>
@@ -1561,7 +1561,7 @@ function MembershipModal({ onClose, plan: initialPlan, onMemberChange }) {
             <button
               type="button"
               onClick={onClose}
-              className="rounded-full border border-[#F6F1E7]/15 p-2 text-[#F6F1E7]/60 transition-colors hover:text-[#F6F1E7]"
+              className="rounded-full border border-[#F2F0EC]/15 p-2 text-[#F2F0EC]/60 transition-colors hover:text-[#F2F0EC]"
               aria-label="Close"
             >
               <span className="material-symbols-outlined text-[18px]">close</span>
@@ -1570,59 +1570,59 @@ function MembershipModal({ onClose, plan: initialPlan, onMemberChange }) {
 
           {!token ? (
             <div className="mt-8 text-center">
-              <span className="material-symbols-outlined text-[38px] text-[#F5B841]/70">lock</span>
-              <p className="mt-3 text-[13px] leading-relaxed text-[#F6F1E7]/65">
+              <span className="material-symbols-outlined text-[38px] text-[#C8FF1F]/70">lock</span>
+              <p className="mt-3 text-[13px] leading-relaxed text-[#F2F0EC]/65">
                 You need an account before you can become a member. It takes a minute.
               </p>
               <Link
                 to="/login"
-                className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#C2305E] px-6 py-3 text-[12px] font-bold uppercase tracking-[0.12em] text-white"
+                className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#C8FF1F] px-6 py-3 text-[12px] font-bold uppercase tracking-[0.12em] text-white"
               >
                 Sign in to continue
                 <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
               </Link>
-              <p className="mt-3 text-[10px] text-[#F6F1E7]/35">
+              <p className="mt-3 text-[10px] text-[#F2F0EC]/35">
                 New here? The sign-in page also creates an account.
               </p>
             </div>
           ) : stage === 'paid' || member ? (
             <div className="mt-8 text-center">
-              <span className="material-symbols-outlined text-[44px] text-[#7FCBA8]">verified</span>
+              <span className="material-symbols-outlined text-[44px] text-[#B6E36A]">verified</span>
               <h4 className="mt-3 font-['Fraunces',Georgia,serif] text-[24px] font-bold">You're a member</h4>
-              <p className="mt-2 text-[12px] leading-relaxed text-[#F6F1E7]/65">
+              <p className="mt-2 text-[12px] leading-relaxed text-[#F2F0EC]/65">
                 {member?.name || name} · {rupees(Math.round(Number(member?.amountMinor || plan.amountMinor) / 100))} a year
               </p>
-              <p className="mt-1 text-[11px] text-[#F6F1E7]/45">
-                Status <span className="font-semibold capitalize text-[#F5B841]">{member?.status || 'active'}</span>
+              <p className="mt-1 text-[11px] text-[#F2F0EC]/45">
+                Status <span className="font-semibold capitalize text-[#C8FF1F]">{member?.status || 'active'}</span>
               </p>
-              <p className="mt-3 text-[10px] leading-relaxed text-[#F6F1E7]/40">
+              <p className="mt-3 text-[10px] leading-relaxed text-[#F2F0EC]/40">
                 Your membership is active. Show your account at the counter for member rates on events
                 and priority seats.
               </p>
               <button
                 type="button"
                 onClick={onClose}
-                className="mt-6 w-full rounded-full bg-[#F6F1E7] py-3 text-[11px] font-bold uppercase tracking-[0.14em] text-[#082328]"
+                className="mt-6 w-full rounded-full bg-[#F2F0EC] py-3 text-[11px] font-bold uppercase tracking-[0.14em] text-[#1A1E23]"
               >
                 Done
               </button>
             </div>
           ) : (
             <>
-              <div className="mt-5 rounded-2xl border border-[#F5B841]/30 bg-gradient-to-r from-[#F5B841]/[0.14] to-[#C2305E]/[0.07] p-4">
+              <div className="mt-5 rounded-2xl border border-[#C8FF1F]/30 bg-gradient-to-r from-[#C8FF1F]/[0.14] to-[#C8FF1F]/[0.07] p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#F5B841]">
+                    <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#C8FF1F]">
                       {plan?.label || 'Annual membership'}
                     </p>
-                    <p className="mt-0.5 text-[10px] text-[#F6F1E7]/50">One plan · renews yearly</p>
+                    <p className="mt-0.5 text-[10px] text-[#F2F0EC]/50">One plan · renews yearly</p>
                   </div>
-                  <p className="font-['Fraunces',Georgia,serif] text-[30px] font-bold leading-none text-[#F5B841]">
+                  <p className="font-['Fraunces',Georgia,serif] text-[30px] font-bold leading-none text-[#C8FF1F]">
                     {rupees(total)}
-                    <span className="ml-1 text-[9px] font-semibold uppercase tracking-[0.1em] text-[#F6F1E7]/40">/ yr</span>
+                    <span className="ml-1 text-[9px] font-semibold uppercase tracking-[0.1em] text-[#F2F0EC]/40">/ yr</span>
                   </p>
                 </div>
-                <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-[#F6F1E7]/55">
+                <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-[#F2F0EC]/55">
                   <li>✦ Member rates</li>
                   <li>✦ Priority seats</li>
                   <li>✦ AGM voting</li>
@@ -1630,7 +1630,7 @@ function MembershipModal({ onClose, plan: initialPlan, onMemberChange }) {
                 </ul>
               </div>
 
-              <p className="mt-5 text-[9px] font-bold uppercase tracking-[0.2em] text-[#F6F1E7]/40">
+              <p className="mt-5 text-[9px] font-bold uppercase tracking-[0.2em] text-[#F2F0EC]/40">
                 Your details
               </p>
 
@@ -1709,15 +1709,15 @@ function MembershipModal({ onClose, plan: initialPlan, onMemberChange }) {
                 </div>
               </div>
 
-              {notice && <p className="mt-3 text-center text-[11px] text-[#F5B841]/85">{notice}</p>}
-              {error && <p className="mt-3 text-center text-[11px] text-[#F07882]">{error}</p>}
+              {notice && <p className="mt-3 text-center text-[11px] text-[#C8FF1F]/85">{notice}</p>}
+              {error && <p className="mt-3 text-center text-[11px] text-[#F08A80]">{error}</p>}
 
               {order ? (
                 <button
                   type="button"
                   onClick={reopen}
                   disabled={busy || waiting}
-                  className="mt-5 w-full rounded-full border border-[#F5B841]/45 py-3.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#F5B841] transition-colors hover:bg-[#F5B841] hover:text-[#082328] disabled:opacity-60"
+                  className="mt-5 w-full rounded-full border border-[#C8FF1F]/45 py-3.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#C8FF1F] transition-colors hover:bg-[#C8FF1F] hover:text-[#1A1E23] disabled:opacity-60"
                 >
                   {busy ? 'Opening…' : waiting ? 'Waiting for payment…' : 'Reopen secure payment'}
                 </button>
@@ -1726,13 +1726,13 @@ function MembershipModal({ onClose, plan: initialPlan, onMemberChange }) {
                   type="button"
                   onClick={pay}
                   disabled={busy}
-                  className="mt-5 w-full rounded-full bg-[#C2305E] py-3.5 text-[11px] font-bold uppercase tracking-[0.14em] text-white shadow-[0_18px_40px_-20px_rgba(194,48,94,0.9)] transition-transform hover:-translate-y-0.5 disabled:opacity-60"
+                  className="mt-5 w-full rounded-full bg-[#C8FF1F] py-3.5 text-[11px] font-bold uppercase tracking-[0.14em] text-white shadow-[0_18px_40px_-20px_rgba(200,255,31,0.9)] transition-transform hover:-translate-y-0.5 disabled:opacity-60"
                 >
                   {busy ? 'Opening secure payment…' : `Pay ${rupees(total)}`}
                 </button>
               )}
 
-              <p className="mt-2.5 text-center text-[9px] text-[#F6F1E7]/35">
+              <p className="mt-2.5 text-center text-[9px] text-[#F2F0EC]/35">
                 Secure UPI checkout · your membership activates automatically
               </p>
             </>
@@ -1751,26 +1751,26 @@ const PAGE_CSS = `
 }
 .community-page .hero-glow {
   background:
-    radial-gradient(760px 420px at 22% -8%, rgba(245,184,65,0.20), transparent 62%),
-    radial-gradient(620px 380px at 88% 4%, rgba(194,48,94,0.24), transparent 66%);
+    radial-gradient(760px 420px at 22% -8%, rgba(200,255,31,0.20), transparent 62%),
+    radial-gradient(620px 380px at 88% 4%, rgba(200,255,31,0.24), transparent 66%);
 }
 .community-page .stub {
   border-radius: 20px;
   box-shadow: 0 30px 70px -34px rgba(0,0,0,0.9);
 }
 .community-page .stub-primary {
-  background: linear-gradient(160deg, rgba(18,71,79,0.96) 0%, rgba(12,50,56,0.98) 62%);
-  border: 1px solid rgba(245,184,65,0.35);
+  background: linear-gradient(160deg, rgba(38,44,51,0.96) 0%, rgba(36,42,48,0.98) 62%);
+  border: 1px solid rgba(200,255,31,0.35);
   backdrop-filter: blur(6px);
 }
 .community-page .stub-ghost {
-  background: linear-gradient(160deg, rgba(15,58,66,0.96) 0%, rgba(7,38,43,0.98) 70%);
-  border: 1px solid rgba(246,241,231,0.12);
+  background: linear-gradient(160deg, rgba(38,44,51,0.96) 0%, rgba(23,27,31,0.98) 70%);
+  border: 1px solid rgba(242,240,236,0.12);
 }
 .community-page .stub-perf {
   position: relative;
   height: 1px;
-  background-image: linear-gradient(90deg, rgba(246,241,231,0.28) 45%, transparent 0);
+  background-image: linear-gradient(90deg, rgba(242,240,236,0.28) 45%, transparent 0);
   background-size: 9px 1px;
   background-repeat: repeat-x;
 }
@@ -1782,35 +1782,35 @@ const PAGE_CSS = `
   height: 13px;
   width: 13px;
   border-radius: 999px;
-  background: #082328;
+  background: #1A1E23;
   transform: translateY(-50%);
 }
 .community-page .stub-perf::before { left: -22px; }
 .community-page .stub-perf::after { right: -22px; }
 .community-page .seal {
-  background: radial-gradient(circle at 35% 30%, #FFD98A, #F5B841 62%, #D99A22);
-  box-shadow: 0 18px 40px -18px rgba(245,184,65,0.7), inset 0 0 0 1px rgba(8,35,40,0.18);
+  background: radial-gradient(circle at 35% 30%, #FFD98A, #C8FF1F 62%, #D99A22);
+  box-shadow: 0 18px 40px -18px rgba(200,255,31,0.7), inset 0 0 0 1px rgba(23,27,31,0.18);
 }
 .community-page .seal::after {
   content: '';
   position: absolute;
   inset: 7px;
   border-radius: 999px;
-  border: 1px dashed rgba(8,35,40,0.35);
+  border: 1px dashed rgba(23,27,31,0.35);
 }
 .community-page .card-tick {
-  background: linear-gradient(165deg, rgba(18,71,79,0.75), rgba(7,38,43,0.9));
-  border: 1px solid rgba(246,241,231,0.10);
+  background: linear-gradient(165deg, rgba(38,44,51,0.75), rgba(23,27,31,0.9));
+  border: 1px solid rgba(242,240,236,0.10);
   transition: transform .35s ease, border-color .35s ease, box-shadow .35s ease;
 }
 .community-page .card-tick:hover {
   transform: translateY(-4px);
-  border-color: rgba(245,184,65,0.32);
+  border-color: rgba(200,255,31,0.32);
   box-shadow: 0 30px 60px -40px rgba(0,0,0,0.9);
 }
 .community-page .plate {
-  background: linear-gradient(160deg, rgba(18,71,79,0.55), rgba(7,38,43,0.75));
-  border: 1px solid rgba(246,241,231,0.09);
+  background: linear-gradient(160deg, rgba(38,44,51,0.55), rgba(23,27,31,0.75));
+  border: 1px solid rgba(242,240,236,0.09);
 }
 .community-page .modal-in { animation: modalIn .32s cubic-bezier(.22,1,.36,1); }
 @keyframes modalIn {

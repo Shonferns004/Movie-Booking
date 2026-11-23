@@ -4,13 +4,13 @@ import api from '../services/api.js';
 import { useRealtime } from '../services/realtime.js';
 
 const C = {
-  ink: '#0A2A31',
-  tide: '#123E47',
-  shell: '#EFEBE0',
-  kokum: '#C2305E',
-  mango: '#F4B63F',
-  green: '#78C9A6',
-  sold: '#93A6A8',
+  ink: '#1E2227',
+  tide: '#262C33',
+  shell: '#F2F0EC',
+  kokum: '#C8FF1F',
+  mango: '#C8FF1F',
+  green: '#B6E36A',
+  sold: '#B5AFA6',
 };
 
 const MAX_SEATS = 10;
@@ -49,16 +49,16 @@ const STYLES = `
 .kk-seat:not(:disabled):hover { transform: translateY(-1px) scale(1.07); z-index: 1; }
 .kk-seat:disabled { cursor: not-allowed; }
 .kk-seat-row { display: grid; grid-template-columns: repeat(var(--kk-cols), var(--kk-seat)); gap: 4px; --kk-seat: 18px; }
-.kk-cat-line { height: 1px; flex: 1 1 0%; background: rgba(239,235,224,.14); }
+.kk-cat-line { height: 1px; flex: 1 1 0%; background: rgba(242,240,236,.14); }
 
 .kk-pay { transition: background-color .2s ease, transform .2s ease, opacity .2s ease; }
-.kk-pay:not(:disabled):hover { background-color: #a82651; transform: translateY(-1px); }
+.kk-pay:not(:disabled):hover { background-color: #A8D819; transform: translateY(-1px); }
 
 .kk-pill { transition: background-color .16s ease, color .16s ease, transform .16s ease; }
 .kk-pill:not(:disabled):hover { transform: translateY(-1px); }
 
 .kk-zoom { transition: background-color .16s ease, color .16s ease; }
-.kk-zoom:not(:disabled):hover { background-color: rgba(239,235,224,.12); }
+.kk-zoom:not(:disabled):hover { background-color: rgba(242,240,236,.12); }
 
 .kk-toast { animation: kk-toast-in .22s ease both; }
 @keyframes kk-toast-in { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
@@ -314,7 +314,7 @@ export default function SeatSelection() {
 
   if (!data) {
     return (
-      <div className="kk-seat-body flex min-h-screen items-center justify-center bg-[#0A2A31] px-5 text-center text-[#EFEBE0]">
+      <div className="kk-seat-body flex min-h-screen items-center justify-center bg-[#1E2227] px-5 text-center text-[#F2F0EC]">
         <style>{STYLES}</style>
         <div className="max-w-sm">
           <div
@@ -322,7 +322,7 @@ export default function SeatSelection() {
             style={{ borderColor: C.mango, borderTopColor: 'transparent' }}
           />
           <h1 className="kk-display text-2xl font-bold">Preparing your seat map</h1>
-          <p className="mt-2 text-sm text-[#EFEBE0]/65">
+          <p className="mt-2 text-sm text-[#F2F0EC]/65">
             {loadingError || 'Finding the best seats for your screening…'}
           </p>
           {loadingError && (
@@ -336,28 +336,28 @@ export default function SeatSelection() {
   }
 
   return (
-    <div className="kk-seat-body min-h-screen bg-[#0A2A31] pb-40 text-[#EFEBE0]">
+    <div className="kk-seat-body min-h-screen bg-[#1E2227] pb-40 text-[#F2F0EC]">
       <style>{STYLES}</style>
 
       {/* Show bar */}
-      <div className="sticky top-[72px] z-30 border-b border-[#EFEBE0]/10 bg-[#0A2A31]/95 backdrop-blur-xl">
+      <div className="sticky top-[72px] z-30 border-b border-[#F2F0EC]/10 bg-[#1E2227]/95 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2.5 sm:px-6">
           <button
             type="button"
             onClick={() => navigate(-1)}
             aria-label="Back to showtimes"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[#EFEBE0]/70 transition hover:bg-[#EFEBE0]/10 hover:text-[#EFEBE0]"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[#F2F0EC]/70 transition hover:bg-[#F2F0EC]/10 hover:text-[#F2F0EC]"
           >
             <span className="material-symbols-outlined text-[20px]">arrow_back_ios_new</span>
           </button>
 
           <div className="min-w-0 flex-1">
             <h1 className="kk-display truncate text-base font-bold leading-tight sm:text-xl">{title}</h1>
-            <p className="truncate text-[10px] text-[#EFEBE0]/55 sm:text-xs">
+            <p className="truncate text-[10px] text-[#F2F0EC]/55 sm:text-xs">
               {locality}
-              {dateText && <span className="mx-1.5 text-[#EFEBE0]/25">|</span>}
+              {dateText && <span className="mx-1.5 text-[#F2F0EC]/25">|</span>}
               {dateText}
-              {timeText && <span className="mx-1.5 text-[#EFEBE0]/25">|</span>}
+              {timeText && <span className="mx-1.5 text-[#F2F0EC]/25">|</span>}
               {timeText}
             </p>
           </div>
@@ -365,7 +365,7 @@ export default function SeatSelection() {
           <button
             type="button"
             onClick={() => setPickerOpen(true)}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-md border px-3 py-2 text-xs font-semibold transition hover:bg-[#C2305E]/10"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-md border px-3 py-2 text-xs font-semibold transition hover:bg-[#C8FF1F]/10"
             style={{ borderColor: `${C.kokum}99`, color: C.kokum }}
           >
             <span className="material-symbols-outlined text-[15px]">edit</span>
@@ -376,7 +376,7 @@ export default function SeatSelection() {
 
       <main className="mx-auto max-w-[1180px] px-3 pt-5 sm:px-6">
         <div className="mb-3 flex items-center justify-between gap-3">
-          <p className="text-[10px] font-semibold uppercase tracking-[.18em] text-[#EFEBE0]/40">
+          <p className="text-[10px] font-semibold uppercase tracking-[.18em] text-[#F2F0EC]/40">
             {stats.length} categories · {availableCount} seats available
           </p>
 
@@ -386,7 +386,7 @@ export default function SeatSelection() {
               onClick={() => setZoomIdx((i) => Math.max(0, i - 1))}
               disabled={zoomIdx === 0}
               aria-label="Zoom out"
-              className="kk-zoom flex h-8 w-8 items-center justify-center rounded-full border border-[#EFEBE0]/[0.12] text-[#EFEBE0]/70 disabled:opacity-30"
+              className="kk-zoom flex h-8 w-8 items-center justify-center rounded-full border border-[#F2F0EC]/[0.12] text-[#F2F0EC]/70 disabled:opacity-30"
             >
               <span className="material-symbols-outlined text-[18px]">zoom_out</span>
             </button>
@@ -395,7 +395,7 @@ export default function SeatSelection() {
               onClick={() => setZoomIdx((i) => Math.min(ZOOM_STEPS.length - 1, i + 1))}
               disabled={zoomIdx === ZOOM_STEPS.length - 1}
               aria-label="Zoom in"
-              className="kk-zoom flex h-8 w-8 items-center justify-center rounded-full border border-[#EFEBE0]/[0.12] text-[#EFEBE0]/70 disabled:opacity-30"
+              className="kk-zoom flex h-8 w-8 items-center justify-center rounded-full border border-[#F2F0EC]/[0.12] text-[#F2F0EC]/70 disabled:opacity-30"
             >
               <span className="material-symbols-outlined text-[18px]">zoom_in</span>
             </button>
@@ -405,7 +405,7 @@ export default function SeatSelection() {
         <div className="overflow-x-auto pb-5">
           <div className="mx-auto w-max px-1" style={{ zoom: ZOOM_STEPS[zoomIdx] }}>
             {sections.length === 0 ? (
-              <p className="py-16 text-center text-sm text-[#EFEBE0]/55">
+              <p className="py-16 text-center text-sm text-[#F2F0EC]/55">
                 No seats are configured for this show yet.
               </p>
             ) : (
@@ -413,7 +413,7 @@ export default function SeatSelection() {
                 <section key={section.name} className="mb-7">
                   <div className="mx-auto flex items-center gap-3">
                     <span className="kk-cat-line" />
-                    <span className="whitespace-nowrap text-[11px] font-bold uppercase tracking-[.18em] text-[#EFEBE0]/60">
+                    <span className="whitespace-nowrap text-[11px] font-bold uppercase tracking-[.18em] text-[#F2F0EC]/60">
                       {rupees(section.price)} {section.name}
                     </span>
                     <span className="kk-cat-line" />
@@ -422,7 +422,7 @@ export default function SeatSelection() {
                   <div className="mt-3 flex flex-col gap-1.5">
                     {section.rows.map((row) => (
                       <div key={`${section.name}-${row.label}`} className="flex items-center gap-2">
-                        <span className="w-4 shrink-0 text-center text-[10px] font-semibold text-[#EFEBE0]/35">
+                        <span className="w-4 shrink-0 text-center text-[10px] font-semibold text-[#F2F0EC]/35">
                           {row.label}
                         </span>
 
@@ -436,10 +436,10 @@ export default function SeatSelection() {
                             const palette = isSelected
                               ? { background: C.kokum, borderColor: C.kokum, color: '#fff' }
                               : unavailable
-                                ? { background: 'rgba(147,166,168,.16)', borderColor: 'rgba(147,166,168,.28)', color: 'rgba(239,235,224,.26)' }
+                                ? { background: 'rgba(181,175,166,.16)', borderColor: 'rgba(181,175,166,.28)', color: 'rgba(242,240,236,.26)' }
                                 : isBest
                                   ? { background: 'transparent', borderColor: C.mango, color: C.mango }
-                                  : { background: 'transparent', borderColor: 'rgba(120,201,166,.8)', color: 'rgba(120,201,166,.95)' };
+                                  : { background: 'transparent', borderColor: 'rgba(182,227,106,.8)', color: 'rgba(182,227,106,.95)' };
 
                             return (
                               <button
@@ -479,14 +479,14 @@ export default function SeatSelection() {
       </main>
 
       {/* Legend + pay bar */}
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#EFEBE0]/[0.12] bg-[#071E23]/[0.96] backdrop-blur-xl">
-        <div className="hidden items-center justify-center gap-7 border-b border-[#EFEBE0]/[0.08] px-4 py-2 text-[11px] text-[#EFEBE0]/60 md:flex">
-          <Legend color="rgba(120,201,166,.9)" label="Available" />
-          <Legend color="rgba(147,166,168,.45)" label="Sold" filled />
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#F2F0EC]/[0.12] bg-[#171B1F]/[0.96] backdrop-blur-xl">
+        <div className="hidden items-center justify-center gap-7 border-b border-[#F2F0EC]/[0.08] px-4 py-2 text-[11px] text-[#F2F0EC]/60 md:flex">
+          <Legend color="rgba(182,227,106,.9)" label="Available" />
+          <Legend color="rgba(181,175,166,.45)" label="Sold" filled />
           <span className="inline-flex items-center gap-1.5">
             <Legend color={C.mango} label="Bestseller" />
             <span
-              className="material-symbols-outlined cursor-help text-[14px] text-[#EFEBE0]/35"
+              className="material-symbols-outlined cursor-help text-[14px] text-[#F2F0EC]/35"
               title="Most-loved seats in this screen, at the regular price."
             >
               info
@@ -497,11 +497,11 @@ export default function SeatSelection() {
 
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="min-w-0">
-            <p className="text-xs text-[#EFEBE0]/60">
+            <p className="text-xs text-[#F2F0EC]/60">
               {selected.length} {selected.length === 1 ? 'seat' : 'seats'} selected
               <span className="hidden sm:inline"> · up to {limit}</span>
             </p>
-            <p className="truncate text-[10px] text-[#EFEBE0]/35">
+            <p className="truncate text-[10px] text-[#F2F0EC]/35">
               {selectedSeats.length
                 ? selectedSeats.map((seat) => `${seat.row_label}-${seat.seat_number}`).join(', ')
                 : 'Pick a seat from the plan above'}
@@ -510,7 +510,7 @@ export default function SeatSelection() {
 
           <div className="flex shrink-0 items-center gap-3 sm:gap-4">
             <div className="text-right">
-              <p className="text-[9px] font-bold uppercase tracking-[.14em] text-[#EFEBE0]/40">Total</p>
+              <p className="text-[9px] font-bold uppercase tracking-[.14em] text-[#F2F0EC]/40">Total</p>
               <p className="kk-display text-lg font-bold leading-tight sm:text-xl">
                 {selected.length ? rupees(totalMinor) : '—'}
               </p>
@@ -541,7 +541,7 @@ export default function SeatSelection() {
       {/* How many seats? */}
       {pickerOpen && (
         <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-[#071E23]/[0.82] px-4 py-6 backdrop-blur-sm"
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-[#171B1F]/[0.82] px-4 py-6 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
           aria-label="How many seats?"
@@ -549,19 +549,19 @@ export default function SeatSelection() {
             if (event.target === event.currentTarget) setPickerOpen(false);
           }}
         >
-          <div className="w-full max-w-2xl overflow-hidden rounded-2xl bg-[#EFEBE0] text-[#0A2A31] shadow-2xl">
+          <div className="w-full max-w-2xl overflow-hidden rounded-2xl bg-[#F2F0EC] text-[#1E2227] shadow-2xl">
             <div className="relative px-6 pb-5 pt-6 sm:px-8">
               <button
                 type="button"
                 onClick={() => setPickerOpen(false)}
                 aria-label="Close seat count"
-                className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full text-[#0A2A31]/50 transition hover:bg-[#0A2A31]/[0.08] hover:text-[#0A2A31]"
+                className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full text-[#1E2227]/50 transition hover:bg-[#1E2227]/[0.08] hover:text-[#1E2227]"
               >
                 <span className="material-symbols-outlined text-[20px]">close</span>
               </button>
 
               <h2 className="kk-display text-center text-2xl font-bold">How many seats?</h2>
-              <p className="mt-1 text-center text-xs text-[#0A2A31]/50">
+              <p className="mt-1 text-center text-xs text-[#1E2227]/50">
                 {availableCount} seats free · pick up to {maxSelectable}
               </p>
 
@@ -587,7 +587,7 @@ export default function SeatSelection() {
                       onClick={() => setDraft(n)}
                       aria-pressed={active}
                       className={`kk-pill flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-25 ${
-                        active ? 'text-white' : 'text-[#0A2A31]/75 hover:bg-[#0A2A31]/[0.08]'
+                        active ? 'text-white' : 'text-[#1E2227]/75 hover:bg-[#1E2227]/[0.08]'
                       }`}
                       style={active ? { background: C.kokum } : undefined}
                     >
@@ -598,7 +598,7 @@ export default function SeatSelection() {
               </div>
             </div>
 
-            <div className="mx-6 border-t border-dashed border-[#0A2A31]/20 sm:mx-8" />
+            <div className="mx-6 border-t border-dashed border-[#1E2227]/20 sm:mx-8" />
 
             <div className="overflow-x-auto px-6 py-4 sm:px-8">
               <div className="flex min-w-max items-start justify-center gap-7">
@@ -610,7 +610,7 @@ export default function SeatSelection() {
                       : '#1E7A4E';
                   return (
                     <div key={stat.name} className="min-w-[84px] text-center">
-                      <p className="truncate text-[9px] font-bold uppercase tracking-[.1em] text-[#0A2A31]/55">
+                      <p className="truncate text-[9px] font-bold uppercase tracking-[.1em] text-[#1E2227]/55">
                         {stat.name}
                       </p>
                       <p className="kk-display mt-1 text-base font-bold">{rupees(stat.price)}</p>
@@ -623,10 +623,10 @@ export default function SeatSelection() {
               </div>
             </div>
 
-            <div className="mx-6 flex items-center gap-2 rounded bg-[#0A2A31]/5 px-3 py-2 text-[11px] text-[#0A2A31]/70 sm:mx-8">
+            <div className="mx-6 flex items-center gap-2 rounded bg-[#1E2227]/5 px-3 py-2 text-[11px] text-[#1E2227]/70 sm:mx-8">
               <span className="h-3 w-3 shrink-0 rounded-[3px] border-2" style={{ borderColor: C.mango }} />
               <span>
-                Book the <strong className="font-bold text-[#0A2A31]">Bestseller</strong> seats in this cinema at no extra cost!
+                Book the <strong className="font-bold text-[#1E2227]">Bestseller</strong> seats in this cinema at no extra cost!
               </span>
             </div>
 

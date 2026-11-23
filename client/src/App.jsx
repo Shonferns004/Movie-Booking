@@ -23,12 +23,12 @@ function BrandMark() {
   return (
     <span
       aria-hidden="true"
-      className="relative flex h-11 w-11 shrink-0 -rotate-3 items-center justify-center rounded-[14px] bg-[#F4B63F] text-[#0A2A31] shadow-lg shadow-black/25 transition-transform duration-300 group-hover:rotate-0 group-hover:scale-105"
+      className="relative flex h-11 w-11 shrink-0 -rotate-3 items-center justify-center rounded-[14px] bg-[#C8FF1F] text-[#1E2227] shadow-lg shadow-black/25 transition-transform duration-300 group-hover:rotate-0 group-hover:scale-105"
     >
-      <span className="absolute -left-1 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-[#0A2A31]" />
-      <span className="absolute -right-1 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-[#0A2A31]" />
-      <span className="absolute inset-x-2 top-[7px] h-px bg-[#0A2A31]/25" />
-      <span className="absolute inset-x-2 bottom-[7px] h-px bg-[#0A2A31]/25" />
+      <span className="absolute -left-1 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-[#1E2227]" />
+      <span className="absolute -right-1 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-[#1E2227]" />
+      <span className="absolute inset-x-2 top-[7px] h-px bg-[#1E2227]/25" />
+      <span className="absolute inset-x-2 bottom-[7px] h-px bg-[#1E2227]/25" />
       <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
         <path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z" />
       </svg>
@@ -110,25 +110,25 @@ function Nav() {
   const overHero = onHome && !scrolled && !mobileOpen;
 
   const authClass =
-    'inline-flex h-10 items-center gap-2 rounded-full border border-[#EFEBE0]/18 px-4 text-[11px] font-bold uppercase tracking-[0.1em] text-[#EFEBE0]/85 transition-colors hover:border-[#F4B63F] hover:text-[#F4B63F] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F4B63F]';
+    'inline-flex h-10 items-center gap-2 rounded-full border border-[#F2F0EC]/18 px-4 text-[11px] font-bold uppercase tracking-[0.1em] text-[#F2F0EC]/85 transition-colors hover:border-[#C8FF1F] hover:text-[#C8FF1F] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C8FF1F]';
 
   return (
     <header
-      className={`${onHome ? 'fixed' : 'sticky'} inset-x-0 top-0 z-50 font-['Public_Sans',system-ui,sans-serif] text-[#EFEBE0] transition-all duration-300 ${
+      className={`${onHome ? 'fixed' : 'sticky'} inset-x-0 top-0 z-50 font-['Public_Sans',system-ui,sans-serif] text-[#F2F0EC] transition-all duration-300 ${
         overHero
           ? 'kk-nav-over'
-          : 'border-b border-[#EFEBE0]/10 bg-[#061D22]/95 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.9)] backdrop-blur-xl'
+          : 'border-b border-[#F2F0EC]/10 bg-[#171B1F]/95 shadow-[0_18px_40px_-30px_rgba(0,0,0,0.9)] backdrop-blur-xl'
       }`}
     >
       <div className="mx-auto flex h-[74px] max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
         <Link
           to="/"
           aria-label="Konkani Samudai home"
-          className="group flex min-w-0 items-center gap-3 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#F4B63F]"
+          className="group flex min-w-0 items-center gap-3 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#C8FF1F]"
         >
           <BrandMark />
           <span className="block whitespace-nowrap font-['Fraunces',Georgia,serif] text-[21px] font-bold leading-none tracking-tight sm:text-[23px]">
-            Konkani <span className="italic text-[#F4B63F]">Samudai</span>
+            Konkani <span className="italic text-[#C8FF1F]">Samudai</span>
           </span>
         </Link>
 
@@ -148,7 +148,7 @@ function Nav() {
         <div className="ml-auto flex shrink-0 items-center gap-2 md:ml-7">
           <Link
             to="/movies"
-            className="kk-shine kk-shine-slow hidden h-10 items-center gap-2 rounded-full bg-[#F4B63F] px-4 text-[10.5px] font-bold uppercase tracking-[0.1em] text-[#071E23] shadow-[0_10px_24px_-14px_rgba(244,182,63,0.9)] transition-all hover:-translate-y-0.5 hover:bg-[#ffcb62] lg:inline-flex"
+            className="kk-shine kk-shine-slow hidden h-10 items-center gap-2 rounded-full bg-[#C8FF1F] px-4 text-[10.5px] font-bold uppercase tracking-[0.1em] text-[#171B1F] shadow-[0_10px_24px_-14px_rgba(200,255,31,0.9)] transition-all hover:-translate-y-0.5 hover:bg-[#D9FF66] lg:inline-flex"
           >
             <span className="material-symbols-outlined text-[17px]">local_activity</span>
             Book tickets
@@ -162,7 +162,7 @@ function Nav() {
                 aria-haspopup="menu"
                 aria-expanded={accountOpen}
                 aria-label="Account menu"
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F4B63F] text-[#071E23] shadow-[0_8px_20px_-10px_rgba(244,182,63,0.9)] ring-2 ring-[#F4B63F]/25 transition-all hover:-translate-y-0.5 hover:ring-[#F4B63F]/70"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-[#C8FF1F] text-[#171B1F] shadow-[0_8px_20px_-10px_rgba(200,255,31,0.9)] ring-2 ring-[#C8FF1F]/25 transition-all hover:-translate-y-0.5 hover:ring-[#C8FF1F]/70"
               >
                 <span className="material-symbols-outlined text-[21px]">person</span>
               </button>
@@ -170,15 +170,15 @@ function Nav() {
               {accountOpen && (
                 <div
                   role="menu"
-                  className="absolute right-0 top-[calc(100%+12px)] z-50 w-[274px] overflow-hidden rounded-2xl border border-[#EFEBE0]/12 bg-[#0B2A31] shadow-[0_30px_70px_-30px_rgba(0,0,0,0.95)]"
+                  className="absolute right-0 top-[calc(100%+12px)] z-50 w-[274px] overflow-hidden rounded-2xl border border-[#F2F0EC]/12 bg-[#1E2227] shadow-[0_30px_70px_-30px_rgba(0,0,0,0.95)]"
                 >
-                  <div className="flex items-center gap-3 bg-[#F4B63F]/[0.08] px-4 py-4">
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#F4B63F] text-[#071E23]">
+                  <div className="flex items-center gap-3 bg-[#C8FF1F]/[0.08] px-4 py-4">
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#C8FF1F] text-[#171B1F]">
                       <span className="material-symbols-outlined text-[22px]">person</span>
                     </span>
                     <div className="min-w-0">
-                      <p className="truncate text-[13px] font-semibold text-[#EFEBE0]">{accountName}</p>
-                      <p className="truncate text-[10px] text-[#EFEBE0]/50">{accountPhone || 'Signed in'}</p>
+                      <p className="truncate text-[13px] font-semibold text-[#F2F0EC]">{accountName}</p>
+                      <p className="truncate text-[10px] text-[#F2F0EC]/50">{accountPhone || 'Signed in'}</p>
                     </div>
                   </div>
                   <div className="p-1.5">
@@ -186,26 +186,26 @@ function Nav() {
                       to="/my-tickets"
                       role="menuitem"
                       onClick={() => setAccountOpen(false)}
-                      className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[12px] font-semibold text-[#EFEBE0]/85 transition-colors hover:bg-[#EFEBE0]/[0.06] hover:text-[#EFEBE0]"
+                      className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[12px] font-semibold text-[#F2F0EC]/85 transition-colors hover:bg-[#F2F0EC]/[0.06] hover:text-[#F2F0EC]"
                     >
-                      <span className="material-symbols-outlined text-[18px] text-[#F4B63F]">confirmation_number</span>
+                      <span className="material-symbols-outlined text-[18px] text-[#C8FF1F]">confirmation_number</span>
                       My tickets
                     </Link>
                     <Link
                       to="/gallery"
                       role="menuitem"
                       onClick={() => setAccountOpen(false)}
-                      className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[12px] font-semibold text-[#EFEBE0]/85 transition-colors hover:bg-[#EFEBE0]/[0.06] hover:text-[#EFEBE0]"
+                      className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[12px] font-semibold text-[#F2F0EC]/85 transition-colors hover:bg-[#F2F0EC]/[0.06] hover:text-[#F2F0EC]"
                     >
-                      <span className="material-symbols-outlined text-[18px] text-[#F4B63F]">photo_library</span>
+                      <span className="material-symbols-outlined text-[18px] text-[#C8FF1F]">photo_library</span>
                       Gallery
                     </Link>
-                    <div className="my-1 h-px bg-[#EFEBE0]/10" />
+                    <div className="my-1 h-px bg-[#F2F0EC]/10" />
                     <button
                       type="button"
                       role="menuitem"
                       onClick={logout}
-                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[12px] font-semibold text-[#F07882] transition-colors hover:bg-[#F07882]/10"
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[12px] font-semibold text-[#F08A80] transition-colors hover:bg-[#F08A80]/10"
                     >
                       <span className="material-symbols-outlined text-[18px]">logout</span>
                       Logout
@@ -230,7 +230,7 @@ function Nav() {
               setMobileOpen((open) => !open);
               setAccountOpen(false);
             }}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-[#EFEBE0]/15 text-[#EFEBE0] transition-colors hover:border-[#F4B63F] hover:text-[#F4B63F] md:hidden"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-[#F2F0EC]/15 text-[#F2F0EC] transition-colors hover:border-[#C8FF1F] hover:text-[#C8FF1F] md:hidden"
           >
             <span className="material-symbols-outlined">{mobileOpen ? 'close' : 'menu'}</span>
           </button>
@@ -239,7 +239,7 @@ function Nav() {
 
       <div
         id="mobile-navigation"
-        className={`grid overflow-hidden border-t border-[#EFEBE0]/10 bg-[#061D22] transition-[grid-template-rows,opacity] duration-300 md:hidden ${
+        className={`grid overflow-hidden border-t border-[#F2F0EC]/10 bg-[#171B1F] transition-[grid-template-rows,opacity] duration-300 md:hidden ${
           mobileOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] border-transparent opacity-0'
         }`}
       >
@@ -252,7 +252,7 @@ function Nav() {
                 end={item.end}
                 className={({ isActive }) =>
                   `flex items-center gap-3 rounded-xl px-3 py-3 text-[11px] font-bold uppercase tracking-[0.14em] transition-colors ${
-                    isActive ? 'bg-[#F4B63F]/10 text-[#F4B63F]' : 'text-[#EFEBE0]/70 hover:bg-[#EFEBE0]/[0.05] hover:text-[#EFEBE0]'
+                    isActive ? 'bg-[#C8FF1F]/10 text-[#C8FF1F]' : 'text-[#F2F0EC]/70 hover:bg-[#F2F0EC]/[0.05] hover:text-[#F2F0EC]'
                   }`
                 }
               >
@@ -262,7 +262,7 @@ function Nav() {
             ))}
             <Link
               to="/movies"
-              className="kk-shine kk-shine-slow mt-2 inline-flex items-center justify-center gap-2 rounded-xl bg-[#F4B63F] px-3 py-3 text-[10.5px] font-bold uppercase tracking-[0.12em] text-[#071E23]"
+              className="kk-shine kk-shine-slow mt-2 inline-flex items-center justify-center gap-2 rounded-xl bg-[#C8FF1F] px-3 py-3 text-[10.5px] font-bold uppercase tracking-[0.12em] text-[#171B1F]"
             >
               <span className="material-symbols-outlined text-[17px]">local_activity</span>
               Book movie tickets
@@ -277,13 +277,13 @@ function Nav() {
 function FooterColumn({ title, links }) {
   return (
     <div>
-      <h4 className="font-['Fraunces',Georgia,serif] text-[15px] font-bold text-[#EFEBE0]">{title}</h4>
+      <h4 className="font-['Fraunces',Georgia,serif] text-[15px] font-bold text-[#F2F0EC]">{title}</h4>
       <ul className="mt-4 space-y-2.5 text-[12.5px]">
         {links.map((link) => (
           <li key={link.label}>
             <Link
               to={link.to}
-              className="text-[#F4B63F]/85 transition-colors hover:text-[#F4B63F]"
+              className="text-[#C8FF1F]/85 transition-colors hover:text-[#C8FF1F]"
             >
               {link.label}
             </Link>
@@ -306,7 +306,7 @@ function SiteFooter() {
   }
 
   return (
-    <footer className="border-t border-[#EFEBE0]/10 bg-[#061D22] font-['Public_Sans',system-ui,sans-serif] text-[#EFEBE0]/60">
+    <footer className="border-t border-[#F2F0EC]/10 bg-[#171B1F] font-['Public_Sans',system-ui,sans-serif] text-[#F2F0EC]/60">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_1.35fr]">
           <FooterColumn
@@ -335,14 +335,14 @@ function SiteFooter() {
           />
 
           <div>
-            <h4 className="font-['Fraunces',Georgia,serif] text-[15px] font-bold text-[#EFEBE0]">
+            <h4 className="font-['Fraunces',Georgia,serif] text-[15px] font-bold text-[#F2F0EC]">
               Get release alerts
             </h4>
             <p className="mt-4 max-w-[260px] text-[12.5px] leading-relaxed">
               Be first to know when new Konkani films open.
             </p>
             {subscribed ? (
-              <p className="mt-4 text-[12px] font-semibold text-[#7FCBA8]">
+              <p className="mt-4 text-[12px] font-semibold text-[#B6E36A]">
                 You’re on the list — we’ll write when the next film opens.
               </p>
             ) : (
@@ -353,11 +353,11 @@ function SiteFooter() {
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
                   placeholder="Email address"
-                  className="h-11 min-w-0 flex-1 rounded-lg border border-[#EFEBE0]/20 bg-[#0B2A31] px-3.5 text-[12px] text-[#EFEBE0] outline-none placeholder:text-[#EFEBE0]/35 focus:border-[#F4B63F]/60"
+                  className="h-11 min-w-0 flex-1 rounded-lg border border-[#F2F0EC]/20 bg-[#1E2227] px-3.5 text-[12px] text-[#F2F0EC] outline-none placeholder:text-[#F2F0EC]/35 focus:border-[#C8FF1F]/60"
                 />
                 <button
                   type="submit"
-                  className="h-11 shrink-0 rounded-lg bg-[#F4B63F] px-5 text-[11px] font-bold uppercase tracking-[0.1em] text-[#071E23] transition-colors hover:bg-[#ffcb62]"
+                  className="h-11 shrink-0 rounded-lg bg-[#C8FF1F] px-5 text-[11px] font-bold uppercase tracking-[0.1em] text-[#171B1F] transition-colors hover:bg-[#D9FF66]"
                 >
                   Join
                 </button>
@@ -366,14 +366,14 @@ function SiteFooter() {
           </div>
         </div>
 
-        <div className="mt-10 flex flex-col gap-4 border-t border-[#EFEBE0]/10 pt-6 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-10 flex flex-col gap-4 border-t border-[#F2F0EC]/10 pt-6 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-[12px]">
             © {new Date().getFullYear()} Konkani Samudai Theatres Pvt Ltd. All rights reserved.
           </p>
           <ul className="flex flex-wrap gap-x-6 gap-y-2 text-[12px]">
-            <li><Link to="/" className="text-[#F4B63F]/85 transition-colors hover:text-[#F4B63F]">Terms of service</Link></li>
-            <li><Link to="/" className="text-[#F4B63F]/85 transition-colors hover:text-[#F4B63F]">Security</Link></li>
-            <li><Link to="/" className="text-[#F4B63F]/85 transition-colors hover:text-[#F4B63F]">Sitemap</Link></li>
+            <li><Link to="/" className="text-[#C8FF1F]/85 transition-colors hover:text-[#C8FF1F]">Terms of service</Link></li>
+            <li><Link to="/" className="text-[#C8FF1F]/85 transition-colors hover:text-[#C8FF1F]">Security</Link></li>
+            <li><Link to="/" className="text-[#C8FF1F]/85 transition-colors hover:text-[#C8FF1F]">Sitemap</Link></li>
           </ul>
         </div>
       </div>
@@ -398,7 +398,7 @@ export default function App() {
   }, [pathname]);
 
   return (
-    <div className="min-h-screen bg-[#0A2A31] text-[#EFEBE0]">
+    <div className="min-h-screen bg-[#1E2227] text-[#F2F0EC]">
       {!isAuthRoute && <Nav />}
       <main ref={pageRef} className="kk-body min-h-[65vh]">
         <Routes>
