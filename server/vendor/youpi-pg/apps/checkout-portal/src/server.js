@@ -66,6 +66,9 @@ export function checkoutFrameHeaders(env = process.env) {
   const allowed = new Set(configured);
   allowed.add('http://localhost:*');
   allowed.add('http://127.0.0.1:*');
+  // The deployed storefront. Kept as a fallback because a missing APP_BASE_URL on
+  // the gateway host must not break the checkout iframe on the Vercel app.
+  allowed.add('https://konkani-samudai.vercel.app');
   try {
     const app = new URL(env.APP_BASE_URL || '');
     if (app.protocol === 'https:' || app.protocol === 'http:') allowed.add(app.origin);
