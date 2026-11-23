@@ -149,11 +149,13 @@ export async function processPaymentEvent({ provider, providerEventId, eventType
 
   // Update only the payment row that belongs to this order. A booking can have an
   // abandoned earlier order (with a different verification amount); marking that
-  // row verified would corrupt reconciliation.
+  // row verified would corrupt reconciliation. A retry keeps the same order id, so
+  // its earlier `failed` row may be promoted once the new attempt succeeds.
   const orderId = payload.orderId || payload.providerOrderId || null;
   await pool.query(
     `UPDATE payments SET status='verified', provider_payment_id=$1, verified_at=now(), updated_at=now()
-     WHERE booking_id=$2 AND status IN ('created','verified')
+     WHERE booking_id=$2
+       AND (status IN ('created','verified') OR (status='failed' AND $3::text IS NOT NULL))
        AND ($3::text IS NULL OR provider_order_id = $3)`,
     [payload.paymentId || payload.providerPaymentId || `pay_${randomToken(6)}`, booking.id, orderId]);
 

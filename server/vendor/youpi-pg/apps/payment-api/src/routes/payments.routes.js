@@ -176,6 +176,17 @@ export function registerPaymentRoutes(server, ctx) {
       // CASE 4: Previous session is TERMINAL (FAILED, EXPIRED, CANCELLED) -> RETRY / NEW ATTEMPT!
       // Invariant: Keep merchant's exact orderId untouched so webhooks, reconciliations, and reporting align.
       body.orderId = body.orderId.replace(/-R\d+$/, '');
+
+      // A retry can be started from the checkout page's "Start New Payment" button,
+      // which only ever sees the public session view. Carry the merchant-private
+      // fields over from the last attempt so the new webhook still matches the
+      // merchant's order (booking, membership, etc.).
+      const retryMetadata = body.metadata && typeof body.metadata === 'object' ? body.metadata : {};
+      if (!Object.keys(retryMetadata).length && existing.metadata && typeof existing.metadata === 'object') {
+        body.metadata = { ...existing.metadata };
+      }
+      if (!body.returnUrl && existing.returnUrl) body.returnUrl = existing.returnUrl;
+      if (!body.customerId && existing.customerId) body.customerId = existing.customerId;
     }
 
     let amountPaise;

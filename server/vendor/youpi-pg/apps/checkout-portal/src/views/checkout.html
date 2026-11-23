@@ -197,6 +197,73 @@
       return parsed.href;
     }
 
+    /**
+     * "Start New Payment" on an expired or failed session.
+     *
+     * The gateway keeps one session per order id, so posting the same order again
+     * closes the terminal attempt and opens a fresh 5-minute window (the endpoint
+     * explicitly handles FAILED/EXPIRED/CANCELLED as a retry). Metadata is sent back
+     * unchanged so the merchant webhook can still match the order to its booking.
+     */
+    async function retryNewPayment() {
+      const btn = document.getElementById('btnFailedAction');
+      const originalLabel = btn ? btn.textContent : 'Start New Payment';
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Starting…';
+      }
+
+      try {
+        if (!state || !state.orderId || !state.amount) {
+          throw new Error('This order can no longer be retried. Please return to the store and book again.');
+        }
+
+        const payload = {
+          orderId: state.orderId,
+          amount: state.amount,
+          currency: state.currency || 'INR',
+          method: state.method && state.method !== 'COD' ? state.method : 'UPI',
+          returnUrl: state.returnUrl || undefined,
+        };
+        if (state.metadata && Object.keys(state.metadata).length) payload.metadata = state.metadata;
+        if (state.customer && state.customer.id) payload.customerId = state.customer.id;
+
+        const res = await fetch(`${API_BASE}/api/v1/payments`, {
+          method: 'POST',
+          headers: getApiHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.paymentId) {
+          throw new Error(data.message || data.error || 'Could not start a new payment session.');
+        }
+
+        // Keep the iframe's own query string (embedded flag, parent origin, customer
+        // token); only the payment id changes.
+        const next = new URL(window.location.href);
+        if (/\/checkout\/[^/]+\/?$/.test(next.pathname)) {
+          next.pathname = next.pathname.replace(/\/checkout\/[^/]+\/?$/, `/checkout/${data.paymentId}`);
+        } else if (data.checkoutUrl) {
+          window.location.replace(sanitizeRedirectUrl(data.checkoutUrl) || data.checkoutUrl);
+          return;
+        } else {
+          next.pathname = `/checkout/${data.paymentId}`;
+        }
+        window.location.replace(next.toString());
+      } catch (err) {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = originalLabel;
+        }
+        const descEl = document.getElementById('failedDescriptionText');
+        if (descEl) {
+          descEl.textContent = err && err.message
+            ? `${err.message} You can also return to the store and start a fresh order.`
+            : 'Could not start a new payment. Please return to the store and try again.';
+        }
+      }
+    }
+
     // The storefront that embeds this iframe. Used both as the postMessage
     // target origin and to validate messages coming back from the parent.
     // The referrer is the most trustworthy signal; when the browser strips it,
