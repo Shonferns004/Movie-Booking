@@ -3095,8 +3095,33 @@
       }
     } catch (e) { }
 
-    loadState();
-    connectSse();
+    (async () => {
+      // Identity handoff from the movie app: resolve the customer from the passed
+      // session token before loading the session, so an already signed-in visitor
+      // never sees the mobile/OTP gate again.
+      if (!activeCustomer && activeToken) {
+        try {
+          const res = await fetch(`${API_BASE}/api/v1/customer/me`, {
+            headers: getApiHeaders({ Authorization: `Bearer ${activeToken}` })
+          });
+          if (res.ok) {
+            const resolved = await res.json().catch(() => null);
+            if (resolved && resolved.customer) {
+              activeCustomer = resolved.customer;
+              updateCustomerDisplay(activeCustomer);
+              if (typeof saveRememberedAccount === 'function') {
+                saveRememberedAccount(activeCustomer, activeToken);
+              }
+            }
+          } else if (res.status === 401) {
+            localStorage.removeItem('ypg_customer_token');
+            activeToken = null;
+          }
+        } catch (e) { }
+      }
+      loadState();
+      connectSse();
+    })();
   </script>
 </body>
 

@@ -303,6 +303,7 @@ export async function createYoupiOrder({ bookingReference, customer, publicBase 
       headers: {
         'Content-Type': 'application/json',
         ...(env.YOUPI_MERCHANT_ID ? { 'X-Merchant-Id': env.YOUPI_MERCHANT_ID } : {}),
+        ...(env.YOUPI_WEBHOOK_SECRET ? { 'X-Merchant-Key': env.YOUPI_WEBHOOK_SECRET } : {}),
         'Idempotency-Key': orderId,
       },
       body: JSON.stringify({
@@ -468,6 +469,7 @@ export async function createYoupiSession({
       headers: {
         'Content-Type': 'application/json',
         ...(env.YOUPI_MERCHANT_ID ? { 'X-Merchant-Id': env.YOUPI_MERCHANT_ID } : {}),
+        ...(env.YOUPI_WEBHOOK_SECRET ? { 'X-Merchant-Key': env.YOUPI_WEBHOOK_SECRET } : {}),
         'Idempotency-Key': orderId,
       },
       body: JSON.stringify({

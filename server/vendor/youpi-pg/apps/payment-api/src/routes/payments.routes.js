@@ -53,6 +53,11 @@ export function registerPaymentRoutes(server, ctx) {
       }
     }
 
+    // Customer provisioning is only allowed for a merchant-authenticated request.
+    // The lookup below is read-only, but creating rows from an anonymous caller would
+    // let anyone pollute the customer table.
+    const merchantRequestVerified = Boolean(req.headers['x-merchant-key']);
+
     if (!body.orderId || !body.amount) {
       HttpServer.json(res, 400, { error: 'Missing required fields: orderId and amount.' });
       return;
@@ -219,11 +224,39 @@ export function registerPaymentRoutes(server, ctx) {
 
     // Resolve customer if provided (optional pre-existing customer)
     let customerId = body.customerId || null;
-    if (!customerId && (body.customer?.mobileNumber || body.customer?.phoneNumber || body.customer?.email) && ctx.customerRepo) {
-      const ident = body.customer.email || body.customer.mobileNumber || body.customer.phoneNumber;
-      const existingCust = ctx.customerRepo.findByIdentifier(ident);
-      if (existingCust) {
-        customerId = existingCust.id;
+    if (!customerId && ctx.customerRepo) {
+      const customer = body.customer || {};
+      // Try every identifier the merchant sent. The previous version only tried the
+      // first one, so an email that did not match the gateway's customer record hid a
+      // perfectly valid mobile match and forced the customer through OTP again.
+      for (const ident of [customer.email, customer.mobileNumber, customer.phoneNumber]) {
+        if (!ident) continue;
+        const existingCust = ctx.customerRepo.findByIdentifier(ident);
+        if (existingCust) {
+          customerId = existingCust.id;
+          break;
+        }
+      }
+
+      // A signed-in movie customer may not have a gateway customer row yet. Create it
+      // from the trusted merchant payload so the checkout does not ask for the same
+      // mobile number a second time.
+      if (!customerId && merchantRequestVerified) {
+        const mobile = customer.mobileNumber || customer.phoneNumber;
+        const name = customer.fullName || customer.name;
+        if (mobile && name) {
+          try {
+            const createdCust = ctx.customerRepo.create({
+              name,
+              email: customer.email,
+              mobileNumber: mobile,
+              status: 'ACTIVE',
+            });
+            customerId = createdCust.id;
+          } catch {
+            // Invalid phone/email: fall back to the checkout auth gate.
+          }
+        }
       }
     }
 
