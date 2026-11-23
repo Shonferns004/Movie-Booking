@@ -373,9 +373,11 @@ class Api {
     String? url,
     XFile? file,
     String? caption,
+    String placement = 'hero',
   }) async {
     final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/community/admin/hero'));
     request.headers['Authorization'] = 'Bearer $token';
+    request.fields['placement'] = placement;
     if (caption != null && caption.trim().isNotEmpty) request.fields['caption'] = caption.trim();
     if (url != null && url.trim().isNotEmpty) request.fields['url'] = url.trim();
     if (file != null) {

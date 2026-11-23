@@ -14,7 +14,6 @@ import Login from './pages/Login.jsx';
 
 const NAV_LINKS = [
   { to: '/', label: 'Home', end: true, icon: 'diversity_3' },
-  { to: '/movies', label: 'Movies', icon: 'movie' },
   { to: '/gallery', label: 'Gallery', icon: 'photo_library' },
 ];
 
@@ -63,8 +62,17 @@ function Nav() {
     const onKey = (event) => {
       if (event.key === 'Escape') setAccountOpen(false);
     };
+    const onPointerDown = (event) => {
+      if (!event.target.closest?.('[data-account-menu]')) setAccountOpen(false);
+    };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('touchstart', onPointerDown, { passive: true });
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('touchstart', onPointerDown);
+    };
   }, [accountOpen]);
 
   function logout() {
@@ -140,71 +148,70 @@ function Nav() {
         <div className="ml-auto flex shrink-0 items-center gap-2 md:ml-7">
           <Link
             to="/movies"
-            className="hidden h-10 items-center gap-2 rounded-full bg-[#F4B63F] px-4 text-[10.5px] font-bold uppercase tracking-[0.1em] text-[#071E23] shadow-[0_10px_24px_-14px_rgba(244,182,63,0.9)] transition-all hover:-translate-y-0.5 hover:bg-[#ffcb62] lg:inline-flex"
+            className="kk-shine kk-shine-slow hidden h-10 items-center gap-2 rounded-full bg-[#F4B63F] px-4 text-[10.5px] font-bold uppercase tracking-[0.1em] text-[#071E23] shadow-[0_10px_24px_-14px_rgba(244,182,63,0.9)] transition-all hover:-translate-y-0.5 hover:bg-[#ffcb62] lg:inline-flex"
           >
             <span className="material-symbols-outlined text-[17px]">local_activity</span>
             Book tickets
           </Link>
 
           {token ? (
-            <div className="relative">
+            <div className="relative" data-account-menu>
               <button
                 type="button"
                 onClick={() => setAccountOpen((open) => !open)}
                 aria-haspopup="menu"
                 aria-expanded={accountOpen}
                 aria-label="Account menu"
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F4B63F] text-[12px] font-bold text-[#071E23] shadow-[0_8px_20px_-10px_rgba(244,182,63,0.9)] ring-2 ring-[#F4B63F]/25 transition-all hover:-translate-y-0.5 hover:ring-[#F4B63F]/70"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F4B63F] text-[#071E23] shadow-[0_8px_20px_-10px_rgba(244,182,63,0.9)] ring-2 ring-[#F4B63F]/25 transition-all hover:-translate-y-0.5 hover:ring-[#F4B63F]/70"
               >
-                {accountName && accountName !== 'Member' ? (
-                  <span className="leading-none">{initials}</span>
-                ) : (
-                  <span className="material-symbols-outlined text-[20px]">person</span>
-                )}
+                <span className="material-symbols-outlined text-[21px]">person</span>
               </button>
 
               {accountOpen && (
-                <>
-                  <button
-                    type="button"
-                    aria-label="Close account menu"
-                    onClick={() => setAccountOpen(false)}
-                    className="fixed inset-0 z-40 cursor-default"
-                  />
-                  <div
-                    role="menu"
-                    className="absolute right-0 top-[calc(100%+10px)] z-50 w-[262px] overflow-hidden rounded-2xl border border-[#EFEBE0]/12 bg-[#0B2A31] p-1.5 shadow-[0_30px_70px_-30px_rgba(0,0,0,0.95)]"
-                  >
-                    <div className="flex items-center gap-3 rounded-xl px-3 py-3">
-                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#F4B63F]/15 text-[12px] font-bold text-[#F4B63F]">
-                        {initials}
-                      </span>
-                      <div className="min-w-0">
-                        <p className="truncate text-[12px] font-semibold text-[#EFEBE0]">{accountName}</p>
-                        <p className="truncate text-[10px] text-[#EFEBE0]/50">{accountPhone || 'Signed in'}</p>
-                      </div>
+                <div
+                  role="menu"
+                  className="absolute right-0 top-[calc(100%+12px)] z-50 w-[274px] overflow-hidden rounded-2xl border border-[#EFEBE0]/12 bg-[#0B2A31] shadow-[0_30px_70px_-30px_rgba(0,0,0,0.95)]"
+                >
+                  <div className="flex items-center gap-3 bg-[#F4B63F]/[0.08] px-4 py-4">
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#F4B63F] text-[#071E23]">
+                      <span className="material-symbols-outlined text-[22px]">person</span>
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-[13px] font-semibold text-[#EFEBE0]">{accountName}</p>
+                      <p className="truncate text-[10px] text-[#EFEBE0]/50">{accountPhone || 'Signed in'}</p>
                     </div>
-                    <div className="my-1 h-px bg-[#EFEBE0]/10" />
+                  </div>
+                  <div className="p-1.5">
                     <Link
                       to="/my-tickets"
                       role="menuitem"
                       onClick={() => setAccountOpen(false)}
-                      className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[11px] font-semibold text-[#EFEBE0]/80 transition-colors hover:bg-[#EFEBE0]/[0.06] hover:text-[#EFEBE0]"
+                      className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[12px] font-semibold text-[#EFEBE0]/85 transition-colors hover:bg-[#EFEBE0]/[0.06] hover:text-[#EFEBE0]"
                     >
-                      <span className="material-symbols-outlined text-[17px]">confirmation_number</span>
+                      <span className="material-symbols-outlined text-[18px] text-[#F4B63F]">confirmation_number</span>
                       My tickets
                     </Link>
+                    <Link
+                      to="/gallery"
+                      role="menuitem"
+                      onClick={() => setAccountOpen(false)}
+                      className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[12px] font-semibold text-[#EFEBE0]/85 transition-colors hover:bg-[#EFEBE0]/[0.06] hover:text-[#EFEBE0]"
+                    >
+                      <span className="material-symbols-outlined text-[18px] text-[#F4B63F]">photo_library</span>
+                      Gallery
+                    </Link>
+                    <div className="my-1 h-px bg-[#EFEBE0]/10" />
                     <button
                       type="button"
                       role="menuitem"
                       onClick={logout}
-                      className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[11px] font-semibold text-[#F07882] transition-colors hover:bg-[#F07882]/10"
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[12px] font-semibold text-[#F07882] transition-colors hover:bg-[#F07882]/10"
                     >
-                      <span className="material-symbols-outlined text-[17px]">logout</span>
+                      <span className="material-symbols-outlined text-[18px]">logout</span>
                       Logout
                     </button>
                   </div>
-                </>
+                </div>
               )}
             </div>
           ) : (
@@ -255,7 +262,7 @@ function Nav() {
             ))}
             <Link
               to="/movies"
-              className="mt-2 inline-flex items-center justify-center gap-2 rounded-xl bg-[#F4B63F] px-3 py-3 text-[10.5px] font-bold uppercase tracking-[0.12em] text-[#071E23]"
+              className="kk-shine kk-shine-slow mt-2 inline-flex items-center justify-center gap-2 rounded-xl bg-[#F4B63F] px-3 py-3 text-[10.5px] font-bold uppercase tracking-[0.12em] text-[#071E23]"
             >
               <span className="material-symbols-outlined text-[17px]">local_activity</span>
               Book movie tickets
@@ -267,19 +274,110 @@ function Nav() {
   );
 }
 
-function SiteFooter() {
+function FooterColumn({ title, links }) {
   return (
-    <footer className="border-t border-[#EFEBE0]/10 bg-[#071E23] font-['Public_Sans',system-ui,sans-serif] text-[#EFEBE0]/65">
-      <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-6 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
-        <Link to="/" className="inline-flex items-center gap-2 self-start transition-colors hover:text-[#EFEBE0]">
-          <span className="material-symbols-outlined text-[#F4B63F]">local_movies</span>
-          <span className="font-['Fraunces',Georgia,serif] text-sm font-bold text-[#EFEBE0]">Konkani Samudai</span>
-        </Link>
-        <p className="text-xs">A shared screen for Konkani stories and cinema.</p>
-        <Link to="/my-tickets" className="self-start text-xs font-semibold transition-colors hover:text-[#F4B63F] sm:self-auto">
-          Your tickets <span aria-hidden="true">→</span>
-        </Link>
+    <div>
+      <h4 className="font-['Fraunces',Georgia,serif] text-[15px] font-bold text-[#EFEBE0]">{title}</h4>
+      <ul className="mt-4 space-y-2.5 text-[12.5px]">
+        {links.map((link) => (
+          <li key={link.label}>
+            <Link
+              to={link.to}
+              className="text-[#F4B63F]/85 transition-colors hover:text-[#F4B63F]"
+            >
+              {link.label}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function SiteFooter() {
+  const [email, setEmail] = useState('');
+  const [subscribed, setSubscribed] = useState(false);
+
+  function subscribe(event) {
+    event.preventDefault();
+    if (!email.trim()) return;
+    setSubscribed(true);
+    setEmail('');
+  }
+
+  return (
+    <footer className="border-t border-[#EFEBE0]/10 bg-[#061D22] font-['Public_Sans',system-ui,sans-serif] text-[#EFEBE0]/60">
+      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_1.35fr]">
+          <FooterColumn
+            title="Cinemas"
+            links={[
+              { label: 'City Mall, Mangaluru', to: '/movies' },
+              { label: 'Samudai Plaza, Udupi', to: '/movies' },
+              { label: 'Panaji Heritage Screen, Goa', to: '/movies' },
+            ]}
+          />
+          <FooterColumn
+            title="Experiences"
+            links={[
+              { label: 'Konkani Film Festival', to: '/#events' },
+              { label: 'Dolby Atmos Prime', to: '/movies' },
+              { label: 'VIP Recliner Lounges', to: '/movies' },
+            ]}
+          />
+          <FooterColumn
+            title="Help"
+            links={[
+              { label: 'Cancellation & refunds', to: '/my-tickets' },
+              { label: 'Food & beverages menu', to: '/#events' },
+              { label: 'Privacy policy', to: '/' },
+            ]}
+          />
+
+          <div>
+            <h4 className="font-['Fraunces',Georgia,serif] text-[15px] font-bold text-[#EFEBE0]">
+              Get release alerts
+            </h4>
+            <p className="mt-4 max-w-[260px] text-[12.5px] leading-relaxed">
+              Be first to know when new Konkani films open.
+            </p>
+            {subscribed ? (
+              <p className="mt-4 text-[12px] font-semibold text-[#7FCBA8]">
+                You’re on the list — we’ll write when the next film opens.
+              </p>
+            ) : (
+              <form onSubmit={subscribe} className="mt-4 flex max-w-[320px] items-center gap-2">
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="Email address"
+                  className="h-11 min-w-0 flex-1 rounded-lg border border-[#EFEBE0]/20 bg-[#0B2A31] px-3.5 text-[12px] text-[#EFEBE0] outline-none placeholder:text-[#EFEBE0]/35 focus:border-[#F4B63F]/60"
+                />
+                <button
+                  type="submit"
+                  className="h-11 shrink-0 rounded-lg bg-[#F4B63F] px-5 text-[11px] font-bold uppercase tracking-[0.1em] text-[#071E23] transition-colors hover:bg-[#ffcb62]"
+                >
+                  Join
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+
+        <div className="mt-10 flex flex-col gap-4 border-t border-[#EFEBE0]/10 pt-6 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-[12px]">
+            © {new Date().getFullYear()} Konkani Samudai Theatres Pvt Ltd. All rights reserved.
+          </p>
+          <ul className="flex flex-wrap gap-x-6 gap-y-2 text-[12px]">
+            <li><Link to="/" className="text-[#F4B63F]/85 transition-colors hover:text-[#F4B63F]">Terms of service</Link></li>
+            <li><Link to="/" className="text-[#F4B63F]/85 transition-colors hover:text-[#F4B63F]">Security</Link></li>
+            <li><Link to="/" className="text-[#F4B63F]/85 transition-colors hover:text-[#F4B63F]">Sitemap</Link></li>
+          </ul>
+        </div>
       </div>
+
     </footer>
   );
 }
@@ -317,7 +415,7 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
-      {!isAuthRoute && pathname !== '/' && <SiteFooter />}
+      <SiteFooter />
     </div>
   );
 }

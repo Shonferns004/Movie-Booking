@@ -21,7 +21,7 @@ export async function getMembershipPlan() {
   return {
     label: value.label || DEFAULT_MEMBERSHIP.label,
     amountMinor:
-      Number.isFinite(amountMinor) && amountMinor >= 1000
+      Number.isFinite(amountMinor) && amountMinor >= 100
         ? amountMinor
         : DEFAULT_MEMBERSHIP.amountMinor,
   };
@@ -29,7 +29,7 @@ export async function getMembershipPlan() {
 
 export async function setMembershipAmount(amountMinor) {
   const amount = Math.round(Number(amountMinor));
-  if (!Number.isFinite(amount) || amount < 1000) throw badRequest('amount must be at least ₹10');
+  if (!Number.isFinite(amount) || amount < 100) throw badRequest('amount must be at least ₹1');
   if (amount > 10000000) throw badRequest('amount is too large');
 
   const plan = { ...DEFAULT_MEMBERSHIP, amountMinor: amount };
@@ -106,6 +106,10 @@ function memberRow(row) {
     amountMinor: row.amount_minor,
     status: row.status,
     note: row.note,
+    gender: row.gender,
+    age: row.age,
+    dob: row.dob,
+    maritalStatus: row.marital_status,
     createdAt: row.created_at,
   };
 }
@@ -113,10 +117,14 @@ function memberRow(row) {
 /* ------------------------------------------------------------------ public */
 
 export async function getPublicPage() {
-  const [hero, events, notices, members, membership, eventTicket] = await Promise.all([
+  const [hero, gallery, events, notices, members, membership, eventTicket] = await Promise.all([
     pool.query(
       `SELECT id, url, caption FROM hero_images
-        WHERE active = TRUE ORDER BY sort_order, created_at`,
+        WHERE active = TRUE AND placement = 'hero' ORDER BY sort_order, created_at`,
+    ),
+    pool.query(
+      `SELECT id, url, caption FROM hero_images
+        WHERE active = TRUE AND placement = 'library' ORDER BY sort_order, created_at`,
     ),
     pool.query(
       `SELECT * FROM community_events
@@ -133,6 +141,8 @@ export async function getPublicPage() {
 
   return {
     hero: hero.rows,
+    // Until the admin adds library-only photos, the library shares the hero set.
+    gallery: gallery.rows.length ? gallery.rows : hero.rows,
     events: events.rows.map(eventRow),
     notices: notices.rows.map(noticeRow),
     membership,
@@ -149,18 +159,19 @@ export async function getPublicPage() {
 
 export async function listHero() {
   const { rows } = await pool.query(
-    'SELECT id, url, caption, sort_order, active FROM hero_images ORDER BY sort_order, created_at',
+    'SELECT id, url, caption, sort_order, active, placement FROM hero_images ORDER BY sort_order, created_at',
   );
   return rows;
 }
 
-export async function addHero({ url, caption }) {
+export async function addHero({ url, caption, placement }) {
   if (!url || !String(url).trim()) throw badRequest('image url is required');
+  const spot = placement === 'library' ? 'library' : 'hero';
   const { rows } = await pool.query(
-    `INSERT INTO hero_images (url, caption, sort_order)
-     VALUES ($1, $2, coalesce((SELECT max(sort_order) + 1 FROM hero_images), 0))
-     RETURNING id, url, caption, sort_order, active`,
-    [String(url).trim(), caption || null],
+    `INSERT INTO hero_images (url, caption, sort_order, placement)
+     VALUES ($1, $2, coalesce((SELECT max(sort_order) + 1 FROM hero_images), 0), $3)
+     RETURNING id, url, caption, sort_order, active, placement`,
+    [String(url).trim(), caption || null, spot],
   );
   return rows[0];
 }
@@ -348,25 +359,52 @@ export async function deleteMember(id) {
 }
 
 /** Keeps one membership row per account (partial unique index on user_id). */
-export async function upsertMembershipForUser({ userId, name, phone, email, amountMinor, status = 'active', note }) {
+export async function upsertMembershipForUser({ userId, name, phone, email, amountMinor, status = 'active', note, gender, age, dob, maritalStatus }) {
   const existing = await pool.query('SELECT id FROM community_members WHERE user_id=$1', [userId]);
   if (existing.rows.length) {
     const { rows } = await pool.query(
       `UPDATE community_members
           SET name=coalesce($2, name), phone=coalesce($3, phone), email=coalesce($4, email),
-              plan='annual', amount_minor=$5, status=$6, note=coalesce($7, note), updated_at=now()
+              plan='annual', amount_minor=$5, status=$6, note=coalesce($7, note),
+              gender=coalesce($8, gender), age=coalesce($9, age), dob=coalesce($10::date, dob),
+              marital_status=coalesce($11, marital_status), updated_at=now()
         WHERE user_id=$1
         RETURNING *`,
-      [userId, name || null, phone || null, email || null, amountMinor, status, note || null],
+      [
+        userId,
+        name || null,
+        phone || null,
+        email || null,
+        amountMinor,
+        status,
+        note || null,
+        gender || null,
+        age || null,
+        dob || null,
+        maritalStatus || null,
+      ],
     );
     return memberRow(rows[0]);
   }
 
   const { rows } = await pool.query(
-    `INSERT INTO community_members (user_id, name, email, phone, plan, amount_minor, status, note)
-     VALUES ($1,$2,$3,$4,'annual',$5,$6,$7)
+    `INSERT INTO community_members
+       (user_id, name, email, phone, plan, amount_minor, status, note, gender, age, dob, marital_status)
+     VALUES ($1,$2,$3,$4,'annual',$5,$6,$7,$8,$9,$10,$11)
      RETURNING *`,
-    [userId, name || 'Member', email || null, phone || null, amountMinor, status, note || null],
+    [
+      userId,
+      name || 'Member',
+      email || null,
+      phone || null,
+      amountMinor,
+      status,
+      note || null,
+      gender || null,
+      age || null,
+      dob || null,
+      maritalStatus || null,
+    ],
   );
   return memberRow(rows[0]);
 }
@@ -385,6 +423,10 @@ function membershipOrderRow(row) {
     currency: row.currency,
     status: row.status,
     utr: row.utr,
+    gender: row.gender,
+    age: row.age,
+    dob: row.dob,
+    maritalStatus: row.marital_status,
     orderId: row.provider_order_id,
     paymentId: row.provider_payment_id,
     createdAt: row.created_at,
@@ -401,7 +443,7 @@ async function findMembershipOrder(orderId) {
 }
 
 /** Start a YOUPI checkout for the single annual membership. */
-export async function createMembershipCheckout({ userId, name, phone, publicBase }) {
+export async function createMembershipCheckout({ userId, name, phone, gender, age, dob, maritalStatus, publicBase }) {
   const plan = await getMembershipPlan();
   const { rows: people } = await pool.query(
     'SELECT email, mobile, display_name FROM users WHERE id=$1',
@@ -413,6 +455,23 @@ export async function createMembershipCheckout({ userId, name, phone, publicBase
   const buyerName = String(name || profile.display_name || '').trim() || 'Member';
   const buyerPhone = String(phone || profile.mobile || '').trim();
   if (!buyerPhone) throw badRequest('a contact number is required');
+
+  // Age is computed from the birthday when the visitor does not type it.
+  const birth = dob ? new Date(dob) : null;
+  const validBirth = Boolean(birth && !Number.isNaN(birth.getTime()));
+  const computedAge =
+    Number(age) > 0
+      ? Math.round(Number(age))
+      : validBirth
+        ? Math.max(0, Math.floor((Date.now() - birth.getTime()) / (365.25 * 24 * 60 * 60 * 1000)))
+        : null;
+  const dobValue = validBirth ? String(dob).slice(0, 10) : null;
+  const details = {
+    gender: String(gender || '').trim() || null,
+    age: computedAge,
+    dob: dobValue,
+    maritalStatus: String(maritalStatus || '').trim() || null,
+  };
 
   const baseMinor = plan.amountMinor;
   const { rows: open } = await pool.query(
@@ -443,8 +502,8 @@ export async function createMembershipCheckout({ userId, name, phone, publicBase
   const { rows } = await pool.query(
     `INSERT INTO community_membership_orders
        (user_id, name, phone, email, amount_minor, base_amount_minor,
-        provider_order_id, provider_payment_id, status)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'created')
+        provider_order_id, provider_payment_id, gender, age, dob, marital_status, status)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'created')
      RETURNING *`,
     [
       userId,
@@ -455,6 +514,10 @@ export async function createMembershipCheckout({ userId, name, phone, publicBase
       baseMinor,
       orderId,
       session.paymentId || null,
+      details.gender,
+      details.age,
+      details.dob,
+      details.maritalStatus,
     ],
   );
 
@@ -499,6 +562,10 @@ export async function getMembershipCheckout(orderId, userId) {
           email: row.email,
           amountMinor: row.base_amount_minor,
           status: 'active',
+          gender: row.gender,
+          age: row.age,
+          dob: row.dob,
+          maritalStatus: row.marital_status,
         });
         status = 'paid';
       } else if (providerStatus === 'FAILED' || providerStatus === 'EXPIRED') {
@@ -551,6 +618,10 @@ export async function confirmMembershipCheckout(orderId, userId, { utr } = {}) {
     email: row.email,
     amountMinor: row.base_amount_minor,
     status: 'active',
+    gender: row.gender,
+    age: row.age,
+    dob: row.dob,
+    maritalStatus: row.marital_status,
   });
   return { success: true, member };
 }
@@ -570,6 +641,8 @@ function ticketOrderRow(row) {
     eventDate: row.event_date,
     eventTime: row.event_time,
     venue: row.venue,
+    eventStartsAt: row.event_starts_at,
+    userId: row.user_id,
     tierId: row.tier_id,
     tierName: row.tier_name,
     quantity: row.quantity,
@@ -653,10 +726,10 @@ export async function createTicketCheckout({ eventId, tierId, quantity, name, ph
 
   const { rows: saved } = await pool.query(
     `INSERT INTO community_ticket_orders
-       (event_id, event_title, event_date, event_time, venue, tier_id, tier_name, quantity,
-        amount_minor, base_amount_minor, currency, buyer_name, phone,
+       (event_id, event_title, event_date, event_time, venue, event_starts_at, user_id,
+        tier_id, tier_name, quantity, amount_minor, base_amount_minor, currency, buyer_name, phone,
         provider_order_id, provider_payment_id, status)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'INR',$11,$12,$13,$14,'created')
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'INR',$13,$14,$15,$16,'created')
      RETURNING *`,
     [
       event.id,
@@ -664,6 +737,8 @@ export async function createTicketCheckout({ eventId, tierId, quantity, name, ph
       event.dateLabel,
       event.timeLabel,
       event.venue,
+      event.startsAt || null,
+      userId || null,
       String(tier.id || ''),
       tier.name || 'Entry',
       qty,
@@ -730,6 +805,17 @@ export async function getTicketCheckout(orderId) {
     status,
     providerStatus,
   };
+}
+
+/** Paid event passes for one account (used by My Tickets). */
+export async function listUserTicketOrders(userId) {
+  const { rows } = await pool.query(
+    `SELECT * FROM community_ticket_orders
+      WHERE user_id=$1 AND status='paid'
+      ORDER BY coalesce(event_starts_at, created_at) DESC`,
+    [userId],
+  );
+  return rows.map(ticketOrderRow);
 }
 
 /** Client-side success callback: re-check with the gateway before marking paid. */

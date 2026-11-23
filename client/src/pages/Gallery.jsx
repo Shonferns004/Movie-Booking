@@ -18,7 +18,8 @@ export default function Gallery() {
       .get('/community')
       .then((response) => {
         if (stop) return;
-        setImages(Array.isArray(response.data?.hero) ? response.data.hero : []);
+        const data = response.data || {};
+        setImages(Array.isArray(data.gallery) && data.gallery.length ? data.gallery : Array.isArray(data.hero) ? data.hero : []);
       })
       .catch(() => {
         if (!stop) setImages([]);

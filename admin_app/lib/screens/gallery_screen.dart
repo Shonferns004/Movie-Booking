@@ -4,7 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import '../services/api.dart';
 import '../widgets/app_toast.dart';
 
-/// Hero images for the community landing page: add, preview, delete.
+/// Community images, split into the landing hero and the photo library.
 class GalleryScreen extends StatefulWidget {
   const GalleryScreen({super.key, required this.token});
 
@@ -16,10 +16,16 @@ class GalleryScreen extends StatefulWidget {
 
 class _GalleryScreenState extends State<GalleryScreen> {
   List<dynamic> _images = [];
-  String _backgroundUrl = '';
   bool _loading = true;
   bool _busy = false;
+  bool _placementOpen = false;
   String? _error;
+
+  List<dynamic> get _heroImages =>
+      _images.where((image) => (image['placement'] ?? 'hero') != 'library').toList();
+
+  List<dynamic> get _libraryImages =>
+      _images.where((image) => (image['placement'] ?? 'hero') == 'library').toList();
 
   @override
   void initState() {
@@ -34,15 +40,10 @@ class _GalleryScreenState extends State<GalleryScreen> {
       return;
     }
     try {
-      final results = await Future.wait([
-        Api.getHeroImages(token),
-        Api.getEventTicketSettings(token),
-      ]);
-      final settings = results[1] as Map<String, dynamic>;
+      final list = await Api.getHeroImages(token);
       if (!mounted) return;
       setState(() {
-        _images = results[0] as List<dynamic>;
-        _backgroundUrl = (settings['backgroundUrl'] ?? '').toString();
+        _images = list;
         _loading = false;
         _error = null;
       });
@@ -55,161 +56,43 @@ class _GalleryScreenState extends State<GalleryScreen> {
     }
   }
 
-  Future<void> _setBackground({bool fromDevice = false}) async {
-    final token = widget.token;
-    if (token == null || token.isEmpty) return;
+  Future<void> _add({String placement = 'hero'}) async {
+    // Multi-select: the picker lets the admin choose several photos at once.
+    final picked = await ImagePicker().pickMultiImage(imageQuality: 86);
+    if (picked.isEmpty) return;
 
-    String? url;
-    if (fromDevice) {
-      final picked = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 88);
-      if (picked == null) return;
-      setState(() => _busy = true);
+    setState(() => _busy = true);
+    var uploaded = 0;
+    var failed = 0;
+
+    for (final file in picked) {
       try {
-        url = await Api.uploadCommunityImage(token, picked);
-      } catch (e) {
-        if (mounted) {
-          setState(() => _busy = false);
-          AppToast.show(
-            context,
-            e.toString().replaceFirst('Exception: ', ''),
-            type: AppToastType.error,
-          );
-        }
-        return;
+        await Api.addHeroImage(
+          widget.token!,
+          file: file,
+          placement: placement,
+        );
+        uploaded += 1;
+      } catch (_) {
+        failed += 1;
       }
+    }
+
+    await _load();
+    if (!mounted) return;
+    setState(() => _busy = false);
+
+    final where = placement == 'library' ? 'the photo library' : 'the hero section';
+    if (uploaded > 0) {
+      AppToast.show(
+        context,
+        failed == 0
+            ? 'Added $uploaded image${uploaded == 1 ? '' : 's'} to $where.'
+            : 'Added $uploaded to $where · $failed failed.',
+        type: failed == 0 ? AppToastType.success : AppToastType.error,
+      );
     } else {
-      final controller = TextEditingController(text: _backgroundUrl);
-      final ok = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          backgroundColor: const Color(0xFF1A1A1E),
-          title: const Text('Event ticket background'),
-          content: TextField(
-            controller: controller,
-            decoration: const InputDecoration(labelText: 'Image URL'),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-            ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Save')),
-          ],
-        ),
-      );
-      if (ok != true) return;
-      url = controller.text.trim();
-      if (url.isEmpty) {
-        if (mounted) AppToast.show(context, 'Enter an image URL.', type: AppToastType.error);
-        return;
-      }
-      setState(() => _busy = true);
-    }
-
-    try {
-      await Api.updateEventTicketBackground(token, url!);
-      if (!mounted) return;
-      setState(() {
-        _backgroundUrl = url!;
-        _busy = false;
-      });
-      AppToast.show(context, 'Event ticket background updated.', type: AppToastType.success);
-    } catch (e) {
-      if (mounted) {
-        setState(() => _busy = false);
-        AppToast.show(
-          context,
-          e.toString().replaceFirst('Exception: ', ''),
-          type: AppToastType.error,
-        );
-      }
-    }
-  }
-
-  Future<void> _clearBackground() async {
-    final token = widget.token;
-    if (token == null || token.isEmpty) return;
-    setState(() => _busy = true);
-    try {
-      await Api.updateEventTicketBackground(token, '');
-      if (!mounted) return;
-      setState(() {
-        _backgroundUrl = '';
-        _busy = false;
-      });
-      AppToast.show(context, 'Background removed.', type: AppToastType.success);
-    } catch (e) {
-      if (mounted) {
-        setState(() => _busy = false);
-        AppToast.show(
-          context,
-          e.toString().replaceFirst('Exception: ', ''),
-          type: AppToastType.error,
-        );
-      }
-    }
-  }
-
-  Future<void> _add({bool fromDevice = false}) async {
-    final url = TextEditingController();
-    final caption = TextEditingController();
-    XFile? picked;
-
-    if (fromDevice) {
-      picked = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 86);
-      if (picked == null) return;
-    }
-
-    if (!fromDevice) {
-      if (!mounted) return;
-      final ok = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          backgroundColor: const Color(0xFF1A1A1E),
-          title: const Text('Add hero image'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: url,
-                decoration: const InputDecoration(labelText: 'Image URL'),
-              ),
-              TextField(
-                controller: caption,
-                decoration: const InputDecoration(labelText: 'Caption (optional)'),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-            ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Add')),
-          ],
-        ),
-      );
-      if (ok != true) return;
-      if (url.text.trim().isEmpty) {
-        if (mounted) AppToast.show(context, 'Enter an image URL.', type: AppToastType.error);
-        return;
-      }
-    }
-
-    setState(() => _busy = true);
-    try {
-      await Api.addHeroImage(
-        widget.token!,
-        url: fromDevice ? null : url.text.trim(),
-        file: picked,
-        caption: caption.text,
-      );
-      await _load();
-      if (mounted) AppToast.show(context, 'Hero image added.', type: AppToastType.success);
-    } catch (e) {
-      if (mounted) {
-        AppToast.show(
-          context,
-          e.toString().replaceFirst('Exception: ', ''),
-          type: AppToastType.error,
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _busy = false);
+      AppToast.show(context, 'Upload failed. Try again.', type: AppToastType.error);
     }
   }
 
@@ -229,86 +112,120 @@ class _GalleryScreenState extends State<GalleryScreen> {
     }
   }
 
-  Widget _backgroundCard() {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 14, 16, 4),
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1E),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF2A2A2E)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            height: 108,
+  Widget _tile(dynamic image) {
+    final url = (image['url'] ?? '').toString();
+    return Stack(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            color: const Color(0xFF1A1A1E),
             width: double.infinity,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                if (_backgroundUrl.startsWith('http'))
-                  Image.network(_backgroundUrl, fit: BoxFit.cover)
-                else
-                  const ColoredBox(
-                    color: Color(0xFF2A2118),
-                    child: Center(
-                      child: Icon(
-                        Icons.confirmation_number_outlined,
-                        size: 32,
-                        color: Color(0xFFD96B43),
-                      ),
-                    ),
-                  ),
-                Container(color: Colors.black.withValues(alpha: 0.28)),
-                const Positioned(
-                  left: 12,
-                  bottom: 10,
-                  child: Text(
-                    'EVENT TICKET BACKGROUND',
-                    style: TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.2,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ],
+            height: double.infinity,
+            child: url.startsWith('http')
+                ? Image.network(url, fit: BoxFit.cover)
+                : const Icon(Icons.image, color: Color(0xFF52525A)),
+          ),
+        ),
+        Positioned(
+          top: 6,
+          right: 6,
+          child: InkWell(
+            onTap: () => _delete(image),
+            child: Container(
+              padding: const EdgeInsets.all(5),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.6),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.close, size: 14, color: Colors.white),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
-            child: Row(
-              children: [
-                const Expanded(
-                  child: Text(
-                    'Used behind every purchased event pass.',
-                    style: TextStyle(fontSize: 10, color: Color(0xFF9E9890)),
-                  ),
-                ),
-                if (_backgroundUrl.isNotEmpty)
-                  IconButton(
-                    tooltip: 'Remove background',
-                    onPressed: _busy ? null : _clearBackground,
-                    icon: const Icon(Icons.close, size: 18),
-                    color: const Color(0xFF9E9890),
-                  ),
-                TextButton(
-                  onPressed: _busy ? null : () => _setBackground(),
-                  style: TextButton.styleFrom(foregroundColor: const Color(0xFFD96B43)),
-                  child: const Text('URL', style: TextStyle(fontSize: 11)),
-                ),
-                TextButton(
-                  onPressed: _busy ? null : () => _setBackground(fromDevice: true),
-                  style: TextButton.styleFrom(foregroundColor: const Color(0xFFD96B43)),
-                  child: const Text('Upload', style: TextStyle(fontSize: 11)),
-                ),
-              ],
+        ),
+      ],
+    );
+  }
+
+  Widget _section({
+    required String title,
+    required String hint,
+    required List<dynamic> images,
+    required IconData icon,
+    bool horizontal = false,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 15, color: const Color(0xFFD96B43)),
+            const SizedBox(width: 8),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.2,
+                color: Color(0xFFF5EFEB),
+              ),
             ),
+            const SizedBox(width: 8),
+            Text(
+              '${images.length}',
+              style: const TextStyle(fontSize: 10, color: Color(0xFF52525A)),
+            ),
+            if (horizontal && images.length > 1) ...[
+              const Spacer(),
+              const Text(
+                'SWIPE →',
+                style: TextStyle(fontSize: 8, letterSpacing: 1, color: Color(0xFF52525A)),
+              ),
+            ],
+          ],
+        ),
+        const SizedBox(height: 2),
+        Text(hint, style: const TextStyle(fontSize: 10, color: Color(0xFF9E9890))),
+        const SizedBox(height: 10),
+        if (images.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1A1A1E),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFF2A2A2E)),
+            ),
+            child: Text(
+              'Nothing here yet — tap Upload and choose ${title == 'HERO SECTION' ? 'Hero section' : 'Photo library'}.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 11, color: Color(0xFF9E9890)),
+            ),
+          )
+        else if (horizontal)
+          SizedBox(
+            height: 148,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              clipBehavior: Clip.none,
+              itemCount: images.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 10),
+              itemBuilder: (ctx, i) => SizedBox(width: 224, child: _tile(images[i])),
+            ),
+          )
+        else
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              childAspectRatio: 1.15,
+            ),
+            itemCount: images.length,
+            itemBuilder: (ctx, i) => _tile(images[i]),
           ),
-        ],
-      ),
+      ],
     );
   }
 
@@ -325,100 +242,86 @@ class _GalleryScreenState extends State<GalleryScreen> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          FloatingActionButton.extended(
-            heroTag: 'hero-url',
-            onPressed: _busy ? null : () => _add(),
-            backgroundColor: const Color(0xFF1A1A1E),
-            foregroundColor: const Color(0xFFF5EFEB),
-            icon: const Icon(Icons.link, size: 18),
-            label: const Text('Add by URL'),
-          ),
-          const SizedBox(height: 10),
-          FloatingActionButton.extended(
-            heroTag: 'hero-upload',
-            onPressed: _busy ? null : () => _add(fromDevice: true),
-            backgroundColor: const Color(0xFFD96B43),
-            foregroundColor: Colors.white,
-            icon: const Icon(Icons.add_photo_alternate, size: 18),
-            label: const Text('Upload'),
+          if (_placementOpen) ...[
+            FloatingActionButton.extended(
+              heroTag: 'pick-hero',
+              onPressed: _busy
+                  ? null
+                  : () {
+                      setState(() => _placementOpen = false);
+                      _add(placement: 'hero');
+                    },
+              backgroundColor: const Color(0xFFD96B43),
+              foregroundColor: Colors.white,
+              icon: const Icon(Icons.auto_awesome, size: 18),
+              label: const Text('Hero section'),
+            ),
+            const SizedBox(height: 10),
+            FloatingActionButton.extended(
+              heroTag: 'pick-library',
+              onPressed: _busy
+                  ? null
+                  : () {
+                      setState(() => _placementOpen = false);
+                      _add(placement: 'library');
+                    },
+              backgroundColor: const Color(0xFF1A1A1E),
+              foregroundColor: const Color(0xFFF5EFEB),
+              icon: const Icon(Icons.photo_library_outlined, size: 18),
+              label: const Text('Photo library'),
+            ),
+            const SizedBox(height: 10),
+          ],
+          Opacity(
+            opacity: _placementOpen ? 0.35 : 1,
+            child: FloatingActionButton.extended(
+              heroTag: 'upload',
+              onPressed: _busy
+                  ? null
+                  : () => setState(() => _placementOpen = !_placementOpen),
+              backgroundColor: const Color(0xFFD96B43),
+              foregroundColor: Colors.white,
+              icon: Icon(
+                _placementOpen ? Icons.close : Icons.add_photo_alternate,
+                size: 18,
+              ),
+              label: Text(_placementOpen ? 'Cancel' : 'Upload'),
+            ),
           ),
         ],
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: Color(0xFFD96B43)))
-          : Column(
-              children: [
-                _backgroundCard(),
-                Expanded(
-                  child: _error != null
-                      ? Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(24),
-                            child: Text(_error!, style: const TextStyle(color: Color(0xFFE07A52))),
-                          ),
-                        )
-                      : _images.isEmpty
-                          ? const Center(
-                              child: Padding(
-                                padding: EdgeInsets.all(24),
-                                child: Text(
-                                  'No hero images yet.\nAdd photos to replace the gradient hero.',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(color: Color(0xFF9E9890)),
-                                ),
-                              ),
-                            )
-                          : RefreshIndicator(
-                              color: const Color(0xFFD96B43),
-                              onRefresh: _load,
-                              child: GridView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 140),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          mainAxisSpacing: 12,
-                          crossAxisSpacing: 12,
-                          childAspectRatio: 1.15,
-                        ),
-                        itemCount: _images.length,
-                        itemBuilder: (ctx, i) {
-                          final image = _images[i];
-                          final url = (image['url'] ?? '').toString();
-                          return Stack(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(14),
-                                child: Container(
-                                  color: const Color(0xFF1A1A1E),
-                                  width: double.infinity,
-                                  height: double.infinity,
-                                  child: url.startsWith('http')
-                                      ? Image.network(url, fit: BoxFit.cover)
-                                      : const Icon(Icons.image, color: Color(0xFF52525A)),
-                                ),
-                              ),
-                              Positioned(
-                                top: 6,
-                                right: 6,
-                                child: InkWell(
-                                  onTap: () => _delete(image),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(5),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black.withValues(alpha: 0.6),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(Icons.close, size: 14, color: Colors.white),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-                    ),
+          : _error != null
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Text(_error!, style: const TextStyle(color: Color(0xFFE07A52))),
                   ),
-                ],
-              ),
+                )
+              : RefreshIndicator(
+                  color: const Color(0xFFD96B43),
+                  onRefresh: _load,
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 140),
+                    children: [
+                      _section(
+                        title: 'HERO SECTION',
+                        hint: 'Photos in the landing page carousel.',
+                        images: _heroImages,
+                        icon: Icons.auto_awesome,
+                        horizontal: true,
+                      ),
+                      const SizedBox(height: 26),
+                      _section(
+                        title: 'PHOTO LIBRARY',
+                        hint: 'Photos on the photo library and gallery page.',
+                        images: _libraryImages,
+                        icon: Icons.photo_library_outlined,
+                      ),
+                    ],
+                  ),
+                ),
     );
   }
 }

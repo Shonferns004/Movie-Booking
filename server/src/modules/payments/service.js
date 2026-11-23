@@ -412,13 +412,19 @@ export async function handleYoupiWebhook(rawBody, signature) {
             WHERE provider_order_id=$1
             RETURNING *
          )
-         INSERT INTO community_members (user_id, name, email, phone, plan, amount_minor, status)
-         SELECT user_id, name, email, phone, 'annual', base_amount_minor, 'active'
+         INSERT INTO community_members
+           (user_id, name, email, phone, plan, amount_minor, status, gender, age, dob, marital_status)
+         SELECT user_id, name, email, phone, 'annual', base_amount_minor, 'active',
+                gender, age, dob, marital_status
            FROM settled WHERE user_id IS NOT NULL
          ON CONFLICT (user_id) WHERE user_id IS NOT NULL DO UPDATE
            SET status='active', plan='annual', amount_minor=EXCLUDED.amount_minor,
                name=coalesce(EXCLUDED.name, community_members.name),
                phone=coalesce(EXCLUDED.phone, community_members.phone),
+               gender=coalesce(EXCLUDED.gender, community_members.gender),
+               age=coalesce(EXCLUDED.age, community_members.age),
+               dob=coalesce(EXCLUDED.dob, community_members.dob),
+               marital_status=coalesce(EXCLUDED.marital_status, community_members.marital_status),
                updated_at=now()`,
         [membershipOrderId, payload.utr || null],
       );

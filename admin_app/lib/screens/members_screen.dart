@@ -80,8 +80,8 @@ class _MembersScreenState extends State<MembersScreen> {
     if (ok != true) return;
 
     final value = double.tryParse(rupees.text.trim());
-    if (value == null || value < 10) {
-      if (mounted) AppToast.show(context, 'Enter an amount of at least ₹10.', type: AppToastType.error);
+    if (value == null || value < 1) {
+      if (mounted) AppToast.show(context, 'Enter an amount of at least ₹1.', type: AppToastType.error);
       return;
     }
 

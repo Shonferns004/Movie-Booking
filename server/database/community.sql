@@ -40,6 +40,8 @@ CREATE TABLE IF NOT EXISTS hero_images (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+ALTER TABLE hero_images ADD COLUMN IF NOT EXISTS placement TEXT NOT NULL DEFAULT 'hero';
+
 CREATE TABLE IF NOT EXISTS community_members (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES users(id) ON DELETE SET NULL,
@@ -88,6 +90,12 @@ ALTER TABLE community_ticket_orders ADD COLUMN IF NOT EXISTS event_date TEXT;
 ALTER TABLE community_ticket_orders ADD COLUMN IF NOT EXISTS event_time TEXT;
 ALTER TABLE community_ticket_orders ADD COLUMN IF NOT EXISTS venue TEXT;
 
+-- Show purchased event passes in My Tickets.
+ALTER TABLE community_ticket_orders ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE community_ticket_orders ADD COLUMN IF NOT EXISTS event_starts_at TIMESTAMPTZ;
+CREATE INDEX IF NOT EXISTS community_ticket_orders_user_idx
+  ON community_ticket_orders (user_id, status);
+
 -- Single membership price, editable from the admin app.
 CREATE TABLE IF NOT EXISTS community_settings (
   key TEXT PRIMARY KEY,
@@ -125,3 +133,14 @@ CREATE TABLE IF NOT EXISTS community_membership_orders (
 
 CREATE INDEX IF NOT EXISTS community_membership_orders_status_idx
   ON community_membership_orders (status, created_at DESC);
+
+-- Extra member details collected in the membership form.
+ALTER TABLE community_members ADD COLUMN IF NOT EXISTS gender TEXT;
+ALTER TABLE community_members ADD COLUMN IF NOT EXISTS age INT;
+ALTER TABLE community_members ADD COLUMN IF NOT EXISTS dob DATE;
+ALTER TABLE community_members ADD COLUMN IF NOT EXISTS marital_status TEXT;
+
+ALTER TABLE community_membership_orders ADD COLUMN IF NOT EXISTS gender TEXT;
+ALTER TABLE community_membership_orders ADD COLUMN IF NOT EXISTS age INT;
+ALTER TABLE community_membership_orders ADD COLUMN IF NOT EXISTS dob DATE;
+ALTER TABLE community_membership_orders ADD COLUMN IF NOT EXISTS marital_status TEXT;

@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, Navigate } from 'react-router-dom';
 import { gsap } from 'gsap';
 import api from '../services/api.js';
 import TicketArtwork from '../components/TicketArtwork.jsx';
+import EventTicketArtwork from '../components/EventTicketArtwork.jsx';
+import StyledQr from '../components/StyledQr.jsx';
 
 const COLORS = {
   ink: '#0A2A31',
@@ -13,13 +16,148 @@ const COLORS = {
   deep: '#071E23',
 };
 
+function TicketPassModal({ booking, onClose, onDownload }) {
+  const seats = Array.isArray(booking.seats) ? booking.seats : [];
+  const date = new Date(booking.starts_at || '');
+  const dateLabel = Number.isNaN(date.getTime())
+    ? 'Date TBA'
+    : date.toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
+  const timeLabel = Number.isNaN(date.getTime())
+    ? ''
+    : date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+  const seatClass = [...new Set(seats.map((seat) => seat?.category_name).filter(Boolean))].join(' · ');
+  const single = seats.length === 1;
+
+  useEffect(() => {
+    const onKey = (event) => {
+      if (event.key === 'Escape') onClose();
+    };
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = previous;
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [onClose]);
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[80] flex items-end justify-center bg-[#04161A]/80 backdrop-blur-md sm:items-center sm:p-6"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Your ticket"
+      onClick={onClose}
+    >
+      <div
+        className="kk-pass-sheet max-h-[93vh] w-full overflow-y-auto rounded-t-[28px] bg-[#F8F3E7] text-[#0A2A31] shadow-[0_40px_100px_-40px_rgba(0,0,0,0.8)] sm:max-w-[820px] sm:rounded-[26px]"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-[#0A2A31]/15 sm:hidden" />
+
+        <div className="p-5 sm:p-7">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-[9px] font-bold uppercase tracking-[0.24em] text-[#0A2A31]/45">
+                Booking confirmed
+              </p>
+              <h2 className="mt-1 truncate font-['Fraunces',Georgia,serif] text-[25px] font-bold leading-tight sm:text-[30px]">
+                {booking.title}
+              </h2>
+              <p className="mt-1 text-[10px] uppercase tracking-[0.12em] text-[#0A2A31]/55">
+                {[booking.language, booking.certification].filter(Boolean).join(' · ') || 'Movie ticket'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close ticket"
+              className="shrink-0 rounded-full border border-[#0A2A31]/15 p-2 text-[#0A2A31]/60 transition-colors hover:text-[#0A2A31]"
+            >
+              <span className="material-symbols-outlined text-[18px]">close</span>
+            </button>
+          </div>
+
+          <div className="mt-5 grid gap-5 sm:grid-cols-[220px_minmax(0,1fr)] sm:items-center sm:gap-7">
+            <div className="flex flex-wrap justify-center gap-3">
+              {seats.length > 0 ? (
+                seats.map((seat) =>
+                  seat.ticket_reference ? (
+                    <div key={seat.seat_label} className="flex flex-col items-center">
+                      <div className="overflow-hidden rounded-2xl border border-[#0A2A31]/10">
+                        <StyledQr
+                          value={seat.ticket_reference}
+                          size={single ? 196 : 128}
+                          background="#FFFFFF"
+                          accent="#C61D23"
+                          margin={8}
+                        />
+                      </div>
+                      <span className="mt-1.5 text-[9px] font-bold uppercase tracking-[0.16em] text-[#0A2A31]/55">
+                        {seat.seat_label}
+                      </span>
+                    </div>
+                  ) : null,
+                )
+              ) : (
+                <p className="py-8 text-center text-[11px] text-[#0A2A31]/50">QR issued after payment.</p>
+              )}
+            </div>
+
+            <div>
+              <p className="text-[11px] font-bold uppercase leading-relaxed tracking-[0.12em]">
+                {[booking.theatre_name, booking.auditorium_name].filter(Boolean).join(' · ')}
+              </p>
+
+              <div className="mt-3 flex items-center justify-between gap-2 rounded-xl bg-[#C61D23] px-4 py-3 text-white">
+                <div>
+                  <p className="text-[8px] font-bold uppercase tracking-[0.16em] text-white/70">Date</p>
+                  <p className="mt-0.5 text-[11px] font-semibold">{dateLabel}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-[8px] font-bold uppercase tracking-[0.16em] text-white/70">Time</p>
+                  <p className="mt-0.5 text-[11px] font-semibold">{timeLabel}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[8px] font-bold uppercase tracking-[0.16em] text-white/70">Seats</p>
+                  <p className="mt-0.5 text-[11px] font-semibold">
+                    {seats.map((seat) => seat.seat_label).join(', ') || '—'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-2 flex items-center justify-between text-[9px] uppercase tracking-[0.14em] text-[#0A2A31]/50">
+                <span>{seatClass || 'Standard'}</span>
+                <span className="truncate font-mono tracking-[0.04em]">{booking.booking_reference}</span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => onDownload(booking)}
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-[#0A2A31] py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#F8F3E7] transition-transform hover:-translate-y-0.5"
+              >
+                <span className="material-symbols-outlined text-[16px]">download</span>
+                Download ticket
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 export default function MyTickets() {
   const [bookings, setBookings] = useState([]);
+  const [eventPasses, setEventPasses] = useState([]);
+  const [eventBackground, setEventBackground] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('all');
   const [now] = useState(() => Date.now());
   const [printBooking, setPrintBooking] = useState(null);
+  const [previewBooking, setPreviewBooking] = useState(null);
   const pageRef = useRef(null);
   const token = localStorage.getItem('token');
 
@@ -28,7 +166,7 @@ export default function MyTickets() {
       gsap.fromTo(
         pageRef.current,
         { opacity: 0, y: 24 },
-        { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out' },
+        { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out', clearProps: 'transform' },
       );
     }
     const onMove = (event) => {
@@ -46,15 +184,30 @@ export default function MyTickets() {
       return undefined;
     }
     let stop = false;
-    api
-      .get('/bookings/me/tickets')
-      .then((response) => {
-        // Pending bookings are still being paid for: never show them as passes.
-        const rows = Array.isArray(response.data) ? response.data : [];
-        if (!stop) setBookings(rows.filter((booking) => booking.status !== 'pending'));
-      })
-      .catch((err) => {
-        if (!stop) setError(err.response?.data?.error || err.message || 'Unable to load your tickets.');
+    Promise.allSettled([
+      api.get('/bookings/me/tickets'),
+      api.get('/community/events/tickets/me'),
+      api.get('/community'),
+    ])
+      .then(([bookingsResult, passesResult, communityResult]) => {
+        if (stop) return;
+
+        if (bookingsResult.status === 'fulfilled') {
+          const rows = Array.isArray(bookingsResult.value.data) ? bookingsResult.value.data : [];
+          // Pending bookings are still being paid for: never show them as passes.
+          setBookings(rows.filter((booking) => booking.status !== 'pending'));
+        } else {
+          const err = bookingsResult.reason;
+          setError(err?.response?.data?.error || err?.message || 'Unable to load your tickets.');
+        }
+
+        if (passesResult.status === 'fulfilled' && Array.isArray(passesResult.value.data)) {
+          setEventPasses(passesResult.value.data);
+        }
+
+        if (communityResult.status === 'fulfilled') {
+          setEventBackground(communityResult.value.data?.eventTicket?.backgroundUrl || '');
+        }
       })
       .finally(() => {
         if (!stop) setLoading(false);
@@ -91,6 +244,21 @@ export default function MyTickets() {
     return bookings;
   }, [bookings, filter, now]);
 
+  const filteredEvents = useMemo(() => {
+    if (filter === 'cancelled') return [];
+    if (filter === 'upcoming') {
+      return eventPasses.filter(
+        (pass) => !pass.eventStartsAt || new Date(pass.eventStartsAt).getTime() >= now,
+      );
+    }
+    if (filter === 'past') {
+      return eventPasses.filter(
+        (pass) => pass.eventStartsAt && new Date(pass.eventStartsAt).getTime() < now,
+      );
+    }
+    return eventPasses;
+  }, [eventPasses, filter, now]);
+
   const filters = [
     { key: 'all', label: 'All passes' },
     { key: 'upcoming', label: 'Upcoming' },
@@ -114,6 +282,11 @@ export default function MyTickets() {
         .kk-ticket-art{transition:transform .25s ease,box-shadow .25s ease;print-color-adjust:exact;-webkit-print-color-adjust:exact}
         .kk-ticket-art:hover{transform:translateY(-2px);box-shadow:0 34px 80px -38px rgba(0,0,0,.95)}
         .kk-print-root{display:none}
+        .kk-pass-sheet{animation:kkSheetUp .34s cubic-bezier(.22,1,.36,1)}
+        @keyframes kkSheetUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+        @keyframes kkPassIn{from{opacity:0;transform:translateY(8px) scale(.975)}to{opacity:1;transform:none}}
+        @media(min-width:640px){.kk-pass-sheet{animation:kkPassIn .26s ease-out}}
+        @media(prefers-reduced-motion:reduce){.kk-pass-sheet{animation:none}}
         @media print{
           body{background:#fff!important}
           body *{visibility:hidden}
@@ -184,13 +357,15 @@ export default function MyTickets() {
             </div>
           )}
 
-          {!loading && filtered.length === 0 && (
+          {!loading && filtered.length === 0 && filteredEvents.length === 0 && (
             <div className="kk-wallet-card flex flex-col items-center rounded-3xl px-6 py-14 text-center">
               <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl text-3xl" style={{ background: COLORS.mango, color: COLORS.ink }}>▣</div>
-              <h2 className="kk-ticket-display text-3xl font-bold">{bookings.length ? 'Nothing in this filter' : 'Your wallet is waiting'}</h2>
+              <h2 className="kk-ticket-display text-3xl font-bold">
+                {bookings.length || eventPasses.length ? 'Nothing in this filter' : 'Your wallet is waiting'}
+              </h2>
               <p className="mt-3 max-w-md text-sm leading-6" style={{ color: `${COLORS.shell}A8` }}>
-                {bookings.length
-                  ? 'Try another filter to see your other Konkani Samudai bookings.'
+                {bookings.length || eventPasses.length
+                  ? 'Try another filter to see your other Konkani Samudai passes.'
                   : 'Book a show and your digital pass with individual gate QR codes will appear here.'}
               </p>
               <Link to="/movies" className="mt-6 rounded-xl px-5 py-3 text-sm font-bold text-white" style={{ background: COLORS.kokum }}>
@@ -200,20 +375,35 @@ export default function MyTickets() {
           )}
 
           {filtered.map((booking) => (
-            <div key={booking.id} className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <div className="min-w-0 flex-1">
-                <TicketArtwork booking={booking} />
-              </div>
-              <button
-                type="button"
-                onClick={() => setPrintBooking(booking)}
-                aria-label="Download ticket PDF"
-                title="Download PDF"
-                className="flex h-12 w-12 shrink-0 items-center justify-center self-end rounded-full border border-[#EFEBE0]/20 bg-[#123E47] text-[#F4B63F] transition-colors hover:border-[#F4B63F] hover:bg-[#F4B63F] hover:text-[#0A2A31] sm:self-center"
-              >
-                <span className="material-symbols-outlined text-[22px]">download</span>
-              </button>
+            <div
+              key={booking.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => setPreviewBooking(booking)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  setPreviewBooking(booking);
+                }
+              }}
+              className="min-w-0 cursor-pointer rounded-[22px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#F4B63F]"
+            >
+              <TicketArtwork booking={booking} />
             </div>
+          ))}
+
+          {filteredEvents.map((pass) => (
+            <Link
+              key={pass.id}
+              to={`/event-ticket/${pass.orderId}`}
+              className="group block rounded-[22px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#F4B63F]"
+            >
+              <EventTicketArtwork ticket={pass} backgroundUrl={eventBackground} />
+              <p className="mt-2 flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.14em] text-[#EFEBE0]/40">
+                <span className="material-symbols-outlined text-[14px] text-[#F4B63F]">confirmation_number</span>
+                Event pass · tap to open &amp; download
+              </p>
+            </Link>
           ))}
         </section>
 
@@ -225,6 +415,17 @@ export default function MyTickets() {
           <span>Konkani Samudai Theatres</span>
         </footer>
       </div>
+
+      {previewBooking && (
+        <TicketPassModal
+          booking={previewBooking}
+          onClose={() => setPreviewBooking(null)}
+          onDownload={(booking) => {
+            setPreviewBooking(null);
+            setPrintBooking(booking);
+          }}
+        />
+      )}
 
       {printBooking && (
         <div className="kk-print-root">

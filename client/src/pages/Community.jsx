@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import api from '../services/api.js';
+import api, { assetUrl } from '../services/api.js';
 import { useRealtime } from '../services/realtime.js';
 import { openYoupiCheckout } from '../services/youpi.js';
 
@@ -83,6 +83,8 @@ export default function Community() {
   const [offline, setOffline] = useState(false);
   const [ticketEvent, setTicketEvent] = useState(null);
   const [joinOpen, setJoinOpen] = useState(false);
+  const [myMembership, setMyMembership] = useState(null);
+  const [shows, setShows] = useState([]);
   const root = useRef(null);
 
   const load = useCallback(() => {
@@ -101,6 +103,93 @@ export default function Community() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // New movies that are airing also belong on the landing page.
+  useEffect(() => {
+    let stop = false;
+    api
+      .get('/shows', { params: { from: new Date().toISOString() } })
+      .then((response) => {
+        if (!stop) setShows(Array.isArray(response.data) ? response.data : []);
+      })
+      .catch(() => {
+        if (!stop) setShows([]);
+      });
+    return () => {
+      stop = true;
+    };
+  }, []);
+
+  const nextMovie = useMemo(() => {
+    const now = Date.now();
+    const first = shows.find(
+      (show) => show?.starts_at && new Date(show.starts_at).getTime() >= now,
+    );
+    if (!first) return null;
+
+    const startsAt = new Date(first.starts_at);
+    const when = `${startsAt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })} · ${startsAt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}`;
+
+    return {
+      id: first.movie_id,
+      title: first.movie_title,
+      thumbnail: first.movie_thumbnail_url,
+      meta: [
+        first.movie_language,
+        first.movie_certification,
+        when,
+        [first.theatre_name, first.auditorium_name].filter(Boolean).join(' · '),
+      ]
+        .filter(Boolean)
+        .join(' · '),
+      price: first.price_min_minor ? Math.round(Number(first.price_min_minor) / 100) : null,
+    };
+  }, [shows]);
+
+  // The strip appears after the shows request resolves, so animate it separately.
+  useEffect(() => {
+    if (!nextMovie) return undefined;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
+
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        '.js-movie-strip',
+        { y: 20, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.65, stagger: 0.08, ease: 'power3.out', delay: 0.1 },
+      );
+      gsap.to('.js-movie-poster', {
+        y: -3,
+        duration: 2.6,
+        repeat: -1,
+        yoyo: true,
+        ease: 'sine.inOut',
+        stagger: 0.2,
+      });
+    });
+
+    return () => ctx.revert();
+  }, [nextMovie]);
+
+  // A member should never be asked to “become” one again.
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setMyMembership(null);
+      return undefined;
+    }
+    let stop = false;
+    api
+      .get('/community/membership')
+      .then((response) => {
+        if (!stop) setMyMembership(response.data?.member || null);
+      })
+      .catch(() => {
+        if (!stop) setMyMembership(null);
+      });
+    return () => {
+      stop = true;
+    };
+  }, []);
 
   // Neon Realtime: the relay forwards a "community" topic whenever events, notices,
   // hero images or members change, and the page refetches. No polling.
@@ -142,7 +231,7 @@ export default function Community() {
         .from('.js-hero-kicker', { y: 12, duration: 0.45 })
         .from('.js-hero-line', { y: 26, duration: 0.7, stagger: 0.07 }, '-=0.25')
         .from('.js-hero-copy', { y: 14, duration: 0.45 }, '-=0.35')
-        .from('.js-hero-cta', { y: 12, duration: 0.35, stagger: 0.06 }, '-=0.25')
+        .from('.js-hero-cta', { y: 10, duration: 0.35 }, '-=0.25')
         .from('.js-hero-stat', { y: 10, duration: 0.35, stagger: 0.05 }, '-=0.2')
         .from('.js-stub', { y: 30, x: 24, duration: 0.7, stagger: 0.1 }, '-=0.6')
         .from('.js-seal', { scale: 0.65, duration: 0.5, ease: 'back.out(1.7)' }, '-=0.4');
@@ -168,16 +257,32 @@ export default function Community() {
       <style>{PAGE_CSS}</style>
       <Grain />
 
-      <Hero images={hero} event={events[0]} onPick={setTicketEvent} stats={page?.stats} />
+      <Hero
+        images={hero}
+        event={events[0]}
+        movie={nextMovie}
+        onPick={setTicketEvent}
+        stats={page?.stats}
+        isMember={Boolean(myMembership)}
+      />
       <Marquee />
       <Events events={events} onPick={setTicketEvent} />
       <Notices notices={notices} />
-      <Archive />
-      <Join onBecomeMember={() => setJoinOpen(true)} membership={page?.membership} />
-      <Footer />
-
+      <PhotoLibrary images={page?.gallery?.length ? page.gallery : hero} />
+      <Join
+        onBecomeMember={() => setJoinOpen(true)}
+        membership={page?.membership}
+        myMembership={myMembership}
+      />
+      
       {ticketEvent && <TicketModal event={ticketEvent} onClose={() => setTicketEvent(null)} />}
-      {joinOpen && <MembershipModal onClose={() => setJoinOpen(false)} plan={page?.membership} />}
+      {joinOpen && (
+        <MembershipModal
+          onClose={() => setJoinOpen(false)}
+          plan={page?.membership}
+          onMemberChange={setMyMembership}
+        />
+      )}
     </div>
   );
 }
@@ -196,7 +301,7 @@ function Grain() {
 
 /* ----------------------------------------------------------------- hero */
 
-function Hero({ images, event, onPick, stats }) {
+function Hero({ images, event, movie, onPick, stats, isMember }) {
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
@@ -219,7 +324,7 @@ function Hero({ images, event, onPick, stats }) {
         {images.map((image, position) => (
           <div
             key={image.id}
-            className="absolute inset-0 bg-cover bg-center transition-opacity duration-[1400ms] ease-out"
+            className="kk-hero-image absolute inset-0 bg-cover bg-center transition-opacity duration-[1400ms] ease-out"
             style={{
               backgroundImage: `url(${image.url})`,
               opacity: position === index ? 1 : 0,
@@ -239,43 +344,45 @@ function Hero({ images, event, onPick, stats }) {
         <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#082328] to-transparent" />
       </div>
 
-      <div className="relative mx-auto grid max-w-[1180px] items-center gap-8 px-5 pb-12 pt-24 sm:px-8 sm:pt-28 md:grid-cols-[minmax(0,1fr)_320px] md:gap-12 md:pb-16 md:pt-24 lg:grid-cols-[minmax(0,1fr)_340px] lg:pb-20 lg:pt-28">
-        <div className="max-w-[680px]">
+      <div className="relative mx-auto grid max-w-[1180px] grid-cols-1 items-center gap-8 px-5 pb-10 pt-20 sm:px-8 sm:pt-24 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-12 lg:pb-16 lg:pt-24">
+        <div className="w-full max-w-[680px] min-w-0">
           <p className="js-hero-kicker flex items-center gap-2.5 text-[10px] font-bold uppercase tracking-[0.3em] text-[#F5B841]">
             <span className="h-px w-9 bg-[#F5B841]/60" />
             Margao · since 1934
           </p>
 
-          <h1 className="js-hero-title mt-5 font-['Fraunces',Georgia,serif] text-[40px] font-bold leading-[0.98] tracking-[-0.035em] text-[#F6F1E7] drop-shadow-[0_4px_24px_rgba(0,0,0,0.45)] sm:text-[52px] lg:text-[62px] xl:text-[68px]">
+          <h1 className="js-hero-title mt-4 font-['Fraunces',Georgia,serif] text-[34px] font-bold leading-[1.0] tracking-[-0.035em] text-[#F6F1E7] drop-shadow-[0_4px_24px_rgba(0,0,0,0.45)] sm:mt-5 sm:text-[44px] lg:text-[58px] xl:text-[66px]">
             <span className="js-hero-line block">One community.</span>
             <span className="js-hero-line block">
               A thousand <em className="not-italic text-[#F5B841]">stories</em>.
             </span>
           </h1>
 
-          <p className="js-hero-copy mt-5 max-w-[480px] text-[15px] leading-[1.7] text-[#F6F1E7]/80 drop-shadow-[0_2px_12px_rgba(0,0,0,0.5)]">
+          <p className="js-hero-copy mt-4 max-w-[480px] text-[14px] leading-[1.65] text-[#F6F1E7]/80 drop-shadow-[0_2px_12px_rgba(0,0,0,0.5)] sm:mt-5 sm:text-[15px] sm:leading-[1.7]">
             Festivals, food, films and our people — Fugdi nights, Sunday classes and the
             Christmas market, all under one roof.
           </p>
 
-          <div className="mt-8 flex flex-wrap items-center gap-3">
+          <div className="mt-6 flex flex-wrap items-center gap-2.5 sm:mt-8 sm:gap-3">
             <a
               href="#events"
-              className="js-hero-cta group inline-flex min-h-12 items-center gap-2 rounded-full bg-[#C2305E] px-7 text-[13px] font-bold tracking-wide text-white shadow-[0_14px_30px_-16px_rgba(194,48,94,0.9)] transition-transform hover:-translate-y-0.5"
+              className="js-hero-cta group inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[#C2305E] px-5 text-[12px] font-bold tracking-wide text-white shadow-[0_14px_30px_-16px_rgba(194,48,94,0.9)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#d34470] sm:h-12 sm:px-7 sm:text-[13px]"
             >
               Explore events
               <span className="material-symbols-outlined text-[18px] transition-transform group-hover:translate-x-0.5">arrow_forward</span>
             </a>
             <a
               href="#join"
-              className="js-hero-cta inline-flex min-h-12 items-center gap-2 rounded-full border border-[#F6F1E7]/25 bg-[#061D22]/40 px-7 text-[13px] font-semibold text-[#F6F1E7]/90 backdrop-blur transition-colors hover:border-[#F5B841] hover:text-[#F5B841]"
+              className="js-hero-cta group inline-flex h-11 items-center justify-center gap-2 rounded-full border border-[#F6F1E7]/25 bg-[#061D22]/40 px-5 text-[12px] font-semibold text-[#F6F1E7]/90 backdrop-blur transition-all duration-300 hover:-translate-y-0.5 hover:border-[#F5B841] hover:bg-[#F5B841]/10 hover:text-[#F5B841] sm:h-12 sm:px-7 sm:text-[13px]"
             >
-              <span className="material-symbols-outlined text-[18px]">groups</span>
-              Become a member
+              <span className="material-symbols-outlined text-[18px]">
+                {isMember ? 'verified' : 'groups'}
+              </span>
+              {isMember ? 'Your membership' : 'Become a member'}
             </a>
           </div>
 
-          <dl className="js-hero-stats mt-10 flex max-w-[400px] gap-9">
+          <dl className="js-hero-stats mt-7 flex max-w-[400px] gap-5 sm:mt-10 sm:gap-9">
             <HeroStat value={memberCount > 0 ? `${memberCount}` : '1,200+'} label="members" />
             <HeroStat value={stats?.events ? `${stats.events}` : '24'} label="events listed" />
             <HeroStat value="3" label="generations" />
@@ -316,20 +423,30 @@ function Hero({ images, event, onPick, stats }) {
               <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#F5B841]">Tickets</span>
             </button>
           )}
+
+          {movie && <MovieStrip movie={movie} className="mt-3 md:hidden" />}
         </div>
 
-        {event && (
+        {(event || movie) && (
           <div className="relative hidden md:block">
-            <div className="relative mx-auto w-full max-w-[340px] -rotate-[1.5deg]">
-              <Stub event={event} onPick={onPick} className="js-stub" primary />
-              <div className="js-seal seal absolute -right-4 -top-5 grid h-[72px] w-[72px] place-items-center rounded-full">
-                <div className="text-center">
-                  <p className="text-[7px] font-bold uppercase tracking-[0.18em] text-[#082328]/70">est.</p>
-                  <p className="font-['Fraunces',Georgia,serif] text-lg font-bold leading-none text-[#082328]">1934</p>
-                  <p className="mt-0.5 text-[6px] font-bold uppercase tracking-[0.14em] text-[#082328]/70">Samudai</p>
+            {event && (
+              <div className="relative mx-auto w-full max-w-[340px] -rotate-[1.5deg]">
+                <Stub event={event} onPick={onPick} className="js-stub" primary />
+                <div className="js-seal seal absolute -right-4 -top-5 grid h-[72px] w-[72px] place-items-center rounded-full">
+                  <div className="text-center">
+                    <p className="text-[7px] font-bold uppercase tracking-[0.18em] text-[#082328]/70">est.</p>
+                    <p className="font-['Fraunces',Georgia,serif] text-lg font-bold leading-none text-[#082328]">1934</p>
+                    <p className="mt-0.5 text-[6px] font-bold uppercase tracking-[0.14em] text-[#082328]/70">Samudai</p>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
+            {movie && (
+              <MovieStrip
+                movie={movie}
+                className={`mx-auto w-full max-w-[340px] ${event ? 'mt-10' : ''}`}
+              />
+            )}
           </div>
         )}
       </div>
@@ -346,13 +463,47 @@ function HeroStat({ value, label }) {
   );
 }
 
+function MovieStrip({ movie, className = '' }) {
+  return (
+    <Link
+      to={`/movies/${movie.id}`}
+      className={`js-movie-strip kk-shine kk-shine-late group flex items-center gap-3 rounded-2xl border border-[#F5B841]/25 bg-[#061D22]/75 p-3 backdrop-blur transition-colors hover:border-[#F5B841]/60 ${className}`}
+    >
+      {movie.thumbnail ? (
+        <img
+          src={assetUrl(movie.thumbnail)}
+          alt=""
+          className="js-movie-poster h-16 w-12 shrink-0 rounded-lg object-cover shadow-[0_10px_20px_-12px_rgba(0,0,0,0.9)]"
+        />
+      ) : (
+        <div className="js-movie-poster flex h-16 w-12 shrink-0 items-center justify-center rounded-lg bg-white/5 text-white/30">
+          <span className="material-symbols-outlined text-[18px]">movie</span>
+        </div>
+      )}
+      <div className="min-w-0 flex-1">
+        <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-[#F5B841]">Now showing</p>
+        <p className="mt-0.5 truncate text-[13px] font-semibold text-[#F6F1E7]">{movie.title}</p>
+        <p className="mt-0.5 truncate text-[10px] text-[#F6F1E7]/50">{movie.meta}</p>
+      </div>
+      <div className="shrink-0 text-right">
+        {movie.price ? (
+          <p className="text-[11px] font-bold text-[#F5B841]">₹{movie.price}</p>
+        ) : null}
+        <p className="mt-0.5 text-[8px] font-bold uppercase tracking-[0.12em] text-[#F6F1E7]/50">
+          Book →
+        </p>
+      </div>
+    </Link>
+  );
+}
+
 function Stub({ event, onPick, className = '', primary = false }) {
   const from = Math.min(...event.tiers.map((tier) => tier.price));
   return (
     <button
       type="button"
       onClick={() => onPick(event)}
-      className={`stub relative w-full overflow-hidden text-left transition-transform duration-300 hover:-translate-y-1 ${className} ${
+      className={`stub kk-shine relative w-full overflow-hidden text-left transition-transform duration-300 hover:-translate-y-1 ${className} ${
         primary ? 'stub-primary' : 'stub-ghost'
       }`}
     >
@@ -495,7 +646,7 @@ function EventCard({ event, onPick }) {
 function Notices({ notices }) {
   return (
     <section id="notices" className="scroll-mt-24 relative border-y border-[#F6F1E7]/10 bg-[#061D22]/70">
-      <div className="mx-auto max-w-[1180px] px-5 py-16 sm:px-8">
+      <div className="mx-auto max-w-[1180px] px-5 py-12 sm:px-8">
         <SectionHead kicker="Noticeboard" title="From the committee" />
 
         {notices.length === 0 ? (
@@ -536,66 +687,142 @@ function Notices({ notices }) {
   );
 }
 
-/* -------------------------------------------------------------- archive */
+/* -------------------------------------------------------------- gallery */
 
-function Archive() {
-  const items = [
-    { year: '2026', title: 'Monti Fest', detail: '420 families, 1,100 plates of shevyo.' },
-    { year: '2026', title: 'Konkani Film Week', detail: '12 films, 6 directors, 3 sold-out evenings.' },
-    { year: '2025', title: 'Utorda Beach Clean-up', detail: '120 volunteers, 800 kg of waste.' },
-    { year: '2025', title: 'First Cookbook Launch', detail: '68 family recipes collected and printed.' },
-  ];
+function PhotoLibrary({ images }) {
+  const gridRef = useRef(null);
+  const list = Array.isArray(images) ? images.slice(0, 8) : [];
+
+  useEffect(() => {
+    if (!gridRef.current || !list.length) return undefined;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
+
+    const ctx = gsap.context(() => {
+      gsap.utils.toArray('.js-photo').forEach((photo, index) => {
+        gsap.from(photo, {
+          y: 34,
+          opacity: 0,
+          duration: 0.7,
+          delay: (index % 3) * 0.06,
+          ease: 'power2.out',
+          scrollTrigger: { trigger: photo, start: 'top 92%', once: true },
+        });
+
+        const inner = photo.querySelector('.js-photo-inner');
+        if (inner) {
+          gsap.fromTo(
+            inner,
+            { yPercent: 4 },
+            {
+              yPercent: -4,
+              ease: 'none',
+              scrollTrigger: {
+                trigger: photo,
+                start: 'top bottom',
+                end: 'bottom top',
+                scrub: true,
+              },
+            },
+          );
+        }
+      });
+    }, gridRef);
+
+    return () => ctx.revert();
+  }, [images]);
 
   return (
-    <section id="archive" className="scroll-mt-24 mx-auto max-w-[1180px] px-5 py-16 sm:px-8 lg:py-20">
-      <SectionHead kicker="Our story" title="What we've already done" />
-
-      <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {items.map((item) => (
-          <article key={item.title} className="js-reveal plate group relative overflow-hidden rounded-[18px] p-5">
-            <span className="absolute -right-3 -top-8 font-['Fraunces',Georgia,serif] text-[86px] font-bold leading-none text-[#F6F1E7]/[0.045]">
-              {item.year}
-            </span>
-            <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-[#F5B841]/80">{item.year}</p>
-            <h3 className="mt-2 font-['Fraunces',Georgia,serif] text-[18px] font-bold leading-tight">{item.title}</h3>
-            <p className="mt-2 text-[11px] leading-relaxed text-[#F6F1E7]/50">{item.detail}</p>
-          </article>
-        ))}
-      </div>
-
-      <div className="js-reveal mt-8 flex flex-col gap-5 overflow-hidden rounded-[22px] border border-[#F5B841]/25 bg-gradient-to-r from-[#F5B841]/[0.09] to-transparent p-6 sm:flex-row sm:items-center sm:justify-between sm:p-7">
-        <div>
-          <h3 className="font-['Fraunces',Georgia,serif] text-[22px] font-bold tracking-[-0.02em]">Also running: our screenhouse</h3>
-          <p className="mt-1 text-[12px] text-[#F6F1E7]/60">Konkani and world cinema, four screens, tickets from ₹150.</p>
-        </div>
+    <section id="archive" className="scroll-mt-24 mx-auto max-w-[1180px] px-5 py-10 sm:px-8 lg:py-14">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <SectionHead kicker="Photo library" title="Moments from the Samudai" />
         <Link
-          to="/movies"
-          className="inline-flex items-center gap-2 self-start rounded-full bg-[#F6F1E7] px-5 py-2.5 text-[11px] font-bold uppercase tracking-[0.1em] text-[#082328] transition-transform hover:-translate-y-0.5"
+          to="/gallery"
+          className="group inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#F5B841] transition-colors hover:text-[#F6F1E7]"
         >
-          See what's showing
-          <span className="material-symbols-outlined text-[15px]">arrow_forward</span>
+          Open the gallery
+          <span className="material-symbols-outlined text-[16px] transition-transform group-hover:translate-x-0.5">
+            arrow_forward
+          </span>
         </Link>
       </div>
+
+      {list.length === 0 ? (
+        <div className="mt-10 rounded-[22px] border border-[#F6F1E7]/10 bg-[#0C3238]/50 px-6 py-14 text-center">
+          <span className="material-symbols-outlined text-[34px] text-[#F5B841]/60">photo_library</span>
+          <p className="mt-3 text-[12px] text-[#F6F1E7]/55">
+            Photographs from our festivals and film nights will appear here.
+          </p>
+          <Link
+            to="/gallery"
+            className="mt-5 inline-flex rounded-full bg-[#F6F1E7] px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#082328]"
+          >
+            Visit the gallery
+          </Link>
+        </div>
+      ) : (
+        <div
+          ref={gridRef}
+          className="mt-10 grid auto-rows-[128px] grid-flow-row-dense grid-cols-2 gap-3 sm:auto-rows-[150px] sm:gap-4 md:grid-cols-4"
+        >
+          {list.map((image, index) => (
+            <Link
+              key={image.id}
+              to="/gallery"
+              className={`js-photo group relative overflow-hidden rounded-[18px] border border-[#F6F1E7]/10 bg-[#0C3238] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#F5B841] ${
+                index === 0 ? 'col-span-2 row-span-2' : index === 3 ? 'md:row-span-2' : ''
+              }`}
+            >
+              <div className="js-photo-inner absolute -inset-4">
+                <img
+                  src={image.url}
+                  alt={image.caption || `Samudai photograph ${index + 1}`}
+                  loading="lazy"
+                  className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
+                />
+              </div>
+              <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#04161A]/85 via-transparent to-transparent opacity-75 transition-opacity duration-300 group-hover:opacity-95" />
+              <span className="pointer-events-none absolute bottom-3 left-3 right-3 flex items-end justify-between gap-2">
+                <span className="line-clamp-2 text-[10px] font-semibold uppercase leading-snug tracking-[0.1em] text-[#F6F1E7]/85">
+                  {image.caption || 'Konkani Samudai'}
+                </span>
+                <span className="material-symbols-outlined shrink-0 text-[16px] text-[#F5B841]/80 opacity-0 transition-opacity group-hover:opacity-100">
+                  open_in_full
+                </span>
+              </span>
+            </Link>
+          ))}
+        </div>
+      )}
+
     </section>
   );
 }
 
 /* ----------------------------------------------------------------- join */
 
-function Join({ onBecomeMember, membership }) {
+function Join({ onBecomeMember, membership, myMembership }) {
+  const price = rupees(Math.round((membership?.amountMinor ?? 120000) / 100));
+  const memberSince = myMembership?.createdAt
+    ? new Date(myMembership.createdAt).toLocaleDateString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      })
+    : '';
+
   return (
     <section id="join" className="scroll-mt-24 relative border-t border-[#F6F1E7]/10 bg-[#061D22]/70">
-      <div className="mx-auto grid max-w-[1180px] gap-10 px-5 py-16 sm:px-8 lg:grid-cols-[1fr_420px] lg:gap-14 lg:py-20">
-        <div>
+      <div className="mx-auto grid max-w-[1180px] items-center gap-10 px-5 py-10 sm:px-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14 lg:py-14">
+        <div className="js-reveal">
           <SectionHead kicker="Join us" title="Become part of the Samudai" />
           <p className="mt-4 max-w-md text-[14px] leading-[1.75] text-[#F6F1E7]/60">
             Membership gets your family voting rights at the AGM, discounts on every event,
             priority movie seats and a place in the Sunday classes.
           </p>
 
-          <ul className="mt-8 grid gap-3 sm:grid-cols-2">
+          <ul className="mt-7 grid gap-3 sm:grid-cols-2">
             {[
-              `${membership?.label || 'Annual membership'} · ${rupees(Math.round((membership?.amountMinor ?? 120000) / 100))} a year`,
+              `${membership?.label || 'Annual membership'} · ${price} a year`,
               'Event discounts for every member',
               "Scholarships for members' children",
               'Konkani classes, choir and youth wing',
@@ -607,43 +834,65 @@ function Join({ onBecomeMember, membership }) {
             ))}
           </ul>
 
-          <div className="mt-8 flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={onBecomeMember}
-              className="inline-flex items-center gap-2 rounded-full bg-[#C2305E] px-5 py-2.5 text-[11px] font-bold uppercase tracking-[0.1em] text-white transition-transform hover:-translate-y-0.5"
-            >
-              <span className="material-symbols-outlined text-[15px]">badge</span>
-              Become a member
-            </button>
-            <a
-              href={`https://wa.me/${WHATSAPP}?text=${encodeURIComponent('Hi! I would like to know more about Konkani Samudai.')}`}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-2 rounded-full bg-[#7FCBA8] px-5 py-2.5 text-[11px] font-bold uppercase tracking-[0.1em] text-[#082328] transition-transform hover:-translate-y-0.5"
-            >
-              <span className="material-symbols-outlined text-[15px]">chat</span>
-              Message on WhatsApp
-            </a>
-          </div>
+          {myMembership && memberSince && (
+            <p className="mt-3 text-[10px] uppercase tracking-[0.14em] text-[#F6F1E7]/40">
+              Member since {memberSince}
+            </p>
+          )}
         </div>
 
-        <div className="js-reveal rounded-[24px] border border-[#F6F1E7]/12 bg-[#0C3238] p-6 sm:p-7">
-          <h3 className="font-['Fraunces',Georgia,serif] text-[22px] font-bold tracking-[-0.02em]">What membership gets you</h3>
-          <ul className="mt-4 space-y-3 text-[12px] leading-relaxed text-[#F6F1E7]/65">
-            <li className="flex gap-2.5"><span className="text-[#F5B841]">✦</span> Voting rights at the AGM</li>
-            <li className="flex gap-2.5"><span className="text-[#F5B841]">✦</span> Member rates on every event</li>
-            <li className="flex gap-2.5"><span className="text-[#F5B841]">✦</span> Priority seating for film nights</li>
-            <li className="flex gap-2.5"><span className="text-[#F5B841]">✦</span> A card for the whole family</li>
-          </ul>
-          <button
-            type="button"
-            onClick={onBecomeMember}
-            className="mt-6 w-full rounded-full border border-[#F5B841]/40 py-3 text-[11px] font-bold uppercase tracking-[0.14em] text-[#F5B841] transition-colors hover:bg-[#F5B841] hover:text-[#082328]"
-          >
-            Start membership
-          </button>
-          <p className="mt-3 text-center text-[9px] text-[#F6F1E7]/35">Sign in first · pay by UPI</p>
+        <div className="js-reveal relative">
+          <div className="relative overflow-hidden rounded-[26px] border border-[#F5B841]/30 bg-gradient-to-br from-[#F5B841]/[0.18] via-[#0C3238] to-[#082328] p-6 shadow-[0_30px_70px_-45px_rgba(0,0,0,0.9)] sm:p-7">
+            <div
+              aria-hidden="true"
+              className="absolute -right-12 -top-14 h-44 w-44 rounded-full bg-[#F5B841]/15 blur-3xl"
+            />
+            <div className="relative">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-[9px] font-bold uppercase tracking-[0.24em] text-[#F5B841]">
+                    Membership
+                  </p>
+                  <h3 className="mt-1 font-['Fraunces',Georgia,serif] text-[22px] font-bold tracking-[-0.01em]">
+                    The Samudai card
+                  </h3>
+                </div>
+                <span className="material-symbols-outlined text-[24px] text-[#F5B841]/70">badge</span>
+              </div>
+
+              <div className="mt-5 flex items-end gap-2">
+                <p className="font-['Fraunces',Georgia,serif] text-[42px] font-bold leading-none text-[#F6F1E7]">
+                  {price}
+                </p>
+                <span className="pb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#F6F1E7]/45">
+                  / year
+                </span>
+              </div>
+              <p className="mt-2 text-[11px] leading-relaxed text-[#F6F1E7]/55">
+                One plan · covers the whole household
+              </p>
+
+              <div className="my-5 h-px bg-[#F6F1E7]/10" />
+
+              <ul className="space-y-2.5 text-[11px] leading-relaxed text-[#F6F1E7]/70">
+                <li className="flex gap-2"><span className="text-[#F5B841]">✦</span> Voting rights at the AGM</li>
+                <li className="flex gap-2"><span className="text-[#F5B841]">✦</span> Member rates on every event</li>
+                <li className="flex gap-2"><span className="text-[#F5B841]">✦</span> Priority seating for film nights</li>
+                <li className="flex gap-2"><span className="text-[#F5B841]">✦</span> A card for the whole family</li>
+              </ul>
+
+              <button
+                type="button"
+                onClick={onBecomeMember}
+                className="kk-ripple mt-6 w-full rounded-full bg-[#F6F1E7] py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#082328] transition-colors hover:bg-[#F5B841]"
+              >
+                {myMembership ? 'View your membership' : 'Start membership'}
+              </button>
+              <p className="mt-2.5 text-center text-[9px] text-[#F6F1E7]/35">
+                {myMembership ? 'Your membership is active' : 'Sign in first · secure UPI payment'}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -666,27 +915,6 @@ function SectionHead({ kicker, title, note }) {
       </div>
       {note && <p className="max-w-[260px] text-[11px] leading-relaxed text-[#F6F1E7]/40">{note}</p>}
     </div>
-  );
-}
-
-function Footer() {
-  return (
-    <footer className="border-t border-[#F6F1E7]/10 bg-[#061D22]">
-      <div className="mx-auto max-w-[1180px] px-5 py-12 sm:px-8">
-        <p className="font-['Fraunces',Georgia,serif] text-[34px] font-bold leading-none tracking-[-0.03em] text-[#F6F1E7]/90 sm:text-[52px]">
-          Konkani <span className="italic text-[#F5B841]">Samudai</span>
-        </p>
-        <div className="mt-8 flex flex-col gap-6 border-t border-[#F6F1E7]/10 pt-6 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-[11px] leading-relaxed text-[#F6F1E7]/40">Cinema, screenhouse and community · Margao, Goa</p>
-          <ul className="flex flex-wrap gap-5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#F6F1E7]/45">
-            <li><a className="transition-colors hover:text-[#F5B841]" href="#events">Events</a></li>
-            <li><a className="transition-colors hover:text-[#F5B841]" href="#notices">Notices</a></li>
-            <li><Link className="transition-colors hover:text-[#F5B841]" to="/movies">Movies</Link></li>
-            <li><Link className="transition-colors hover:text-[#F5B841]" to="/my-tickets">My tickets</Link></li>
-          </ul>
-        </div>
-      </div>
-    </footer>
   );
 }
 
@@ -1103,7 +1331,7 @@ function TicketModal({ event, onClose }) {
 
 /* ----------------------------------------------------- membership modal */
 
-function MembershipModal({ onClose, plan: initialPlan }) {
+function MembershipModal({ onClose, plan: initialPlan, onMemberChange }) {
   const token = localStorage.getItem('token');
   const account = useMemo(() => {
     try {
@@ -1116,6 +1344,10 @@ function MembershipModal({ onClose, plan: initialPlan }) {
   const [plan, setPlan] = useState(initialPlan || { label: 'Annual membership', amountMinor: 120000 });
   const [name, setName] = useState(String(account?.displayName || account?.name || ''));
   const [phone, setPhone] = useState(String(account?.mobile || account?.phone || ''));
+  const [gender, setGender] = useState('');
+  const [dob, setDob] = useState('');
+  const [age, setAge] = useState('');
+  const [maritalStatus, setMaritalStatus] = useState('');
   const email = String(account?.email || '');
   const [member, setMember] = useState(null);
   const [stage, setStage] = useState('form');
@@ -1127,7 +1359,14 @@ function MembershipModal({ onClose, plan: initialPlan }) {
 
   const waiting = stage === 'waiting';
   const total = Math.round((plan?.amountMinor ?? 120000) / 100);
-  const offsetMinor = order ? Math.max(0, Number(order.amountMinor) - Number(order.baseAmountMinor)) : 0;
+
+  const applyMember = useCallback(
+    (next) => {
+      setMember(next);
+      onMemberChange?.(next);
+    },
+    [onMemberChange],
+  );
 
   useEffect(() => {
     if (!token) return;
@@ -1135,7 +1374,7 @@ function MembershipModal({ onClose, plan: initialPlan }) {
       .get('/community/membership')
       .then((response) => {
         if (response.data?.plan) setPlan(response.data.plan);
-        if (response.data?.member) setMember(response.data.member);
+        if (response.data?.member) applyMember(response.data.member);
       })
       .catch(() => {});
   }, [token]);
@@ -1154,7 +1393,7 @@ function MembershipModal({ onClose, plan: initialPlan }) {
       stopPolling();
       try {
         const response = await api.post(`/community/membership/checkout/${orderId}/confirm`, {});
-        if (response.data?.member) setMember(response.data.member);
+        if (response.data?.member) applyMember(response.data.member);
       } catch {
         // The gateway status is authoritative; the webhook can still settle this.
       }
@@ -1173,7 +1412,7 @@ function MembershipModal({ onClose, plan: initialPlan }) {
           const response = await api.get(`/community/membership/checkout/${orderId}`);
           const status = String(response.data?.status || '');
           if (status === 'paid') {
-            if (response.data?.member) setMember(response.data.member);
+            if (response.data?.member) applyMember(response.data.member);
             stopPolling();
             setStage('paid');
             return;
@@ -1192,6 +1431,15 @@ function MembershipModal({ onClose, plan: initialPlan }) {
     [stopPolling],
   );
 
+  function handleDob(value) {
+    setDob(value);
+    if (!value) return;
+    const birth = new Date(value);
+    if (Number.isNaN(birth.getTime())) return;
+    const years = Math.floor((Date.now() - birth.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+    if (years >= 0 && years < 120) setAge(String(years));
+  }
+
   async function pay() {
     if (busy) return;
     if (!name.trim()) {
@@ -1200,6 +1448,18 @@ function MembershipModal({ onClose, plan: initialPlan }) {
     }
     if (!/^[0-9+\s-]{8,16}$/.test(phone.trim())) {
       setError('Enter a valid contact number.');
+      return;
+    }
+    if (!gender) {
+      setError('Select your gender.');
+      return;
+    }
+    if (!dob) {
+      setError('Enter your date of birth.');
+      return;
+    }
+    if (!maritalStatus) {
+      setError('Select your marital status.');
       return;
     }
 
@@ -1211,6 +1471,10 @@ function MembershipModal({ onClose, plan: initialPlan }) {
       const response = await api.post('/community/membership/checkout', {
         name: name.trim(),
         phone: phone.trim(),
+        gender,
+        age: age ? Number(age) : undefined,
+        dob,
+        maritalStatus,
       });
       const created = response.data;
       setOrder(created);
@@ -1271,6 +1535,10 @@ function MembershipModal({ onClose, plan: initialPlan }) {
     }
   }
 
+  const fieldClass =
+    'w-full rounded-xl border border-[#F6F1E7]/12 bg-[#082328]/70 px-3.5 py-2.5 text-[12px] text-[#F6F1E7] outline-none transition-colors placeholder:text-[#F6F1E7]/25 focus:border-[#F6F1E7]/20 focus:outline-none focus:ring-0 focus-visible:outline-none';
+  const labelClass = 'mb-1.5 block text-[8px] font-bold uppercase tracking-[0.18em] text-[#F6F1E7]/45';
+
   return (
     <div
       className="fixed inset-0 z-[70] flex items-end justify-center bg-[#04161A]/85 backdrop-blur-md sm:items-center sm:p-6"
@@ -1281,163 +1549,195 @@ function MembershipModal({ onClose, plan: initialPlan }) {
         if (clickEvent.target === clickEvent.currentTarget) onClose();
       }}
     >
-      <div className="modal-in max-h-[92vh] w-full max-w-[460px] overflow-y-auto rounded-t-[26px] border border-[#F6F1E7]/12 bg-[#0C3238] p-6 shadow-2xl sm:rounded-[26px]">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#F5B841]">Membership</p>
-            <h3 className="mt-1.5 font-['Fraunces',Georgia,serif] text-[26px] font-bold leading-[1.02] tracking-[-0.02em]">
-              Join Konkani Samudai
-            </h3>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-full border border-[#F6F1E7]/15 p-2 text-[#F6F1E7]/60 transition-colors hover:text-[#F6F1E7]"
-            aria-label="Close"
-          >
-            <span className="material-symbols-outlined text-[18px]">close</span>
-          </button>
-        </div>
-
-        {!token ? (
-          <div className="mt-8 text-center">
-            <span className="material-symbols-outlined text-[38px] text-[#F5B841]/70">lock</span>
-            <p className="mt-3 text-[13px] leading-relaxed text-[#F6F1E7]/65">
-              You need an account before you can become a member. It takes a minute.
-            </p>
-            <Link
-              to="/login"
-              className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#C2305E] px-6 py-3 text-[12px] font-bold uppercase tracking-[0.12em] text-white"
-            >
-              Sign in to continue
-              <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
-            </Link>
-            <p className="mt-3 text-[10px] text-[#F6F1E7]/35">
-              New here? The sign-in page also creates an account.
-            </p>
-          </div>
-        ) : stage === 'paid' || member ? (
-          <div className="mt-8 text-center">
-            <span className="material-symbols-outlined text-[44px] text-[#7FCBA8]">verified</span>
-            <h4 className="mt-3 font-['Fraunces',Georgia,serif] text-[24px] font-bold">You're a member</h4>
-            <p className="mt-2 text-[12px] leading-relaxed text-[#F6F1E7]/65">
-              {member?.name || name} · {rupees(Math.round(Number(member?.amountMinor || plan.amountMinor) / 100))} a year
-            </p>
-            <p className="mt-1 text-[11px] text-[#F6F1E7]/45">
-              Status <span className="font-semibold capitalize text-[#F5B841]">{member?.status || 'active'}</span>
-            </p>
-            <p className="mt-3 text-[10px] leading-relaxed text-[#F6F1E7]/40">
-              Your membership is active. Show your account at the counter for member rates on events
-              and priority seats.
-            </p>
+      <div className="modal-in max-h-[93vh] w-full max-w-[700px] overflow-y-auto rounded-t-[26px] border border-[#F6F1E7]/12 bg-[#0C3238] shadow-2xl sm:rounded-[26px]">
+        <div className="p-6 sm:p-7">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-[9px] font-bold uppercase tracking-[0.24em] text-[#F5B841]">Membership</p>
+              <h3 className="mt-1.5 font-['Fraunces',Georgia,serif] text-[26px] font-bold leading-[1.02] tracking-[-0.02em]">
+                Join Konkani Samudai
+              </h3>
+            </div>
             <button
               type="button"
               onClick={onClose}
-              className="mt-6 w-full rounded-full bg-[#F6F1E7] py-3 text-[11px] font-bold uppercase tracking-[0.14em] text-[#082328]"
+              className="rounded-full border border-[#F6F1E7]/15 p-2 text-[#F6F1E7]/60 transition-colors hover:text-[#F6F1E7]"
+              aria-label="Close"
             >
-              Done
+              <span className="material-symbols-outlined text-[18px]">close</span>
             </button>
           </div>
-        ) : (
-          <>
-            <p className="mt-3 text-[12px] leading-relaxed text-[#F6F1E7]/55">
-              Fill in your details below, then pay securely. One annual membership covers the whole
-              household.
-            </p>
 
-            <div className="mt-4 flex items-center justify-between rounded-xl border border-[#F5B841]/30 bg-[#F5B841]/[0.07] px-4 py-3">
-              <div>
-                <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#F5B841]/80">
-                  {plan?.label || 'Annual membership'}
-                </p>
-                <p className="mt-0.5 text-[10px] text-[#F6F1E7]/50">One plan · renews yearly</p>
-              </div>
-              <p className="font-['Fraunces',Georgia,serif] text-[24px] font-bold text-[#F5B841]">
-                {rupees(total)}
-                <span className="ml-1 text-[9px] font-semibold uppercase tracking-[0.1em] text-[#F6F1E7]/40">/ yr</span>
+          {!token ? (
+            <div className="mt-8 text-center">
+              <span className="material-symbols-outlined text-[38px] text-[#F5B841]/70">lock</span>
+              <p className="mt-3 text-[13px] leading-relaxed text-[#F6F1E7]/65">
+                You need an account before you can become a member. It takes a minute.
+              </p>
+              <Link
+                to="/login"
+                className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#C2305E] px-6 py-3 text-[12px] font-bold uppercase tracking-[0.12em] text-white"
+              >
+                Sign in to continue
+                <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+              </Link>
+              <p className="mt-3 text-[10px] text-[#F6F1E7]/35">
+                New here? The sign-in page also creates an account.
               </p>
             </div>
-
-            <div className="mt-4 space-y-3">
-              <label className="block">
-                <span className="mb-1 block text-[9px] font-bold uppercase tracking-[0.16em] text-[#F6F1E7]/45">
-                  Full name
-                </span>
-                <input
-                  value={name}
-                  onChange={(changeEvent) => setName(changeEvent.target.value)}
-                  placeholder="Your name"
-                  className="w-full rounded-xl border border-[#F6F1E7]/12 bg-[#082328]/60 px-4 py-2.5 text-[12px] text-[#F6F1E7] outline-none placeholder:text-[#F6F1E7]/25 focus:border-[#F5B841]"
-                />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-[9px] font-bold uppercase tracking-[0.16em] text-[#F6F1E7]/45">
-                  Contact number
-                </span>
-                <input
-                  value={phone}
-                  onChange={(changeEvent) => setPhone(changeEvent.target.value)}
-                  inputMode="tel"
-                  placeholder="10-digit mobile number"
-                  className="w-full rounded-xl border border-[#F6F1E7]/12 bg-[#082328]/60 px-4 py-2.5 text-[12px] text-[#F6F1E7] outline-none placeholder:text-[#F6F1E7]/25 focus:border-[#F5B841]"
-                />
-              </label>
-              {email && (
-                <p className="rounded-xl border border-[#F6F1E7]/10 bg-[#082328]/40 px-4 py-2.5 text-[11px] text-[#F6F1E7]/55">
-                  Account email <span className="font-semibold text-[#F6F1E7]">{email}</span>
-                </p>
-              )}
+          ) : stage === 'paid' || member ? (
+            <div className="mt-8 text-center">
+              <span className="material-symbols-outlined text-[44px] text-[#7FCBA8]">verified</span>
+              <h4 className="mt-3 font-['Fraunces',Georgia,serif] text-[24px] font-bold">You're a member</h4>
+              <p className="mt-2 text-[12px] leading-relaxed text-[#F6F1E7]/65">
+                {member?.name || name} · {rupees(Math.round(Number(member?.amountMinor || plan.amountMinor) / 100))} a year
+              </p>
+              <p className="mt-1 text-[11px] text-[#F6F1E7]/45">
+                Status <span className="font-semibold capitalize text-[#F5B841]">{member?.status || 'active'}</span>
+              </p>
+              <p className="mt-3 text-[10px] leading-relaxed text-[#F6F1E7]/40">
+                Your membership is active. Show your account at the counter for member rates on events
+                and priority seats.
+              </p>
+              <button
+                type="button"
+                onClick={onClose}
+                className="mt-6 w-full rounded-full bg-[#F6F1E7] py-3 text-[11px] font-bold uppercase tracking-[0.14em] text-[#082328]"
+              >
+                Done
+              </button>
             </div>
-
-            <div className="mt-4 rounded-[18px] border border-[#F6F1E7]/10 bg-[#061D22] p-4">
-              <div className="flex items-center justify-between text-[11px] text-[#F6F1E7]/60">
-                <span>Annual membership</span>
-                <span>{rupees(total)}</span>
-              </div>
-              {offsetMinor > 0 && (
-                <div className="mt-1 flex items-center justify-between text-[10px] text-[#F6F1E7]/40">
-                  <span>Payment verification</span>
-                  <span>+ ₹{(offsetMinor / 100).toFixed(2)}</span>
+          ) : (
+            <>
+              <div className="mt-5 rounded-2xl border border-[#F5B841]/30 bg-gradient-to-r from-[#F5B841]/[0.14] to-[#C2305E]/[0.07] p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#F5B841]">
+                      {plan?.label || 'Annual membership'}
+                    </p>
+                    <p className="mt-0.5 text-[10px] text-[#F6F1E7]/50">One plan · renews yearly</p>
+                  </div>
+                  <p className="font-['Fraunces',Georgia,serif] text-[30px] font-bold leading-none text-[#F5B841]">
+                    {rupees(total)}
+                    <span className="ml-1 text-[9px] font-semibold uppercase tracking-[0.1em] text-[#F6F1E7]/40">/ yr</span>
+                  </p>
                 </div>
-              )}
-              <div className="mt-2 flex items-baseline justify-between border-t border-[#F6F1E7]/10 pt-2">
-                <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#F6F1E7]/45">
-                  Payable
-                </span>
-                <span className="font-['Fraunces',Georgia,serif] text-[24px] font-bold text-[#F5B841]">
-                  ₹{order ? order.amount : total}
-                </span>
+                <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-[#F6F1E7]/55">
+                  <li>✦ Member rates</li>
+                  <li>✦ Priority seats</li>
+                  <li>✦ AGM voting</li>
+                  <li>✦ Household card</li>
+                </ul>
               </div>
-            </div>
 
-            {notice && <p className="mt-3 text-center text-[11px] text-[#F5B841]/85">{notice}</p>}
-            {error && <p className="mt-3 text-center text-[11px] text-[#F07882]">{error}</p>}
+              <p className="mt-5 text-[9px] font-bold uppercase tracking-[0.2em] text-[#F6F1E7]/40">
+                Your details
+              </p>
 
-            {order ? (
-              <button
-                type="button"
-                onClick={reopen}
-                disabled={busy || waiting}
-                className="mt-4 w-full rounded-full border border-[#F5B841]/45 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#F5B841] transition-colors hover:bg-[#F5B841] hover:text-[#082328] disabled:opacity-60"
-              >
-                {busy ? 'Opening…' : waiting ? 'Waiting for payment…' : 'Reopen secure payment'}
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={pay}
-                disabled={busy}
-                className="mt-4 w-full rounded-full bg-[#C2305E] py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-white disabled:opacity-60"
-              >
-                {busy ? 'Opening secure payment…' : `Pay ${rupees(total)} with YouPI`}
-              </button>
-            )}
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <div>
+                  <span className={labelClass}>Full name</span>
+                  <input
+                    value={name}
+                    onChange={(changeEvent) => setName(changeEvent.target.value)}
+                    placeholder="Your name"
+                    className={fieldClass}
+                  />
+                </div>
 
-            <p className="mt-2 text-center text-[9px] text-[#F6F1E7]/35">
-              Secure UPI checkout · YouPI · the committee sees your payment instantly
-            </p>
-          </>
-        )}
+                <div>
+                  <span className={labelClass}>Contact number</span>
+                  <input
+                    value={phone}
+                    onChange={(changeEvent) => setPhone(changeEvent.target.value)}
+                    inputMode="tel"
+                    placeholder="10-digit mobile number"
+                    className={fieldClass}
+                  />
+                </div>
+
+                <div>
+                  <span className={labelClass}>Gender</span>
+                  <select
+                    value={gender}
+                    onChange={(changeEvent) => setGender(changeEvent.target.value)}
+                    className={fieldClass}
+                  >
+                    <option value="">Select</option>
+                    <option value="female">Female</option>
+                    <option value="male">Male</option>
+                    <option value="other">Other</option>
+                    <option value="prefer_not_to_say">Prefer not to say</option>
+                  </select>
+                </div>
+
+                <div>
+                  <span className={labelClass}>Marital status</span>
+                  <select
+                    value={maritalStatus}
+                    onChange={(changeEvent) => setMaritalStatus(changeEvent.target.value)}
+                    className={fieldClass}
+                  >
+                    <option value="">Select</option>
+                    <option value="single">Single</option>
+                    <option value="married">Married</option>
+                    <option value="divorced">Divorced</option>
+                    <option value="widowed">Widowed</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+
+                <div>
+                  <span className={labelClass}>Date of birth</span>
+                  <input
+                    type="date"
+                    value={dob}
+                    onChange={(changeEvent) => handleDob(changeEvent.target.value)}
+                    className={`${fieldClass} [color-scheme:dark]`}
+                  />
+                </div>
+
+                <div>
+                  <span className={labelClass}>Age</span>
+                  <input
+                    value={age}
+                    onChange={(changeEvent) => setAge(changeEvent.target.value.replace(/[^0-9]/g, ''))}
+                    inputMode="numeric"
+                    placeholder="Auto"
+                    className={fieldClass}
+                  />
+                </div>
+              </div>
+
+              {notice && <p className="mt-3 text-center text-[11px] text-[#F5B841]/85">{notice}</p>}
+              {error && <p className="mt-3 text-center text-[11px] text-[#F07882]">{error}</p>}
+
+              {order ? (
+                <button
+                  type="button"
+                  onClick={reopen}
+                  disabled={busy || waiting}
+                  className="mt-5 w-full rounded-full border border-[#F5B841]/45 py-3.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#F5B841] transition-colors hover:bg-[#F5B841] hover:text-[#082328] disabled:opacity-60"
+                >
+                  {busy ? 'Opening…' : waiting ? 'Waiting for payment…' : 'Reopen secure payment'}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={pay}
+                  disabled={busy}
+                  className="mt-5 w-full rounded-full bg-[#C2305E] py-3.5 text-[11px] font-bold uppercase tracking-[0.14em] text-white shadow-[0_18px_40px_-20px_rgba(194,48,94,0.9)] transition-transform hover:-translate-y-0.5 disabled:opacity-60"
+                >
+                  {busy ? 'Opening secure payment…' : `Pay ${rupees(total)}`}
+                </button>
+              )}
+
+              <p className="mt-2.5 text-center text-[9px] text-[#F6F1E7]/35">
+                Secure UPI checkout · your membership activates automatically
+              </p>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

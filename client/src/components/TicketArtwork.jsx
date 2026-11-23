@@ -1,4 +1,5 @@
 import StyledQr from './StyledQr.jsx';
+import { assetUrl } from '../services/api.js';
 
 /**
  * Movie ticket in the black + red stub style: a wide cinema panel with the
@@ -28,6 +29,8 @@ export default function TicketArtwork({ booking }) {
 
   const seats = Array.isArray(booking?.seats) ? booking.seats : [];
   const { labels, rows, numbers } = seatParts(seats);
+  const seatClass = [...new Set(seats.map((seat) => seat?.category_name).filter(Boolean))].join(' · ');
+  const poster = booking?.thumbnail_url ? assetUrl(booking.thumbnail_url) : '';
   const gate = String(String(booking?.auditorium_name || '').match(/\d+/)?.[0] || '01').padStart(2, '0');
   const ticketNumber = String(booking?.booking_reference || '').replace(/^BK-/, '');
   const venue = [booking?.theatre_name, booking?.auditorium_name].filter(Boolean).join(' · ') || 'Konkani Samudai';
@@ -38,11 +41,25 @@ export default function TicketArtwork({ booking }) {
 
   return (
     <article
-      className="kk-ticket-art relative grid overflow-hidden rounded-[22px] bg-[#0A0A0C] text-white shadow-[0_30px_70px_-35px_rgba(0,0,0,0.9)] sm:grid-cols-[minmax(0,1fr)_300px]"
+      className="kk-ticket-art relative grid w-full grid-cols-[minmax(0,1fr)] overflow-hidden rounded-[22px] bg-[#0A0A0C] text-white shadow-[0_30px_70px_-35px_rgba(0,0,0,0.9)] sm:grid-cols-[minmax(0,1fr)_300px]"
       style={{ '--kk-ticket-bg': '#0A2A31' }}
     >
       {/* Left: cinema panel */}
-      <div className="relative overflow-hidden px-5 py-6 sm:px-8 sm:py-7">
+      <div className="relative min-w-0 overflow-hidden px-5 py-6 sm:px-8 sm:py-7">
+        {poster && (
+          <>
+            <img
+              src={poster}
+              alt=""
+              aria-hidden="true"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+            <div
+              aria-hidden="true"
+              className="absolute inset-0 bg-gradient-to-r from-[#0A0A0C]/95 via-[#0A0A0C]/82 to-[#0A0A0C]/55"
+            />
+          </>
+        )}
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
           <svg
             className="absolute -bottom-14 -left-12 h-52 w-52 text-white/[0.06]"
@@ -75,7 +92,7 @@ export default function TicketArtwork({ booking }) {
           </svg>
         </div>
 
-        <div className="relative flex h-full flex-col justify-between gap-6">
+        <div className="relative flex h-full min-w-0 flex-col justify-between gap-6">
           <div>
             <div className="flex items-start justify-between gap-3">
               <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-[#F4B63F]">
@@ -119,13 +136,14 @@ export default function TicketArtwork({ booking }) {
             )}
             <p className="mt-2 line-clamp-1 text-[10px] text-white/55">
               {labels.length ? labels.join(' · ') : 'Seats assigned at the counter'}
+              {seatClass ? ` · ${seatClass}` : ''}
             </p>
           </div>
         </div>
       </div>
 
       {/* Perforation + red stub */}
-      <div className="relative border-t border-dashed border-white/25 bg-[#C61D23] px-5 py-5 sm:border-l sm:border-t-0 sm:px-6">
+      <div className="relative min-w-0 border-t border-dashed border-white/25 bg-[#C61D23] px-5 py-5 sm:border-l sm:border-t-0 sm:px-6">
         <span
           aria-hidden="true"
           className="absolute -left-2.5 -top-2.5 hidden h-5 w-5 rounded-full sm:block"
@@ -157,6 +175,11 @@ export default function TicketArtwork({ booking }) {
           <span className="text-[18px] font-semibold leading-none">{rows.join(', ') || '—'}</span>
           <span className="text-[15px] font-semibold leading-none">{numbers.join(', ') || '—'}</span>
         </div>
+        {seatClass && (
+          <p className="mt-2 text-center text-[7px] font-bold uppercase tracking-[0.2em] text-white/65">
+            {seatClass}
+          </p>
+        )}
 
         <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
           {scanSeats.length > 0 ? (
@@ -179,9 +202,9 @@ export default function TicketArtwork({ booking }) {
           )}
         </div>
 
-        <p className="mt-3 flex items-center justify-between gap-2 text-[8px] font-bold uppercase tracking-[0.16em] text-white/75">
-          <span>Ticket number</span>
-          <span className="font-mono text-[9px] tracking-[0.06em]">{ticketNumber || '—'}</span>
+        <p className="mt-3 flex min-w-0 items-center justify-between gap-2 text-[8px] font-bold uppercase tracking-[0.16em] text-white/75">
+          <span className="shrink-0">Ticket number</span>
+          <span className="truncate font-mono text-[9px] tracking-[0.06em]">{ticketNumber || '—'}</span>
         </p>
       </div>
     </article>

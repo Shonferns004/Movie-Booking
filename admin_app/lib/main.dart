@@ -19,6 +19,7 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   int _index = 0; // Home is the default tab
   String? _token;
+  List<String> _roles = const [];
   bool _loading = true;
 
   @override
@@ -30,10 +31,16 @@ class _MainShellState extends State<MainShell> {
   Future<void> _loadSession() async {
     final prefs = await SharedPreferences.getInstance();
     final cached = prefs.getString('token') ?? '';
+    final roles = (prefs.getString('roles') ?? '')
+        .split(',')
+        .map((role) => role.trim())
+        .where((role) => role.isNotEmpty)
+        .toList();
     final token = await AuthService.validAccessToken(cached);
     if (!mounted) return;
     setState(() {
       _token = token;
+      _roles = roles;
       _loading = false;
     });
   }
@@ -46,26 +53,31 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
+    // Scanner accounts get the scanner shell only — its own Home/Profile tabs.
+    final scannerOnly = _roles.contains('SCANNER') && !_roles.contains('ADMIN');
+
     return Scaffold(
       backgroundColor: KkSurface.bg,
       // IndexedStack keeps each tab alive, so switching does not reload everything.
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: KkSurface.accent))
-          : IndexedStack(
-              index: _index,
-              children: [
-                // Home = community command centre (hero, members, notices, events).
-                CommunityHomeScreen(token: _token),
-                // The dashboard (formerly the Home page) lives in the Movies tab.
-                const HomeScreen(),
-                ProfileScreen(
-                  token: _token ?? '',
-                  shows: const [],
-                  onSignOut: _signOut,
+          : scannerOnly
+              ? const HomeScreen()
+              : IndexedStack(
+                  index: _index,
+                  children: [
+                    // Home = community command centre (hero, members, notices, events).
+                    CommunityHomeScreen(token: _token),
+                    // The dashboard (formerly the Home page) lives in the Movies tab.
+                    const HomeScreen(),
+                    ProfileScreen(
+                      token: _token ?? '',
+                      shows: const [],
+                      onSignOut: _signOut,
+                    ),
+                  ],
                 ),
-              ],
-            ),
-      bottomNavigationBar: _buildNav(),
+      bottomNavigationBar: scannerOnly ? null : _buildNav(),
     );
   }
 

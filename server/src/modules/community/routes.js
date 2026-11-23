@@ -68,6 +68,10 @@ router.post('/membership/checkout', requireAuth, async (req, res, next) => {
         userId: req.user.id,
         name: req.body?.name,
         phone: req.body?.phone,
+        gender: req.body?.gender,
+        age: req.body?.age,
+        dob: req.body?.dob,
+        maritalStatus: req.body?.maritalStatus,
         publicBase: payments.youpiPublicBase(req),
       }),
     );
@@ -119,6 +123,14 @@ router.patch('/admin/membership', adminOnly, async (req, res, next) => {
 });
 
 /* ---------------------------------------------------------- event tickets */
+
+router.get('/events/tickets/me', requireAuth, async (req, res, next) => {
+  try {
+    res.json(await community.listUserTicketOrders(req.user.id));
+  } catch (e) {
+    next(e);
+  }
+});
 
 router.post('/events/:id/checkout', optionalAuth, async (req, res, next) => {
   try {
@@ -233,7 +245,11 @@ router.post('/admin/hero', adminOnly, upload.single('file'), async (req, res, ne
       return;
     }
 
-    const image = await community.addHero({ url, caption: req.body?.caption });
+    const image = await community.addHero({
+      url,
+      caption: req.body?.caption,
+      placement: req.body?.placement,
+    });
     res.status(201).json({ image });
   } catch (e) {
     next(e);
