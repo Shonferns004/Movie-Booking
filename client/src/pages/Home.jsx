@@ -400,7 +400,7 @@ export default function Home() {
         )}
 
         <section
-          className="relative mx-auto max-w-6xl px-4 pb-14 pt-8 sm:px-6"
+          className="relative w-full pb-14 pt-6"
           onMouseEnter={() => setPaused(true)}
           onMouseLeave={() => setPaused(false)}
           onFocus={() => setPaused(true)}
