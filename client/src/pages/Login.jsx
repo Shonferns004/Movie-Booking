@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../services/api.js';
+import notify from '../services/notify.js';
+import { useSileoNotice } from '../hooks/useSileoNotice.js';
 
 const FEATURE_ART =
   'https://lh3.googleusercontent.com/aida-public/AB6AXuCQDt_qykwZIxiz9ZYZ6fR-gF3aANZ8rKGZWeZSdJi9wDavoHDqqDlkKKxaJXv_sb0r_JOTo9HmTHxQBs4JE5HwfMDtjBkTqffRLiN2kJ5_unTJakCIvZvkKm7TRWiT46E9ta8_5h2C49Xzq_AueGyTRWiG9gr0f_Ed_-7uA7xndUAi7YMsJQLeUBLwyqm1yTyIPsHcFn5rRx0-p_gXS8dKRToRRGEaYYmDCjno-ECa0ibzOO11UzuqtQ';
@@ -57,6 +59,8 @@ export default function Login() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
+  useSileoNotice(error, 'error', { title: 'Could not sign you in' });
+
   function switchAuthTab(next) {
     setMode(next);
     setError('');
@@ -94,9 +98,11 @@ export default function Login() {
       if (response.data?.devOtp) {
         setOtp(String(response.data.devOtp));
         setOtpMessage(`Development OTP: ${response.data.devOtp}`);
+        notify.info({ title: 'Development OTP ready', description: 'Filled in automatically for local testing.' });
       } else {
         setOtp('');
         setOtpMessage(`We sent a 6-digit code to +91 ${mobile} on WhatsApp.`);
+        notify.success({ title: 'OTP sent on WhatsApp', description: `Check +91 ${mobile} for the 6-digit code.` });
       }
     } catch (err) {
       setError(err.response?.data?.error || err.message || 'Could not send the OTP. Please try again.');
@@ -125,6 +131,7 @@ export default function Login() {
       if (data.youpiCustomerToken) {
         localStorage.setItem('youpiCustomerToken', data.youpiCustomerToken);
       }
+      notify.success({ title: 'Signed in', description: 'Welcome back to Konkani Samudai.' });
       navigate('/movies');
     } catch (err) {
       setError(err.response?.data?.error || err.message || 'Invalid OTP. Please try again.');
@@ -146,6 +153,10 @@ export default function Login() {
       localStorage.setItem('token', r.data.accessToken || r.data.token);
       if (r.data.refreshToken) localStorage.setItem('refreshToken', r.data.refreshToken);
       if (r.data.user) localStorage.setItem('user', JSON.stringify(r.data.user));
+      notify.success({
+        title: isRegister ? 'Account created' : 'Signed in',
+        description: isRegister ? 'Welcome to Konkani Samudai.' : 'Welcome back.',
+      });
       navigate('/movies');
     } catch (err) {
       setError(err.response?.data?.error || err.message || 'Unable to sign in. Please try again.');

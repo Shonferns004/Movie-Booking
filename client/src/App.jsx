@@ -11,6 +11,7 @@ import Checkout from './pages/Checkout.jsx';
 import BookingConfirmation from './pages/BookingConfirmation.jsx';
 import MyTickets from './pages/MyTickets.jsx';
 import Login from './pages/Login.jsx';
+import UiIcon from './components/UiIcon.jsx';
 
 const NAV_LINKS = [
   { to: '/', label: 'Home', end: true, icon: 'diversity_3' },
@@ -151,14 +152,14 @@ function Nav() {
 
         <div className="ml-auto flex shrink-0 items-center gap-2">
           <Link to="/movies" aria-label="Browse movies" className="kk-circle">
-            <span className="material-symbols-outlined text-[20px]">search</span>
+            <UiIcon name="search" className="text-[20px]" />
           </Link>
 
           <Link
             to="/movies"
             className="kk-shine kk-shine-slow hidden h-12 items-center gap-2 rounded-full bg-[#C8FF1F] px-5 text-[10.5px] font-bold uppercase tracking-[0.1em] text-[#171B1F] shadow-[0_10px_24px_-14px_rgba(200,255,31,0.9)] transition-all hover:-translate-y-0.5 hover:bg-[#D9FF66] lg:inline-flex"
           >
-            <span className="material-symbols-outlined text-[17px]">local_activity</span>
+            <UiIcon name="local_activity" className="text-[17px]" />
             Book tickets
           </Link>
 
@@ -172,7 +173,7 @@ function Nav() {
                 aria-label="Account menu"
                 className="kk-circle kk-circle-lime"
               >
-                <span className="material-symbols-outlined text-[21px]">person</span>
+                <UiIcon name="person" className="text-[21px]" />
               </button>
 
               {accountOpen && (
@@ -182,7 +183,7 @@ function Nav() {
                 >
                   <div className="flex items-center gap-3 bg-[#C8FF1F]/[0.08] px-4 py-4">
                     <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#C8FF1F] text-[#171B1F]">
-                      <span className="material-symbols-outlined text-[22px]">person</span>
+                      <UiIcon name="person" className="text-[22px]" />
                     </span>
                     <div className="min-w-0">
                       <p className="truncate text-[13px] font-semibold text-[#F2F0EC]">{accountName}</p>
@@ -196,7 +197,7 @@ function Nav() {
                       onClick={() => setAccountOpen(false)}
                       className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[12px] font-semibold text-[#F2F0EC]/85 transition-colors hover:bg-[#F2F0EC]/[0.06] hover:text-[#F2F0EC]"
                     >
-                      <span className="material-symbols-outlined text-[18px] text-[#C8FF1F]">confirmation_number</span>
+                      <UiIcon name="confirmation_number" className="text-[18px] text-[#C8FF1F]" />
                       My tickets
                     </Link>
                     <Link
@@ -205,7 +206,7 @@ function Nav() {
                       onClick={() => setAccountOpen(false)}
                       className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[12px] font-semibold text-[#F2F0EC]/85 transition-colors hover:bg-[#F2F0EC]/[0.06] hover:text-[#F2F0EC]"
                     >
-                      <span className="material-symbols-outlined text-[18px] text-[#C8FF1F]">photo_library</span>
+                      <UiIcon name="photo_library" className="text-[18px] text-[#C8FF1F]" />
                       Gallery
                     </Link>
                     <div className="my-1 h-px bg-[#F2F0EC]/10" />
@@ -215,7 +216,7 @@ function Nav() {
                       onClick={logout}
                       className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[12px] font-semibold text-[#F08A80] transition-colors hover:bg-[#F08A80]/10"
                     >
-                      <span className="material-symbols-outlined text-[18px]">logout</span>
+                      <UiIcon name="logout" className="text-[18px]" />
                       Logout
                     </button>
                   </div>
@@ -224,7 +225,7 @@ function Nav() {
             </div>
           ) : (
             <Link to="/login" aria-label="Sign in" className={`kk-circle${onHome && !scrolled ? '' : ''}`}>
-              <span className="material-symbols-outlined text-[20px]">person</span>
+              <UiIcon name="person" className="text-[20px]" />
             </Link>
           )}
 
@@ -239,7 +240,7 @@ function Nav() {
             }}
             className="kk-circle md:hidden"
           >
-            <span className="material-symbols-outlined">{mobileOpen ? 'close' : 'menu'}</span>
+            <UiIcon name={mobileOpen ? 'close' : 'menu'} />
           </button>
         </div>
       </div>
@@ -263,7 +264,7 @@ function Nav() {
                   }`
                 }
               >
-                <span aria-hidden="true" className="material-symbols-outlined text-[18px]">{item.icon}</span>
+                <UiIcon name={item.icon} className="text-[18px]" aria-hidden="true" />
                 {item.label}
               </NavLink>
             ))}
@@ -271,7 +272,7 @@ function Nav() {
               to="/movies"
               className="kk-shine kk-shine-slow mt-2 inline-flex items-center justify-center gap-2 rounded-full bg-[#C8FF1F] px-3 py-3 text-[10.5px] font-bold uppercase tracking-[0.12em] text-[#171B1F]"
             >
-              <span className="material-symbols-outlined text-[17px]">local_activity</span>
+              <UiIcon name="local_activity" className="text-[17px]" />
               Book movie tickets
             </Link>
           </div>

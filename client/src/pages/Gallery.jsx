@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import api from '../services/api.js';
+import UiIcon from '../components/UiIcon.jsx';
 
 /**
  * Public gallery: the photos managed from the admin app's Gallery screen
@@ -75,11 +76,11 @@ export default function Gallery() {
           </div>
           <div className="mt-7 flex flex-wrap items-center gap-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#F2F0EC]/45">
             <span className="inline-flex items-center gap-2 rounded-full border border-[#F2F0EC]/12 bg-[#171B1F]/50 px-3 py-1.5">
-              <span className="material-symbols-outlined text-[14px] text-[#C8FF1F]">photo_library</span>
+              <UiIcon name="photo_library" className="text-[14px] text-[#C8FF1F]" />
               {loading ? 'Loading…' : `${images.length} photograph${images.length === 1 ? '' : 's'}`}
             </span>
             <span className="inline-flex items-center gap-2 rounded-full border border-[#F2F0EC]/12 bg-[#171B1F]/50 px-3 py-1.5">
-              <span className="material-symbols-outlined text-[14px] text-[#B6E36A]">verified</span>
+              <UiIcon name="verified" className="text-[14px] text-[#B6E36A]" />
               Shot at our events
             </span>
           </div>
@@ -99,7 +100,7 @@ export default function Gallery() {
           </div>
         ) : images.length === 0 ? (
           <div className="rounded-3xl border border-[#F2F0EC]/10 bg-[#242A30]/50 px-6 py-16 text-center">
-            <span className="material-symbols-outlined text-[40px] text-[#C8FF1F]/60">add_photo_alternate</span>
+            <UiIcon name="add_photo_alternate" className="text-[40px] text-[#C8FF1F]/60" />
             <h2 className="mt-4 font-['Fraunces',Georgia,serif] text-[26px] font-bold">No photographs yet</h2>
             <p className="mx-auto mt-2 max-w-md text-[13px] leading-relaxed text-[#F2F0EC]/55">
               The committee adds gallery pictures from the admin app. Check back after the next event.
@@ -109,7 +110,7 @@ export default function Gallery() {
               className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#B5AFA6] px-5 py-2.5 text-[11px] font-bold uppercase tracking-[0.1em] text-[#1A1E23] transition-transform hover:-translate-y-0.5"
             >
               Back to the community
-              <span className="material-symbols-outlined text-[15px]">arrow_forward</span>
+              <UiIcon name="arrow_forward" className="text-[15px]" />
             </Link>
           </div>
         ) : (
@@ -132,7 +133,7 @@ export default function Gallery() {
                   <span className="line-clamp-2 text-[11px] font-semibold leading-snug text-[#F2F0EC]">
                     {image.caption || 'Konkani Samudai'}
                   </span>
-                  <span className="material-symbols-outlined shrink-0 text-[18px] text-[#C8FF1F]">open_in_full</span>
+                  <UiIcon name="open_in_full" className="shrink-0 text-[18px] text-[#C8FF1F]" />
                 </span>
               </button>
             ))}
@@ -156,7 +157,7 @@ export default function Gallery() {
             className="inline-flex shrink-0 items-center gap-2 self-start rounded-full bg-[#C8FF1F] px-5 py-2.5 text-[11px] font-bold uppercase tracking-[0.1em] text-[#1E2227] transition-transform hover:-translate-y-0.5"
           >
             Become a member
-            <span className="material-symbols-outlined text-[15px]">arrow_forward</span>
+            <UiIcon name="arrow_forward" className="text-[15px]" />
           </Link>
         </div>
       </section>
@@ -185,7 +186,7 @@ export default function Gallery() {
               aria-label="Close gallery"
               className="shrink-0 rounded-full border border-[#F2F0EC]/15 p-2.5 text-[#F2F0EC]/70 transition-colors hover:text-[#F2F0EC]"
             >
-              <span className="material-symbols-outlined text-[20px]">close</span>
+              <UiIcon name="close" className="text-[20px]" />
             </button>
           </div>
 
@@ -197,7 +198,7 @@ export default function Gallery() {
                 aria-label="Previous photograph"
                 className="absolute left-0 z-10 rounded-full border border-[#F2F0EC]/15 bg-[#171B1F]/70 p-3 text-[#F2F0EC]/80 backdrop-blur transition-colors hover:text-[#C8FF1F]"
               >
-                <span className="material-symbols-outlined text-[20px]">chevron_left</span>
+                <UiIcon name="chevron_left" className="text-[20px]" />
               </button>
             )}
 
@@ -214,7 +215,7 @@ export default function Gallery() {
                 aria-label="Next photograph"
                 className="absolute right-0 z-10 rounded-full border border-[#F2F0EC]/15 bg-[#171B1F]/70 p-3 text-[#F2F0EC]/80 backdrop-blur transition-colors hover:text-[#C8FF1F]"
               >
-                <span className="material-symbols-outlined text-[20px]">chevron_right</span>
+                <UiIcon name="chevron_right" className="text-[20px]" />
               </button>
             )}
           </div>

@@ -2,6 +2,7 @@ import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import api, { assetUrl } from '../services/api.js';
 import { useRealtime } from '../services/realtime.js';
 import { Link } from 'react-router-dom';
+import UiIcon from '../components/UiIcon.jsx';
 
 const FALLBACK_POSTER =
   'https://lh3.googleusercontent.com/aida-public/AB6AXuBOo5aPBJ7vdVsyiAG9pfkMVnbOJYOVjsyddb_wdpsXPO4tgUUifaP9nMyjEo-fKxK_ZjauieUWHBTRdqvu8Q4CcOErASg1hSKV9obttLqrrs6jTlTsxDnxRJLtWEC4hmHH1qRKkwdlvckJI1x8oqYkdtQp6GDkqg9I2cHnbuZMEXP4XfOWNlSml_xs9RBxGEFaj-pYqP9suJE5VFC4RFuakypp44Chxara4FwGIgRyLVZSH5AUU610lQ';
@@ -203,41 +204,14 @@ function useCountUp(target) {
   return value;
 }
 
-const PromiseIcon = ({ kind }) => {
-  const common = { width: 48, height: 48, viewBox: '0 0 48 48', fill: 'none', 'aria-hidden': true };
-  if (kind === 'hold')
-    return (
-      <svg {...common}>
-        <circle cx="24" cy="24" r="14" stroke="#F2F0EC" strokeOpacity=".2" strokeWidth="3" />
-        <circle className="kk-ring" cx="24" cy="24" r="14" stroke="#C8FF1F" strokeWidth="3" strokeLinecap="round" />
-        <path d="M24 17v7l4 3" stroke="#F2F0EC" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    );
-  if (kind === 'qr')
-    return (
-      <svg {...common}>
-        <g stroke="#F2F0EC" strokeWidth="2.5" strokeLinejoin="round">
-          <rect x="8" y="8" width="12" height="12" rx="2" />
-          <rect x="28" y="8" width="12" height="12" rx="2" />
-          <rect x="8" y="28" width="12" height="12" rx="2" />
-        </g>
-        <path d="M28 28h4v4h-4zM36 36h4v4h-4zM36 28h4M28 36h4" stroke="#F2F0EC" strokeWidth="2.5" />
-        <rect className="kk-scan" x="6" y="9" width="36" height="3" rx="1.5" fill="#C8FF1F" />
-      </svg>
-    );
-  return (
-    <svg {...common}>
-      <g className="kk-float">
-        <g className="kk-spin">
-          <path
-            d="M24 6l5.2 11 12 1.6-8.8 8.3 2.2 11.9L24 32.8 13.4 38.8l2.2-11.9L6.8 18.6 18.8 17z"
-            fill="#C8FF1F"
-          />
-        </g>
-      </g>
-    </svg>
-  );
-};
+const PromiseIcon = ({ kind }) => (
+  <UiIcon
+    name={kind}
+    size={48}
+    stroke={1.5}
+    style={{ color: kind === 'star' ? '#C8FF1F' : '#F2F0EC' }}
+  />
+);
 
 /* Smaller ticket that peeks out from behind the main one (previous / next film) */
 function SideTicket({ movie, side, poster, onClick }) {
@@ -261,18 +235,10 @@ function SideTicket({ movie, side, poster, onClick }) {
           className="h-full w-full object-cover opacity-55 transition duration-500 group-hover:scale-105 group-hover:opacity-90"
         />
         <span className="absolute inset-0 bg-gradient-to-t from-[#1E2227] via-[#1E2227]/30 to-transparent" />
-        <svg
-          aria-hidden="true"
-          viewBox="0 0 24 24"
+        <UiIcon
+          name={left ? 'chevron_left' : 'chevron_right'}
           className={`absolute top-1/2 h-5 w-5 -translate-y-1/2 text-[#F2F0EC] ${left ? 'left-1.5' : 'right-1.5'}`}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d={left ? 'M15 5l-7 7 7 7' : 'M9 5l7 7-7 7'} />
-        </svg>
+        />
         <span className="absolute inset-x-0 bottom-0 hidden p-3 sm:block">
           <span className="block text-xs text-[#F2F0EC]/70">{left ? 'Previous' : 'Next'}</span>
           <span className="kk-display line-clamp-2 text-sm font-bold leading-tight text-[#F2F0EC]">{movie.title}</span>
@@ -440,7 +406,7 @@ export default function Home() {
                       onClick={() => step(-1)}
                       className="kk-circle !h-10 !w-10"
                     >
-                      <span className="material-symbols-outlined text-[20px]">chevron_left</span>
+                      <UiIcon name="chevron_left" className="text-[20px]" />
                     </button>
                     <button
                       type="button"
@@ -448,7 +414,7 @@ export default function Home() {
                       onClick={() => step(1)}
                       className="kk-circle !h-10 !w-10"
                     >
-                      <span className="material-symbols-outlined text-[20px]">chevron_right</span>
+                      <UiIcon name="chevron_right" className="text-[20px]" />
                     </button>
                   </div>
 
@@ -503,7 +469,7 @@ export default function Home() {
                     to={`/movies/${featured.slug || featured.id}`}
                     className="kk-btn inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#C8FF1F] px-6 py-3.5 text-sm font-bold text-[#1E2227] hover:bg-[#A8D819] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1E2227] sm:w-auto sm:min-w-[240px] sm:self-start"
                   >
-                    <span className="material-symbols-outlined text-[19px]">local_activity</span>
+                    <UiIcon name="local_activity" className="text-[19px]" />
                     Book seats
                   </Link>
                 </div>
@@ -512,7 +478,7 @@ export default function Home() {
               {/* Notch + editorial strip */}
               <div className="relative border-t border-[#F2F0EC]/10 px-5 pb-6 pt-10 sm:px-8 sm:pb-8">
                 <button type="button" className="kk-play-notch" aria-label="Play trailer">
-                  <span className="material-symbols-outlined text-[30px]">play_arrow</span>
+                  <UiIcon name="play_arrow" className="text-[30px]" />
                 </button>
 
                 <div className="flex flex-col gap-7 pt-4 md:flex-row md:items-center md:justify-between">

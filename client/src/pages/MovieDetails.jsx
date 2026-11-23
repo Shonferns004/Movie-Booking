@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api, { assetUrl } from '../services/api.js';
+import UiIcon from '../components/UiIcon.jsx';
 
 const C = {
   ink: '#1E2227',
@@ -535,9 +536,7 @@ export default function MovieDetails() {
                     </p>
                     <p className="mt-1.5 text-[11px] font-semibold text-[#B6E36A]">Cancellation available</p>
                   </div>
-                  <span className="material-symbols-outlined shrink-0 text-[#F2F0EC]/35" aria-hidden="true">
-                    favorite_border
-                  </span>
+                  <UiIcon name="favorite_border" className="shrink-0 text-[#F2F0EC]/35" aria-hidden="true" />
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-2">
@@ -551,7 +550,7 @@ export default function MovieDetails() {
         ) : (
           <div className="rounded-2xl border border-dashed border-[#F2F0EC]/20 bg-[#262C33]/50 px-6 py-14 text-center">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#1E2227] text-[#C8FF1F]">
-              <span className="material-symbols-outlined">event_busy</span>
+              <UiIcon name="event_busy" />
             </div>
             <h3 className="kk-display mt-4 text-2xl font-bold">No shows here yet.</h3>
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#F2F0EC]/60">

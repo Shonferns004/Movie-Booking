@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import api from '../services/api.js';
 import { loadYoupiScript } from '../services/youpi.js';
+import { useSileoNotice } from '../hooks/useSileoNotice.js';
+import UiIcon from '../components/UiIcon.jsx';
 
 const C = {
   ink: '#1E2227',
@@ -93,6 +95,9 @@ export default function Checkout() {
   const [status, setStatus] = useState('');
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
+
+  useSileoNotice(error, 'error', { title: 'Payment problem' });
+  useSileoNotice(notice, 'info');
   const [booking, setBooking] = useState(null);
   const [order, setOrder] = useState(null);
   const [movie, setMovie] = useState(() => (contextMatches && holdContext?.title
@@ -171,7 +176,7 @@ export default function Checkout() {
         <style>{STYLES}</style>
         <div className="mx-auto max-w-lg rounded-3xl border border-[#F2F0EC]/10 bg-[#262C33] p-8 text-center shadow-2xl">
           <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#C8FF1F]/15 text-[#C8FF1F]">
-            <span className="material-symbols-outlined text-3xl">confirmation_number</span>
+            <UiIcon name="confirmation_number" className="text-3xl" />
           </span>
           <h1 className="kk-display text-2xl font-semibold">No active seat hold</h1>
           <p className="mt-2 text-sm leading-6 text-[#F2F0EC]/65">Choose your seats first, then return here to complete your booking.</p>
@@ -254,6 +259,7 @@ export default function Checkout() {
         if (mobile.trim()) url.searchParams.set('customerPhone', mobile.trim());
         if (email.trim()) url.searchParams.set('customerEmail', email.trim());
         url.searchParams.set('skipAuth', '1');
+        url.searchParams.set('youpiParentOrigin', window.location.origin);
         checkoutUrl = url.toString();
       }
     } catch {
@@ -379,7 +385,7 @@ export default function Checkout() {
             aria-label="Back to seats"
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[#F2F0EC]/70 transition hover:bg-[#F2F0EC]/10 hover:text-[#F2F0EC]"
           >
-            <span className="material-symbols-outlined text-[20px]">arrow_back_ios_new</span>
+            <UiIcon name="arrow_back_ios_new" className="text-[20px]" />
           </button>
           <div className="min-w-0 flex-1">
             <h1 className="kk-display truncate text-base font-bold leading-tight sm:text-xl">{title}</h1>
@@ -427,7 +433,7 @@ export default function Checkout() {
                   {cinema}{screen ? ` (${screen})` : ''}
                 </p>
                 <p className="mt-1 inline-flex items-center gap-1.5 text-[11px] text-[#1E2227]/50">
-                  <span className="material-symbols-outlined text-[14px]">schedule</span>
+                  <UiIcon name="schedule" className="text-[14px]" />
                   Seats held until {formatExpiry(hold.expiresAt)}
                 </p>
               </div>
@@ -440,7 +446,7 @@ export default function Checkout() {
                   className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold"
                   style={{ color: C.accentInk }}
                 >
-                  <span className="material-symbols-outlined text-[13px]">edit</span>
+                  <UiIcon name="edit" className="text-[13px]" />
                   M-Ticket
                 </button>
               </div>
@@ -465,7 +471,7 @@ export default function Checkout() {
             <div className="flex items-center justify-between gap-4">
               <span className="inline-flex items-center gap-1.5 text-[#1E2227]/65">
                 Convenience fees
-                <span className="material-symbols-outlined cursor-help text-[14px] text-[#1E2227]/35" title="No booking fee is added on this deployment.">info</span>
+                <UiIcon name="info" className="cursor-help text-[14px] text-[#1E2227]/35" title="No booking fee is added on this deployment." />
               </span>
               <span className="font-semibold tabular-nums">₹0.00</span>
             </div>
@@ -477,7 +483,7 @@ export default function Checkout() {
               <div className="flex items-center justify-between gap-4">
                 <span className="inline-flex items-center gap-1.5 text-[#1E2227]/65">
                   Payment verification
-                  <span className="material-symbols-outlined cursor-help text-[14px] text-[#1E2227]/35" title="A unique paise amount lets the gateway match your UPI credit to this exact booking.">info</span>
+                  <UiIcon name="info" className="cursor-help text-[14px] text-[#1E2227]/35" title="A unique paise amount lets the gateway match your UPI credit to this exact booking." />
                 </span>
                 <span className="font-semibold tabular-nums">+ {rupees(verificationOffsetMinor)}</span>
               </div>
@@ -507,7 +513,7 @@ export default function Checkout() {
               className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold"
               style={{ color: C.accentInk }}
             >
-              <span className="material-symbols-outlined text-[14px]">edit</span>
+              <UiIcon name="edit" className="text-[14px]" />
               {editingContact ? 'Done' : 'Edit'}
             </button>
           </div>
@@ -567,10 +573,10 @@ export default function Checkout() {
             className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left sm:px-6"
           >
             <span className="inline-flex items-center gap-2 text-sm font-semibold">
-              <span className="material-symbols-outlined text-[18px]" style={{ color: C.mango }}>local_activity</span>
+              <UiIcon name="local_activity" className="text-[18px]" style={{ color: C.mango }} />
               Apply Offers
             </span>
-            <span className="material-symbols-outlined text-[#F2F0EC]/45">{offersOpen ? 'expand_less' : 'chevron_right'}</span>
+            <UiIcon name={offersOpen ? 'expand_less' : 'chevron_right'} className="text-[#F2F0EC]/45" />
           </button>
           {offersOpen && (
             <div className="border-t border-[#F2F0EC]/10 px-5 py-4 text-xs text-[#F2F0EC]/55 sm:px-6">
@@ -599,13 +605,13 @@ export default function Checkout() {
 
         {status && (
           <div role="status" aria-live="polite" className="flex items-start gap-3 rounded-xl border border-[#C8FF1F]/20 bg-[#C8FF1F]/[0.07] px-4 py-3 text-sm text-[#C8FF1F]">
-            <span className="material-symbols-outlined text-lg">{loading ? 'progress_activity' : 'info'}</span>
+            <UiIcon name={loading ? 'progress_activity' : 'info'} className="text-lg" />
             <span>{status}</span>
           </div>
         )}
         {error && (
           <div role="alert" className="flex items-start gap-3 rounded-xl border border-[#C8FF1F]/35 bg-[#C8FF1F]/10 px-4 py-3 text-sm text-[#F0B0A6]">
-            <span className="material-symbols-outlined text-lg">error</span>
+            <UiIcon name="error" className="text-lg" />
             <span>{error}</span>
           </div>
         )}

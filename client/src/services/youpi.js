@@ -49,6 +49,7 @@ export async function openYoupiCheckout(order, { name, phone, email, description
       if (phone) url.searchParams.set('customerPhone', phone);
       if (email) url.searchParams.set('customerEmail', email);
       url.searchParams.set('skipAuth', '1');
+      if (typeof window !== 'undefined') url.searchParams.set('youpiParentOrigin', window.location.origin);
       checkoutUrl = url.toString();
     }
   } catch {

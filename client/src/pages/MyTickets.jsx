@@ -3,9 +3,11 @@ import { createPortal } from 'react-dom';
 import { Link, Navigate } from 'react-router-dom';
 import { gsap } from 'gsap';
 import api from '../services/api.js';
+import { useSileoNotice } from '../hooks/useSileoNotice.js';
 import TicketArtwork from '../components/TicketArtwork.jsx';
 import EventTicketArtwork from '../components/EventTicketArtwork.jsx';
 import StyledQr from '../components/StyledQr.jsx';
+import UiIcon from '../components/UiIcon.jsx';
 
 const COLORS = {
   ink: '#1E2227',
@@ -74,7 +76,7 @@ function TicketPassModal({ booking, onClose, onDownload }) {
               aria-label="Close ticket"
               className="shrink-0 rounded-full border border-[#1E2227]/15 p-2 text-[#1E2227]/70 transition-colors hover:text-[#1E2227]"
             >
-              <span className="material-symbols-outlined text-[18px]">close</span>
+              <UiIcon name="close" className="text-[18px]" />
             </button>
           </div>
 
@@ -136,7 +138,7 @@ function TicketPassModal({ booking, onClose, onDownload }) {
                 onClick={() => onDownload(booking)}
                 className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-[#1E2227] py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#F2F0EC] transition-transform hover:-translate-y-0.5"
               >
-                <span className="material-symbols-outlined text-[16px]">download</span>
+                <UiIcon name="download" className="text-[16px]" />
                 Download ticket
               </button>
             </div>
@@ -154,6 +156,8 @@ export default function MyTickets() {
   const [eventBackground, setEventBackground] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  useSileoNotice(error, 'error', { title: 'Tickets' });
   const [filter, setFilter] = useState('all');
   const [now] = useState(() => Date.now());
   const [printBooking, setPrintBooking] = useState(null);
@@ -400,7 +404,7 @@ export default function MyTickets() {
             >
               <EventTicketArtwork ticket={pass} backgroundUrl={eventBackground} />
               <p className="mt-2 flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.14em] text-[#F2F0EC]/40">
-                <span className="material-symbols-outlined text-[14px] text-[#C8FF1F]">confirmation_number</span>
+                <UiIcon name="confirmation_number" className="text-[14px] text-[#C8FF1F]" />
                 Event pass · tap to open &amp; download
               </p>
             </Link>

@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../services/api.js';
+import { useSileoNotice } from '../hooks/useSileoNotice.js';
 import { useRealtime } from '../services/realtime.js';
+import UiIcon from '../components/UiIcon.jsx';
 
 const C = {
   ink: '#1E2227',
@@ -98,6 +100,9 @@ export default function SeatSelection() {
   const [pickerOpen, setPickerOpen] = useState(true);
   const [notice, setNotice] = useState('');
   const [loadingError, setLoadingError] = useState('');
+
+  useSileoNotice(notice, 'error', { title: 'Seat selection' });
+  useSileoNotice(loadingError, 'error', { title: 'Could not load seats' });
   const [holding, setHolding] = useState(false);
   const [zoomIdx, setZoomIdx] = useState(2);
 
@@ -348,7 +353,7 @@ export default function SeatSelection() {
             aria-label="Back to showtimes"
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[#F2F0EC]/70 transition hover:bg-[#F2F0EC]/10 hover:text-[#F2F0EC]"
           >
-            <span className="material-symbols-outlined text-[20px]">arrow_back_ios_new</span>
+            <UiIcon name="arrow_back_ios_new" className="text-[20px]" />
           </button>
 
           <div className="min-w-0 flex-1">
@@ -368,7 +373,7 @@ export default function SeatSelection() {
             className="inline-flex shrink-0 items-center gap-1.5 rounded-md border px-3 py-2 text-xs font-semibold transition hover:bg-[#C8FF1F]/10"
             style={{ borderColor: `${C.kokum}99`, color: C.kokum }}
           >
-            <span className="material-symbols-outlined text-[15px]">edit</span>
+            <UiIcon name="edit" className="text-[15px]" />
             {selected.length || limit} {selected.length === 1 || (!selected.length && limit === 1) ? 'Ticket' : 'Tickets'}
           </button>
         </div>
@@ -388,7 +393,7 @@ export default function SeatSelection() {
               aria-label="Zoom out"
               className="kk-zoom flex h-8 w-8 items-center justify-center rounded-full border border-[#F2F0EC]/[0.12] text-[#F2F0EC]/70 disabled:opacity-30"
             >
-              <span className="material-symbols-outlined text-[18px]">zoom_out</span>
+              <UiIcon name="zoom_out" className="text-[18px]" />
             </button>
             <button
               type="button"
@@ -397,7 +402,7 @@ export default function SeatSelection() {
               aria-label="Zoom in"
               className="kk-zoom flex h-8 w-8 items-center justify-center rounded-full border border-[#F2F0EC]/[0.12] text-[#F2F0EC]/70 disabled:opacity-30"
             >
-              <span className="material-symbols-outlined text-[18px]">zoom_in</span>
+              <UiIcon name="zoom_in" className="text-[18px]" />
             </button>
           </div>
         </div>
@@ -485,12 +490,9 @@ export default function SeatSelection() {
           <Legend color="rgba(181,175,166,.45)" label="Sold" filled />
           <span className="inline-flex items-center gap-1.5">
             <Legend color={C.mango} label="Bestseller" />
-            <span
-              className="material-symbols-outlined cursor-help text-[14px] text-[#F2F0EC]/35"
+            <UiIcon name="info" className="cursor-help text-[14px] text-[#F2F0EC]/35"
               title="Most-loved seats in this screen, at the regular price."
-            >
-              info
-            </span>
+             />
           </span>
           <Legend color={C.kokum} label="Selected" filled />
         </div>
@@ -557,7 +559,7 @@ export default function SeatSelection() {
                 aria-label="Close seat count"
                 className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full text-[#1E2227]/50 transition hover:bg-[#1E2227]/[0.08] hover:text-[#1E2227]"
               >
-                <span className="material-symbols-outlined text-[20px]">close</span>
+                <UiIcon name="close" className="text-[20px]" />
               </button>
 
               <h2 className="kk-display text-center text-2xl font-bold">How many seats?</h2>
@@ -571,7 +573,7 @@ export default function SeatSelection() {
                   style={{ background: `${C.mango}22`, color: C.kokum }}
                   aria-hidden="true"
                 >
-                  <span className="material-symbols-outlined text-[34px]">two_wheeler</span>
+                  <UiIcon name="two_wheeler" className="text-[34px]" />
                 </span>
               </div>
 

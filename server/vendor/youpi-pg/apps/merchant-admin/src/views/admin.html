@@ -4760,25 +4760,71 @@
     }
 
     // --- ADMIN LIVE TOAST ---
+(function () {
+  if (window.sileoToast) return;
+  var stack = document.createElement('div');
+  stack.id = 'sileoToastStack';
+  stack.style.cssText = 'position:fixed;left:50%;top:84px;transform:translateX(-50%);z-index:2147483000;display:flex;flex-direction:column;gap:10px;align-items:center;pointer-events:none;width:min(92vw,420px);';
+  document.body.appendChild(stack);
+
+  var ICONS = { success: '\u2713', error: '\u2715', warning: '!', info: 'i' };
+  var TONES = { success: '#C8FF1F', error: '#F08A80', warning: '#E8C36B', info: '#B5AFA6' };
+
+  window.sileoToast = function (options) {
+    var o = typeof options === 'string' ? { title: options } : (options || {});
+    var type = TONES[o.type] ? o.type : 'info';
+    var el = document.createElement('div');
+    el.setAttribute('role', 'status');
+    el.style.cssText = 'pointer-events:auto;position:relative;display:flex;gap:11px;align-items:flex-start;width:100%;padding:12px 14px;border-radius:16px;background:#2E353D;border:1px solid rgba(242,240,236,.12);box-shadow:0 18px 40px -18px rgba(0,0,0,.85);opacity:0;transform:translateY(-10px) scale(.97);transition:opacity .22s ease,transform .22s cubic-bezier(.2,.9,.3,1.15);overflow:hidden;font-family:inherit;text-align:left;';
+
+    var icon = document.createElement('span');
+    icon.textContent = ICONS[type];
+    icon.style.cssText = 'flex:none;display:grid;place-items:center;width:22px;height:22px;border-radius:999px;background:' + TONES[type] + ';color:#171B1F;font-weight:900;font-size:12px;margin-top:1px;';
+
+    var body = document.createElement('div');
+    body.style.cssText = 'min-width:0;flex:1;';
+    var title = document.createElement('div');
+    title.textContent = o.title || '';
+    title.style.cssText = 'font-size:13.5px;font-weight:700;color:#F2F0EC;line-height:1.3;';
+    body.appendChild(title);
+
+    if (o.description) {
+      var desc = document.createElement('div');
+      desc.textContent = o.description;
+      desc.style.cssText = 'margin-top:3px;font-size:12px;color:#B5AFA6;line-height:1.45;';
+      body.appendChild(desc);
+    }
+
+    var close = document.createElement('button');
+    close.type = 'button';
+    close.setAttribute('aria-label', 'Dismiss notification');
+    close.innerHTML = '&times;';
+    close.style.cssText = 'flex:none;border:0;background:transparent;color:#8C877F;font-size:16px;line-height:1;cursor:pointer;padding:0 0 0 4px;';
+
+    var bar = document.createElement('span');
+    bar.style.cssText = 'position:absolute;left:0;bottom:0;height:2px;width:100%;background:' + TONES[type] + ';opacity:.85;';
+
+    el.append(icon, body, close, bar);
+    stack.appendChild(el);
+    requestAnimationFrame(function () {
+      el.style.opacity = '1';
+      el.style.transform = 'translateY(0) scale(1)';
+    });
+
+    var timer = setTimeout(dismiss, typeof o.duration === 'number' ? o.duration : 4200);
+    function dismiss() {
+      clearTimeout(timer);
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(-8px) scale(.98)';
+      setTimeout(function () { el.remove(); }, 220);
+    }
+    close.onclick = dismiss;
+    el.addEventListener('mouseenter', function () { clearTimeout(timer); });
+  };
+})();
+
     function showAdminToast(msg, isSuccess = true) {
-      let t = document.getElementById('adminLiveToast');
-      if (!t) {
-        t = document.createElement('div');
-        t.id = 'adminLiveToast';
-        t.style.cssText = 'position:fixed; bottom:24px; right:24px; z-index:999999; padding:12px 20px; border-radius:8px; font-weight:700; font-size:13.5px; box-shadow:0 8px 24px rgba(0,0,0,0.5); display:flex; align-items:center; gap:8px; transition:all 0.25s ease; transform:translateY(100px); opacity:0; pointer-events:none;';
-        document.body.appendChild(t);
-      }
-      t.style.background = isSuccess ? '#065f46' : '#991b1b';
-      t.style.color = '#ffffff';
-      t.style.border = isSuccess ? '1px solid #10b981' : '1px solid #ef4444';
-      t.innerHTML = `${isSuccess ? '✓' : '⚠️'} ${escapeHtml(msg)}`;
-      t.style.transform = 'translateY(0)';
-      t.style.opacity = '1';
-      clearTimeout(t._timer);
-      t._timer = setTimeout(() => {
-        t.style.transform = 'translateY(100px)';
-        t.style.opacity = '0';
-      }, 4000);
+      window.sileoToast({ title: String(msg || ''), type: isSuccess ? 'success' : 'error' });
     }
 
     // --- DEVELOPER SETTINGS: FALSE NARRATIVE LOGIC (AUTO-EXPIRES IN 10 MINUTES) ---

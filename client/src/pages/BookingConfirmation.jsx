@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import api from '../services/api.js';
+import { useSileoNotice } from '../hooks/useSileoNotice.js';
+import notify from '../services/notify.js';
 
 const money = (minor = 0, currency = 'INR') =>
   new Intl.NumberFormat('en-IN', {
@@ -25,6 +27,18 @@ export default function BookingConfirmation() {
   const { reference } = useParams();
   const [booking, setBooking] = useState(null);
   const [error, setError] = useState('');
+
+  useSileoNotice(error, 'error', { title: 'Booking' });
+  const confirmedToast = useRef(false);
+  useEffect(() => {
+    if (!booking || confirmedToast.current) return;
+    if (String(booking.status || '').toLowerCase() !== 'confirmed') return;
+    confirmedToast.current = true;
+    notify.success({
+      title: 'Booking confirmed',
+      description: `${booking.booking_reference} · ${booking.title || 'Your show'}`,
+    });
+  }, [booking]);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {

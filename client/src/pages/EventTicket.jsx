@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
 import api from '../services/api.js';
+import { useSileoNotice } from '../hooks/useSileoNotice.js';
 import EventTicketArtwork from '../components/EventTicketArtwork.jsx';
+import UiIcon from '../components/UiIcon.jsx';
 
 const WHATSAPP = '917506419340';
 
@@ -13,6 +15,8 @@ export default function EventTicket() {
   const [backgroundUrl, setBackgroundUrl] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  useSileoNotice(error, 'error', { title: 'Event pass' });
   const [printing, setPrinting] = useState(false);
 
   useEffect(() => {
@@ -118,7 +122,7 @@ export default function EventTicket() {
 
         {!loading && !error && !paid && (
           <div className="rounded-[22px] border border-[#C8FF1F]/25 bg-[#242A30]/70 p-10 text-center">
-            <span className="material-symbols-outlined text-[36px] text-[#C8FF1F]/70">hourglass_top</span>
+            <UiIcon name="hourglass_top" className="text-[36px] text-[#C8FF1F]/70" />
             <h2 className="mt-3 font-['Fraunces',Georgia,serif] text-[24px] font-bold">Confirming your payment</h2>
             <p className="mx-auto mt-2 max-w-md text-[12px] leading-relaxed text-[#F2F0EC]/55">
               This page refreshes automatically as soon as the committee’s gateway confirms the
@@ -137,7 +141,7 @@ export default function EventTicket() {
                 onClick={() => setPrinting(true)}
                 className="inline-flex items-center gap-2 rounded-full bg-[#C8FF1F] px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#1A1E23] transition-transform hover:-translate-y-0.5"
               >
-                <span className="material-symbols-outlined text-[16px]">download</span>
+                <UiIcon name="download" className="text-[16px]" />
                 Download PDF
               </button>
               <a
@@ -146,7 +150,7 @@ export default function EventTicket() {
                 rel="noreferrer"
                 className="inline-flex items-center gap-2 rounded-full bg-[#B6E36A] px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#1A1E23] transition-transform hover:-translate-y-0.5"
               >
-                <span className="material-symbols-outlined text-[16px]">chat</span>
+                <UiIcon name="chat" className="text-[16px]" />
                 Send details
               </a>
               <span className="ml-auto font-mono text-[10px] text-[#F2F0EC]/40">Order {ticket.orderId}</span>

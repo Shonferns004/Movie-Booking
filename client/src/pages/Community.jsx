@@ -3,8 +3,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import api, { assetUrl } from '../services/api.js';
+import { useSileoNotice } from '../hooks/useSileoNotice.js';
 import { useRealtime } from '../services/realtime.js';
 import { openYoupiCheckout } from '../services/youpi.js';
+import UiIcon from '../components/UiIcon.jsx';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -370,15 +372,13 @@ function Hero({ images, event, movie, onPick, stats, isMember }) {
               className="js-hero-cta group inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[#C8FF1F] px-5 text-[12px] font-bold tracking-wide text-[#1E2227] shadow-[0_14px_30px_-16px_rgba(200,255,31,0.9)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#D6FF5C] sm:h-12 sm:px-7 sm:text-[13px]"
             >
               Explore events
-              <span className="material-symbols-outlined text-[18px] transition-transform group-hover:translate-x-0.5">arrow_forward</span>
+              <UiIcon name="arrow_forward" className="text-[18px] transition-transform group-hover:translate-x-0.5" />
             </a>
             <a
               href="#join"
               className="js-hero-cta group inline-flex h-11 items-center justify-center gap-2 rounded-full border border-[#F2F0EC]/25 bg-[#171B1F]/40 px-5 text-[12px] font-semibold text-[#F2F0EC]/90 backdrop-blur transition-all duration-300 hover:-translate-y-0.5 hover:border-[#C8FF1F] hover:bg-[#C8FF1F]/10 hover:text-[#C8FF1F] sm:h-12 sm:px-7 sm:text-[13px]"
             >
-              <span className="material-symbols-outlined text-[18px]">
-                {isMember ? 'verified' : 'groups'}
-              </span>
+              <UiIcon name={isMember ? 'verified' : 'groups'} className="text-[18px]" />
               {isMember ? 'Your membership' : 'Become a member'}
             </a>
           </div>
@@ -478,7 +478,7 @@ function MovieStrip({ movie, className = '' }) {
         />
       ) : (
         <div className="js-movie-poster flex h-16 w-12 shrink-0 items-center justify-center rounded-lg bg-white/5 text-white/30">
-          <span className="material-symbols-outlined text-[18px]">movie</span>
+          <UiIcon name="movie" className="text-[18px]" />
         </div>
       )}
       <div className="min-w-0 flex-1">
@@ -514,7 +514,7 @@ function FeatureRail({ movie, events, images, onPick }) {
             aria-label="Open the featured film"
             onClick={() => movie && window.location.assign(`/movies/${movie.id}`)}
           >
-            <span className="material-symbols-outlined text-[30px]">play_arrow</span>
+            <UiIcon name="play_arrow" className="text-[30px]" />
           </button>
 
           <div className="flex flex-col gap-8 pt-6 md:flex-row md:items-center md:justify-between">
@@ -528,7 +528,7 @@ function FeatureRail({ movie, events, images, onPick }) {
                     <img src={poster} alt="" loading="lazy" />
                   ) : (
                     <div className="grid h-full place-items-center text-[#B5AFA6]">
-                      <span className="material-symbols-outlined">movie</span>
+                      <UiIcon name="movie" />
                     </div>
                   )}
                   <span className="absolute inset-x-2 bottom-2 z-10 line-clamp-2 text-[9px] font-bold uppercase tracking-[0.08em] text-[#F2F0EC]">
@@ -610,7 +610,7 @@ function Stub({ event, onPick, className = '', primary = false }) {
           <p className="text-[10px] text-[#F2F0EC]/55">{event.date}</p>
           <p className="mt-0.5 inline-flex items-center gap-1 text-[10.5px] font-semibold text-[#F2F0EC]/75">
             Get tickets
-            <span className="material-symbols-outlined text-[13px]">arrow_outward</span>
+            <UiIcon name="arrow_outward" className="text-[13px]" />
           </p>
         </div>
       </div>
@@ -645,7 +645,7 @@ function Events({ events, onPick }) {
 
       {events.length === 0 ? (
         <div className="js-reveal mt-10 rounded-3xl border border-[#F2F0EC]/10 bg-[#242A30]/50 p-10 text-center">
-          <span className="material-symbols-outlined text-[34px] text-[#C8FF1F]/60">event_busy</span>
+          <UiIcon name="event_busy" className="text-[34px] text-[#C8FF1F]/60" />
           <p className="mt-3 text-[13px] text-[#F2F0EC]/55">
             Nothing on the calendar yet. The committee publishes events from the admin app.
           </p>
@@ -673,9 +673,7 @@ function EventCard({ event, onPick }) {
             {event.title}
           </h3>
         </div>
-        <span className="material-symbols-outlined text-[22px] transition-transform duration-300 group-hover:-translate-y-0.5" style={{ color: event.accent }}>
-          local_activity
-        </span>
+        <UiIcon name="local_activity" className="text-[22px] transition-transform duration-300 group-hover:-translate-y-0.5" style={{ color: event.accent }} />
       </div>
 
       <p className="mt-3 px-5 text-[12px] leading-relaxed text-[#F2F0EC]/55">{event.blurb}</p>
@@ -683,13 +681,13 @@ function EventCard({ event, onPick }) {
       <div className="mt-4 space-y-1.5 px-5">
         {event.time && (
           <p className="flex items-center gap-2 text-[11px] text-[#F2F0EC]/50">
-            <span className="material-symbols-outlined text-[14px]">schedule</span>
+            <UiIcon name="schedule" className="text-[14px]" />
             {event.time}
           </p>
         )}
         {event.venue && (
           <p className="flex items-center gap-2 text-[11px] text-[#F2F0EC]/50">
-            <span className="material-symbols-outlined text-[14px]">location_on</span>
+            <UiIcon name="location_on" className="text-[14px]" />
             {event.venue}
           </p>
         )}
@@ -710,7 +708,7 @@ function EventCard({ event, onPick }) {
           className="inline-flex items-center gap-1.5 rounded-full bg-[#F2F0EC]/[0.08] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[#F2F0EC] transition-colors hover:bg-[#C8FF1F] hover:text-[#1E2227]"
         >
           Get tickets
-          <span className="material-symbols-outlined text-[14px]">north_east</span>
+          <UiIcon name="north_east" className="text-[14px]" />
         </button>
       </div>
     </article>
@@ -816,15 +814,13 @@ function PhotoLibrary({ images }) {
           className="group inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#C8FF1F] transition-colors hover:text-[#F2F0EC]"
         >
           Open the gallery
-          <span className="material-symbols-outlined text-[16px] transition-transform group-hover:translate-x-0.5">
-            arrow_forward
-          </span>
+          <UiIcon name="arrow_forward" className="text-[16px] transition-transform group-hover:translate-x-0.5" />
         </Link>
       </div>
 
       {list.length === 0 ? (
         <div className="mt-10 rounded-[22px] border border-[#F2F0EC]/10 bg-[#242A30]/50 px-6 py-14 text-center">
-          <span className="material-symbols-outlined text-[34px] text-[#C8FF1F]/60">photo_library</span>
+          <UiIcon name="photo_library" className="text-[34px] text-[#C8FF1F]/60" />
           <p className="mt-3 text-[12px] text-[#F2F0EC]/55">
             Photographs from our festivals and film nights will appear here.
           </p>
@@ -861,9 +857,7 @@ function PhotoLibrary({ images }) {
                 <span className="line-clamp-2 text-[10px] font-semibold uppercase leading-snug tracking-[0.1em] text-[#F2F0EC]/85">
                   {image.caption || 'Konkani Samudai'}
                 </span>
-                <span className="material-symbols-outlined shrink-0 text-[16px] text-[#C8FF1F]/80 opacity-0 transition-opacity group-hover:opacity-100">
-                  open_in_full
-                </span>
+                <UiIcon name="open_in_full" className="shrink-0 text-[16px] text-[#C8FF1F]/80 opacity-0 transition-opacity group-hover:opacity-100" />
               </span>
             </Link>
           ))}
@@ -904,7 +898,7 @@ function Join({ onBecomeMember, membership, myMembership }) {
               'Konkani classes, choir and youth wing',
             ].map((point) => (
               <li key={point} className="flex items-start gap-2.5 text-[12px] leading-relaxed text-[#F2F0EC]/75">
-                <span className="material-symbols-outlined text-[16px] text-[#B6E36A]">check_circle</span>
+                <UiIcon name="check_circle" className="text-[16px] text-[#B6E36A]" />
                 {point}
               </li>
             ))}
@@ -933,7 +927,7 @@ function Join({ onBecomeMember, membership, myMembership }) {
                     The Samudai card
                   </h3>
                 </div>
-                <span className="material-symbols-outlined text-[24px] text-[#C8FF1F]/70">badge</span>
+                <UiIcon name="badge" className="text-[24px] text-[#C8FF1F]/70" />
               </div>
 
               <div className="mt-5 flex items-end gap-2">
@@ -1022,6 +1016,9 @@ function TicketModal({ event, onClose }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+
+  useSileoNotice(error, 'error', { title: 'Payment' });
+  useSileoNotice(notice, 'info');
   const pollRef = useRef(null);
 
   const tier = useMemo(
@@ -1196,13 +1193,13 @@ function TicketModal({ event, onClose }) {
             className="rounded-full border border-[#F2F0EC]/15 p-2 text-[#F2F0EC]/60 transition-colors hover:text-[#F2F0EC]"
             aria-label="Close"
           >
-            <span className="material-symbols-outlined text-[18px]">close</span>
+            <UiIcon name="close" className="text-[18px]" />
           </button>
         </div>
 
         {stage === 'paid' ? (
           <div className="mt-8 text-center">
-            <span className="material-symbols-outlined text-[46px] text-[#B6E36A]">check_circle</span>
+            <UiIcon name="check_circle" className="text-[46px] text-[#B6E36A]" />
             <h4 className="mt-3 font-['Fraunces',Georgia,serif] text-[24px] font-bold">You're in.</h4>
             <p className="mt-2 text-[12px] leading-relaxed text-[#F2F0EC]/65">
               {order?.quantity || quantity} × {order?.tierName || tier.name} · {event.title}
@@ -1223,7 +1220,7 @@ function TicketModal({ event, onClose }) {
                 onClick={onClose}
                 className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#C8FF1F] px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[#1A1E23]"
               >
-                <span className="material-symbols-outlined text-[15px]">confirmation_number</span>
+                <UiIcon name="confirmation_number" className="text-[15px]" />
                 View your ticket
               </Link>
             )}
@@ -1233,7 +1230,7 @@ function TicketModal({ event, onClose }) {
               rel="noreferrer"
               className="mt-2 inline-flex items-center gap-2 rounded-full bg-[#B6E36A] px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[#1A1E23]"
             >
-              <span className="material-symbols-outlined text-[15px]">chat</span>
+              <UiIcon name="chat" className="text-[15px]" />
               Send details
             </a>
             <button
@@ -1431,6 +1428,9 @@ function MembershipModal({ onClose, plan: initialPlan, onMemberChange }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+
+  useSileoNotice(error, 'error', { title: 'Payment' });
+  useSileoNotice(notice, 'info');
   const pollRef = useRef(null);
 
   const waiting = stage === 'waiting';
@@ -1640,13 +1640,13 @@ function MembershipModal({ onClose, plan: initialPlan, onMemberChange }) {
               className="rounded-full border border-[#F2F0EC]/15 p-2 text-[#F2F0EC]/60 transition-colors hover:text-[#F2F0EC]"
               aria-label="Close"
             >
-              <span className="material-symbols-outlined text-[18px]">close</span>
+              <UiIcon name="close" className="text-[18px]" />
             </button>
           </div>
 
           {!token ? (
             <div className="mt-8 text-center">
-              <span className="material-symbols-outlined text-[38px] text-[#C8FF1F]/70">lock</span>
+              <UiIcon name="lock" className="text-[38px] text-[#C8FF1F]/70" />
               <p className="mt-3 text-[13px] leading-relaxed text-[#F2F0EC]/65">
                 You need an account before you can become a member. It takes a minute.
               </p>
@@ -1655,7 +1655,7 @@ function MembershipModal({ onClose, plan: initialPlan, onMemberChange }) {
                 className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#C8FF1F] px-6 py-3 text-[12px] font-bold uppercase tracking-[0.12em] text-[#1E2227]"
               >
                 Sign in to continue
-                <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                <UiIcon name="arrow_forward" className="text-[16px]" />
               </Link>
               <p className="mt-3 text-[10px] text-[#F2F0EC]/35">
                 New here? The sign-in page also creates an account.
@@ -1663,7 +1663,7 @@ function MembershipModal({ onClose, plan: initialPlan, onMemberChange }) {
             </div>
           ) : stage === 'paid' || member ? (
             <div className="mt-8 text-center">
-              <span className="material-symbols-outlined text-[44px] text-[#B6E36A]">verified</span>
+              <UiIcon name="verified" className="text-[44px] text-[#B6E36A]" />
               <h4 className="mt-3 font-['Fraunces',Georgia,serif] text-[24px] font-bold">You're a member</h4>
               <p className="mt-2 text-[12px] leading-relaxed text-[#F2F0EC]/65">
                 {member?.name || name} · {rupees(Math.round(Number(member?.amountMinor || plan.amountMinor) / 100))} a year

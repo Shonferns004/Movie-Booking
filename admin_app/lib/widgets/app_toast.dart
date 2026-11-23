@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:tabler_icons_plus/tabler_icons_plus.dart';
 
 enum AppToastType { success, error, info }
 
@@ -132,46 +133,34 @@ class _ToastHostState extends State<_ToastHost>
                   child: Material(
                     color: Colors.transparent,
                     child: Container(
-                      padding: const EdgeInsets.fromLTRB(12, 11, 14, 11),
+                      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF232327), Color(0xFF18181B)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(16),
+                        color: const Color(0xFF2E353D),
+                        borderRadius: BorderRadius.circular(18),
                         border: Border.all(
-                          color: accent.withValues(alpha: 0.5),
+                          color: const Color(0xFFF2F0EC).withValues(alpha: 0.12),
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.4),
-                            blurRadius: 24,
-                            offset: const Offset(0, 10),
-                          ),
-                          BoxShadow(
-                            color: accent.withValues(alpha: 0.12),
+                            color: Colors.black.withValues(alpha: 0.55),
                             blurRadius: 30,
-                            spreadRadius: 1,
+                            offset: const Offset(0, 14),
                           ),
                         ],
                       ),
                       child: Row(
                         children: [
                           Container(
-                            width: 36,
-                            height: 36,
+                            width: 24,
+                            height: 24,
                             decoration: BoxDecoration(
-                              color: accent.withValues(alpha: 0.14),
-                              borderRadius: BorderRadius.circular(11),
-                              border: Border.all(
-                                color: accent.withValues(alpha: 0.35),
-                              ),
+                              color: accent,
+                              shape: BoxShape.circle,
                             ),
                             child: Icon(
                               widget.type.icon,
-                              size: 18,
-                              color: accent,
+                              size: 14,
+                              color: const Color(0xFF171B1F),
                             ),
                           ),
                           const SizedBox(width: 11),
@@ -195,10 +184,10 @@ class _ToastHostState extends State<_ToastHost>
                                   maxLines: 3,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
-                                    fontSize: 12,
-                                    height: 1.35,
-                                    fontWeight: FontWeight.w500,
-                                    color: Color(0xFFF5EFEB),
+                                    fontSize: 12.5,
+                                    height: 1.4,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFFF2F0EC),
                                   ),
                                 ),
                               ],
@@ -206,7 +195,7 @@ class _ToastHostState extends State<_ToastHost>
                           ),
                           const SizedBox(width: 6),
                           Icon(
-                            Icons.close_rounded,
+                            TablerIcons.x,
                             size: 15,
                             color: const Color(0xFF71717A),
                           ),
@@ -226,15 +215,15 @@ class _ToastHostState extends State<_ToastHost>
 
 extension on AppToastType {
   Color get color => switch (this) {
-    AppToastType.success => const Color(0xFF9DB39A),
-    AppToastType.error => const Color(0xFFE07A52),
-    AppToastType.info => const Color(0xFFD8C7A5),
+    AppToastType.success => const Color(0xFFC8FF1F),
+    AppToastType.error => const Color(0xFFF08A80),
+    AppToastType.info => const Color(0xFFB5AFA6),
   };
 
   IconData get icon => switch (this) {
-    AppToastType.success => Icons.check_rounded,
-    AppToastType.error => Icons.priority_high_rounded,
-    AppToastType.info => Icons.info_outline_rounded,
+    AppToastType.success => TablerIcons.check,
+    AppToastType.error => TablerIcons.alertTriangle,
+    AppToastType.info => TablerIcons.infoCircle,
   };
 
   String get label => switch (this) {
