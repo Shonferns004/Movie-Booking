@@ -45,7 +45,7 @@
       --r-tag: 999px;
 
       --bg: #E7E3DC;
-      --bg-header: #12201c;
+      --bg-header: #1E2227;
       --bg-nav: #EFEBE4;
       --bg-subnav: #eef0ee;
       --bg-card: #F4F1EC;
@@ -84,7 +84,7 @@
       --card-shadow: 0 1px 0 rgba(16, 26, 23, 0.04);
       --card-shadow-hover: 0 6px 18px -8px rgba(16, 26, 23, 0.18);
 
-      --badge-success-bg: #e6f4ea;
+      --badge-success-bg: #EDF6D6;
       --badge-success-text: #166534;
       --badge-success-border: #b7dfc3;
       --badge-danger-bg: #fbe9e7;
@@ -109,13 +109,13 @@
       --tr-hover: #f2f4f1;
       --focus-ring: rgba(200, 255, 31, 0.45);
 
-      --kpi-vol-color: #0f766e;
+      --kpi-vol-color: #1E2227;
       --kpi-success-color: #1b2421;
       --kpi-queue-color: #b45309;
       --kpi-pending-color: #b91c1c;
 
-      --header-bg: #12201c;
-      --header-border: #12201c;
+      --header-bg: #1E2227;
+      --header-border: #1E2227;
       --header-title: #f1f5f2;
       --nav-bg: #f7f8f6;
       --nav-border: #d9ddd7;
@@ -512,7 +512,7 @@
     }
 
     .theme-switch button:focus-visible {
-      outline: 2px solid #2dd4bf;
+      outline: 2px solid #C8FF1F;
       outline-offset: 1px;
     }
 
@@ -908,7 +908,7 @@
     }
 
     .log-svc {
-      color: #2dd4bf;
+      color: #C8FF1F;
       font-weight: 600;
       margin-right: 0.5rem;
     }
@@ -1662,7 +1662,7 @@
                       <div style="font-size:17px; font-weight:900; color:#0f172a; margin-top:2px;">₹1,500.00</div>
                     </div>
                     <span
-                      style="background:#eff6ff; color:#0f766e; font-size:10px; font-weight:800; padding:3px 8px; border-radius:6px;">Direct
+                      style="background:rgba(200,255,31,.12); color:#C8FF1F; font-size:10px; font-weight:800; padding:3px 8px; border-radius:999px;">Direct
                       UPI</span>
                   </div>
 
@@ -1697,7 +1697,7 @@
                       <div style="font-size:13px; font-weight:800; color:#ffffff;">₹1,500.00</div>
                     </div>
                     <span id="mockupCtaButton"
-                      style="background:#0f766e; color:#ffffff; font-size:10.5px; font-weight:800; padding:5px 12px; border-radius:6px;">Continue
+                      style="background:#C8FF1F; color:#171B1F; font-size:10.5px; font-weight:800; padding:5px 12px; border-radius:999px;">Continue
                       &rsaquo;</span>
                   </div>
                 </div>
@@ -2398,22 +2398,22 @@
           const overlay = document.createElement('div');
           overlay.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:rgba(15,23,42,.85);display:flex;align-items:center;justify-content:center;padding:16px;font-family:system-ui,sans-serif';
           const box = document.createElement('form');
-          box.style.cssText = 'background:#fff;color:#0f172a;border-radius:12px;padding:24px;max-width:420px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.4)';
+          box.style.cssText = 'background:#262C33;color:#F2F0EC;border:1px solid #3A4148;border-radius:20px;padding:24px;max-width:420px;width:100%;box-shadow:0 30px 70px rgba(0,0,0,.65)';
           const title = document.createElement('h3');
           title.textContent = 'Admin token required';
           title.style.margin = '0 0 8px';
           const hint = document.createElement('p');
           hint.textContent = message || 'Enter the admin API token (ADMIN_API_TOKEN, or the contents of data/.secrets/admin_api_token on the server).';
-          hint.style.cssText = 'margin:0 0 12px;font-size:14px;color:#475569';
+          hint.style.cssText = 'margin:0 0 12px;font-size:14px;line-height:1.6;color:#B5AFA6';
           const input = document.createElement('input');
           input.type = 'password';
           input.autocomplete = 'off';
           input.required = true;
-          input.style.cssText = 'width:100%;box-sizing:border-box;padding:10px;border:1px solid #cbd5e1;border-radius:8px;margin-bottom:12px';
+          input.style.cssText = 'width:100%;box-sizing:border-box;padding:12px;border:1px solid #3A4148;border-radius:12px;margin-bottom:12px;background:#1A1E23;color:#F2F0EC';
           const btn = document.createElement('button');
           btn.type = 'submit';
           btn.textContent = 'Unlock';
-          btn.style.cssText = 'width:100%;padding:10px;border:0;border-radius:8px;background:#0f766e;color:#fff;font-weight:600;cursor:pointer';
+          btn.style.cssText = 'width:100%;padding:12px;border:0;border-radius:999px;background:#C8FF1F;color:#171B1F;font-weight:800;cursor:pointer';
           box.append(title, hint, input, btn);
           overlay.appendChild(box);
           document.body.appendChild(overlay);
