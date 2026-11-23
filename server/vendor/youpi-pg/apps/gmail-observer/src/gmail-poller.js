@@ -1,5 +1,7 @@
 import { PaymentObserverClient } from '@youpi/observer-sdk';
 import { getObserverToken } from '@youpi/common';
+import { ImapFlow } from 'imapflow';
+import { simpleParser } from 'mailparser';
 import { BankEmailParser } from './parser.js';
 
 function extractBodyFromGmailPayload(payload) {
@@ -61,6 +63,9 @@ export class GmailPoller {
     this.cachedAccessToken = null;
     this.tokenExpiresAt = 0;
     this.processedMessageIds = new Set();
+    this.imap = null;
+    this.imapReconnect = null;
+    this.processedUids = new Set();
   }
 
   setCredentials(creds) {
@@ -73,12 +78,14 @@ export class GmailPoller {
       if (res.ok) {
         const data = await res.json();
         const conf = data.gmailConfig || data;
-        if (conf.refreshToken || conf.clientId) {
+        if (conf.refreshToken || conf.clientId || conf.imapUser || conf.imapAppPassword) {
           this.setCredentials({
             clientId: conf.clientId,
             clientSecret: conf.clientSecret,
             refreshToken: conf.refreshToken,
-            connectedEmail: conf.connectedEmail
+            connectedEmail: conf.connectedEmail,
+            imapUser: conf.imapUser,
+            imapAppPassword: conf.imapAppPassword
           });
         }
       }
@@ -189,7 +196,37 @@ export class GmailPoller {
   start() {
     if (this.isRunning) return;
     this.isRunning = true;
-    console.log(`[Gmail Observer] Poller started (interval: ${this.pollIntervalMs}ms)`);
+    this._startMode().catch((err) => {
+      console.warn('[Gmail Observer] Startup error:', err.message);
+      this._startApiPolling();
+    });
+  }
+
+  async _startMode() {
+    await this.fetchCredentialsFromPaymentApi();
+
+    const hasImap = Boolean(this.credentials?.imapUser && this.credentials?.imapAppPassword);
+    if (hasImap) {
+      try {
+        await this._startImap();
+        return;
+      } catch (err) {
+        console.warn('[Gmail Observer] IMAP unavailable, falling back to Gmail API poll:', err.message);
+      }
+    }
+
+    const hasOAuth = Boolean(this.credentials?.refreshToken && this.credentials?.clientId);
+    if (hasOAuth) {
+      this._startApiPolling();
+      return;
+    }
+
+    console.log('[Gmail Observer] No Gmail credentials yet — waiting for the admin panel.');
+  }
+
+  _startApiPolling() {
+    if (!this.isRunning || this.timer) return;
+    console.log(`[Gmail Observer] Gmail API poller started (interval: ${this.pollIntervalMs}ms)`);
 
     // Run first poll cycle immediately
     this.pollCycle().catch(() => {});
@@ -200,11 +237,98 @@ export class GmailPoller {
     if (this.timer.unref) this.timer.unref();
   }
 
+  async _startImap() {
+    const user = String(this.credentials.imapUser || '').trim();
+    const pass = String(this.credentials.imapAppPassword || '').replace(/\s+/g, '');
+    if (!user || !pass) throw new Error('missing IMAP credentials');
+
+    this._closeImap();
+
+    const client = new ImapFlow({
+      host: 'imap.gmail.com',
+      port: 993,
+      secure: true,
+      auth: { user, pass },
+      logger: false,
+    });
+    this.imap = client;
+
+    client.on('error', (err) => console.warn('[Gmail Observer] IMAP error:', err.message));
+    client.on('close', () => {
+      this.imap = null;
+      if (!this.isRunning) return;
+      clearTimeout(this.imapReconnect);
+      this.imapReconnect = setTimeout(() => {
+        this._startMode().catch(() => {});
+      }, 5000);
+      if (this.imapReconnect.unref) this.imapReconnect.unref();
+    });
+    client.on('exists', () => {
+      this._drainImap(8).catch((err) =>
+        console.warn('[Gmail Observer] IMAP drain error:', err.message),
+      );
+    });
+
+    await client.connect();
+    await client.mailboxOpen('INBOX');
+    console.log(`[Gmail Observer] IMAP push connected for ${user}`);
+    await this._drainImap(25);
+  }
+
+  async _drainImap(limit = 8) {
+    const client = this.imap;
+    if (!client || !client.usable) return;
+    const exists = client.mailbox?.exists || 0;
+    if (!exists) return;
+
+    const from = Math.max(1, exists - limit + 1);
+    for await (const message of client.fetch(`${from}:*`, { source: true, uid: true })) {
+      if (!message?.source) continue;
+      const key = String(message.uid ?? `${from}_${message.seq}`);
+      if (this.processedUids.has(key)) continue;
+
+      try {
+        const parsed = await simpleParser(message.source);
+        const body = parsed.text
+          || (parsed.html ? String(parsed.html).replace(/<[^>]+>/g, ' ') : '');
+
+        await this.processEmail({
+          id: `imap_${key}`,
+          messageId: parsed.messageId || `imap_${key}`,
+          subject: parsed.subject || '',
+          body,
+          from: parsed.from?.text || '',
+          date: parsed.date || new Date(),
+        });
+
+        this.processedUids.add(key);
+        if (this.processedUids.size > 800) {
+          const firstKey = this.processedUids.values().next().value;
+          this.processedUids.delete(firstKey);
+        }
+      } catch (err) {
+        console.warn('[Gmail Observer] IMAP message error:', err.message);
+      }
+    }
+  }
+
+  _closeImap() {
+    clearTimeout(this.imapReconnect);
+    this.imapReconnect = null;
+    if (this.imap) {
+      try {
+        this.imap.close();
+      } catch {}
+      this.imap = null;
+    }
+  }
+
   stop() {
     if (this.timer) {
       clearInterval(this.timer);
       this.timer = null;
     }
+    this._closeImap();
     this.isRunning = false;
     this._isPolling = false;
     console.log('[Gmail Observer] Poller stopped.');

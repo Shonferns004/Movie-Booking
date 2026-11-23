@@ -1,6 +1,8 @@
 import crypto from 'node:crypto';
+import { Jimp } from 'jimp';
+import jsQR from 'jsqr';
 import { HttpServer } from '../server.js';
-import { PaymentStatus, PaymentMethod, SellingMode, AuditActorType, isValidVpa, toRupeesString, deriveCloudflareRoutes, resolveRuntimeUrls, resolveGmailRedirectUri, createOAuthState, validateOutboundWebhookUrl } from '@youpi/common';
+import { PaymentStatus, PaymentMethod, SellingMode, AuditActorType, isValidVpa, toRupeesString, deriveCloudflareRoutes, resolveRuntimeUrls, resolveGmailRedirectUri, createOAuthState, getObserverToken, validateOutboundWebhookUrl } from '@youpi/common';
 import { PaymentVerificationPipeline } from '@youpi/core';
 import { globalTunnelManager } from '../services/tunnel-manager.js';
 import { formatQrDataUrl } from '../services/whatsapp-berry.service.js';
@@ -1493,6 +1495,53 @@ export function registerAdminRoutes(server, ctx) {
     HttpServer.json(res, 200, { success: true, ...status });
   });
 
+  // POST /api/v1/admin/bank-qr/decode — read a UPI QR screenshot and extract the VPA
+  server.post('/api/v1/admin/bank-qr/decode', async (req, res) => {
+    const body = await HttpServer.parseBody(req).catch(() => ({}));
+    const raw = String(body.imageBase64 || '');
+    if (!raw) {
+      HttpServer.json(res, 400, { error: 'Send imageBase64 (a data URL or raw base64).' });
+      return;
+    }
+
+    try {
+      const base64 = raw.replace(/^data:image\/[a-z0-9.+-]+;base64,/i, '');
+      const buffer = Buffer.from(base64, 'base64');
+      if (!buffer.length) {
+        HttpServer.json(res, 400, { error: 'That image could not be read.' });
+        return;
+      }
+      if (buffer.length > 8 * 1024 * 1024) {
+        HttpServer.json(res, 413, { error: 'Image is too large (max 8 MB).' });
+        return;
+      }
+
+      const image = await Jimp.read(buffer);
+      const { data, width, height } = image.bitmap;
+      const decoded = jsQR(new Uint8ClampedArray(data), width, height);
+      if (!decoded?.data) {
+        HttpServer.json(res, 422, { error: 'No QR code found in that image.' });
+        return;
+      }
+
+      let upiId = '';
+      let payeeName = '';
+      try {
+        const parsed = new URL(decoded.data.replace(/^upi:\/\//i, 'https://upi.local/'));
+        upiId = parsed.searchParams.get('pa') || '';
+        payeeName = parsed.searchParams.get('pn') || '';
+      } catch {}
+      if (!upiId || !isValidVpa(upiId)) {
+        HttpServer.json(res, 422, { error: 'That QR is not a UPI payment QR.' });
+        return;
+      }
+
+      HttpServer.json(res, 200, { success: true, upiId, payeeName, raw: decoded.data });
+    } catch (err) {
+      HttpServer.json(res, 400, { error: `Could not read that image: ${err.message}` });
+    }
+  });
+
   // GET /api/v1/admin/gmail/credentials
   server.get('/api/v1/admin/gmail/credentials', async (req, res) => {
     let merchant = resolveMerchant(req, req.query?.merchantId);
@@ -1511,6 +1560,9 @@ export function registerAdminRoutes(server, ctx) {
         refreshToken: gmailConfig.refreshToken || '',
         apiKey: gmailConfig.apiKey || '',
         connectedEmail: gmailConfig.connectedEmail || null,
+        imapUser: gmailConfig.imapUser || '',
+        imapAppPassword: gmailConfig.imapAppPassword || '',
+        imapConfigured: Boolean(gmailConfig.imapUser && gmailConfig.imapAppPassword),
         lastTestedAt: gmailConfig.lastTestedAt || null
       },
       clientId: gmailConfig.clientId || '',
@@ -1519,6 +1571,9 @@ export function registerAdminRoutes(server, ctx) {
       refreshToken: gmailConfig.refreshToken || '',
       apiKey: gmailConfig.apiKey || '',
       connectedEmail: gmailConfig.connectedEmail || null,
+      imapUser: gmailConfig.imapUser || '',
+      imapAppPassword: gmailConfig.imapAppPassword || '',
+      imapConfigured: Boolean(gmailConfig.imapUser && gmailConfig.imapAppPassword),
       redirectUri,
       oauthStatus: hasToken ? 'CONNECTED' : 'DISCONNECTED',
       tokenStatus: hasToken ? 'VALID REFRESH TOKEN (OFFLINE READY)' : 'MISSING',
@@ -1626,6 +1681,10 @@ export function registerAdminRoutes(server, ctx) {
       clientSecret: body.clientSecret !== undefined && body.clientSecret.trim() && !body.clientSecret.includes('•') ? body.clientSecret.trim() : existingGmail.clientSecret,
       refreshToken: body.refreshToken !== undefined ? body.refreshToken.trim() : existingGmail.refreshToken,
       apiKey: body.apiKey !== undefined ? body.apiKey.trim() : existingGmail.apiKey,
+      imapUser: body.imapUser !== undefined ? String(body.imapUser).trim() : existingGmail.imapUser,
+      imapAppPassword: body.imapAppPassword !== undefined
+        ? String(body.imapAppPassword).replace(/\s+/g, '')
+        : existingGmail.imapAppPassword,
       connectedEmail: body.connectedEmail !== undefined ? (body.connectedEmail ? body.connectedEmail.trim() : null) : existingGmail.connectedEmail,
       lastTestedAt: body.lastTestedAt || existingGmail.lastTestedAt,
       lastSuccessfulFetch: body.lastSuccessfulFetch || existingGmail.lastSuccessfulFetch,
@@ -1654,6 +1713,14 @@ export function registerAdminRoutes(server, ctx) {
       message: 'Gmail API credentials saved successfully.',
       status: updatedGmail.refreshToken || updatedGmail.apiKey ? 'CONFIGURED' : 'UNCONFIGURED'
     });
+
+    // Reconnect the observer so the new IMAP credentials (or the API fallback) take effect.
+    try {
+      await fetch(`http://127.0.0.1:${process.env.GMAIL_OBSERVER_PORT || 6003}/restart`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${getObserverToken()}` },
+      });
+    } catch {}
   });
 
   // POST /api/v1/admin/gmail/test

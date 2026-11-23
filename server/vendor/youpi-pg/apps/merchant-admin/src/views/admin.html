@@ -2004,6 +2004,13 @@
                 <label style="display:block; font-size:0.82rem; font-weight:700; margin-bottom:0.3rem;">UPI ID / VPA <span style="font-weight:600; color:var(--text-muted);">(optional, required for a scan-to-pay QR)</span></label>
                 <input id="settingBankUpiId" type="text" placeholder="e.g. youpimovies@okhdfcbank" style="width:100%; font-family:monospace;" />
               </div>
+              <div style="grid-column:1 / -1; background:rgba(15,23,42,0.4); border:1px dashed #334155; border-radius:0.6rem; padding:0.75rem 0.85rem;">
+                <label style="display:block; font-size:0.8rem; font-weight:700; margin-bottom:0.35rem;">Scan a QR image (auto-fill UPI ID)</label>
+                <input type="file" id="bankQrImageInput" accept="image/*" onchange="decodeBankQrImage(this)" style="font-size:0.8rem; width:100%;" />
+                <p style="margin:0.35rem 0 0; font-size:0.72rem; color:var(--text-muted); line-height:1.4;">
+                  Upload a PhonePe / GPay / Paytm QR screenshot. We read the UPI ID and fill it for you.
+                </p>
+              </div>
             </div>
 
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-top:1rem;">
@@ -3262,6 +3269,21 @@
                     Refresh Token</label>
                   <input type="password" id="gmailRefreshTokenInput" placeholder="your-google-refresh-token"
                     style="width:100%; font-family:monospace; font-size:0.8rem;" />
+                </div>
+                <div style="border-top:1px solid #1e293b; padding-top:0.75rem;">
+                  <div style="font-size:0.72rem; color:#94a3b8; margin-bottom:0.5rem; line-height:1.45;">
+                    <strong style="color:#38bdf8;">Instant IMAP push (recommended)</strong> — Gmail address +
+                    App Password. Bank emails arrive in under a second instead of the 5-second API poll.
+                  </div>
+                  <label style="display:block; font-size:0.75rem; font-weight:700; color:var(--text-muted); margin-bottom:0.2rem;">Gmail address</label>
+                  <input type="email" id="gmailImapUserInput" placeholder="you@gmail.com"
+                    style="width:100%; font-family:monospace; font-size:0.8rem;" />
+                  <label style="display:block; font-size:0.75rem; font-weight:700; color:var(--text-muted); margin:0.5rem 0 0.2rem;">Gmail App Password</label>
+                  <input type="password" id="gmailImapPassInput" placeholder="16-character app password"
+                    style="width:100%; font-family:monospace; font-size:0.8rem;" />
+                  <div style="font-size:0.68rem; color:#64748b; margin-top:0.3rem; line-height:1.4;">
+                    2-Step Verification → App Passwords. Spaces are ignored.
+                  </div>
                 </div>
                 <div>
                   <button type="button" class="btn btn-primary" style="font-size:0.8rem; padding:0.4rem 0.8rem;"
@@ -5045,6 +5067,43 @@
       }
     }
 
+    async function decodeBankQrImage(input) {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      if (!/^image\//.test(file.type)) {
+        showAdminToast('Choose an image file.', false);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const res = await fetch(`${API_BASE}/api/v1/admin/bank-qr/decode`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ imageBase64: reader.result })
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            showAdminToast(data.error || 'Could not read that QR image.', false);
+            return;
+          }
+
+          const upiInput = document.getElementById('settingBankUpiId');
+          if (upiInput) upiInput.value = data.upiId || '';
+          if (data.payeeName) {
+            const nameInput = document.getElementById('settingBankAccountName');
+            if (nameInput && !nameInput.value.trim()) nameInput.value = data.payeeName;
+          }
+          showAdminToast(`UPI ID detected: ${data.upiId}`);
+        } catch (e) {
+          showAdminToast('Network error reading the QR image.', false);
+        }
+      };
+      reader.readAsDataURL(file);
+      input.value = '';
+    }
+
     async function saveMerchantBrandingAndToggles() {
       settingsLoaded = true;
       const businessName = document.getElementById('settingBusinessName')?.value.trim() || '';
@@ -5725,6 +5784,8 @@
         if (document.getElementById('gmailClientIdInput')) document.getElementById('gmailClientIdInput').value = cfg.clientId || data.clientId || '';
         if (document.getElementById('gmailClientSecretInput')) document.getElementById('gmailClientSecretInput').value = cfg.clientSecret || data.clientSecret || '';
         if (document.getElementById('gmailRefreshTokenInput')) document.getElementById('gmailRefreshTokenInput').value = cfg.refreshToken || '';
+        if (document.getElementById('gmailImapUserInput')) document.getElementById('gmailImapUserInput').value = cfg.imapUser || data.imapUser || '';
+        if (document.getElementById('gmailImapPassInput')) document.getElementById('gmailImapPassInput').value = cfg.imapAppPassword || data.imapAppPassword || '';
 
         const redirectUri = data.redirectUri || 'http://localhost:6003/oauth/callback';
         if (document.getElementById('gmailRedirectUriInput')) document.getElementById('gmailRedirectUriInput').value = redirectUri;
@@ -5793,15 +5854,17 @@
       const clientId = document.getElementById('gmailClientIdInput')?.value.trim() || '';
       const clientSecret = document.getElementById('gmailClientSecretInput')?.value.trim() || '';
       const refreshToken = document.getElementById('gmailRefreshTokenInput')?.value.trim() || '';
+      const imapUser = document.getElementById('gmailImapUserInput')?.value.trim() || '';
+      const imapAppPassword = document.getElementById('gmailImapPassInput')?.value.trim() || '';
 
       try {
         const res = await fetch(`${API_BASE}/api/v1/admin/gmail/credentials`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ clientId, clientSecret, refreshToken, merchantId: currentMerchantId })
+          body: JSON.stringify({ clientId, clientSecret, refreshToken, imapUser, imapAppPassword, merchantId: currentMerchantId })
         });
         if (res.ok) {
-          showAdminToast('Gmail API credentials saved successfully!');
+          showAdminToast('Gmail credentials saved. Observer restarted.');
           fetchGmailCredentials();
         } else {
           const d = await res.json();

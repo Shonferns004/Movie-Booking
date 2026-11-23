@@ -229,11 +229,15 @@ export function startYoupiGateway() {
       observer = await startSmsObserver(gatewayEnv.YOUPI_OBSERVER_PORT);
     }
 
-    // Gmail observer (official Google OAuth: reads bank credit emails).
+    // Gmail observer — starts at boot; it picks IMAP push or the Gmail API poller
+    // from the credentials saved in the admin panel (IMAP needs no OAuth client).
     let gmail = null;
-    if (gatewayEnv.GMAIL_CLIENT_ID && gatewayEnv.GMAIL_CLIENT_SECRET) {
+    try {
       const { startGmailObserver } = await import(vendorUrl('apps', 'gmail-observer', 'src', 'index.js'));
       gmail = await startGmailObserver(gatewayEnv.YOUPI_GMAIL_PORT);
+      gmail.poller.start();
+    } catch (err) {
+      console.warn('[YOUPI] Gmail observer unavailable:', err.message);
     }
 
     await configureMerchant();

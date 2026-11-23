@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import { encryptAtRest, decryptAtRest } from '@youpi/common';
 
 /** Gmail OAuth credentials are nested inside `branding.gmailConfig`; encrypt just those. */
-const GMAIL_SECRET_FIELDS = ['clientSecret', 'refreshToken', 'apiKey'];
+const GMAIL_SECRET_FIELDS = ['clientSecret', 'refreshToken', 'apiKey', 'imapAppPassword'];
 
 /** Serializes branding, encrypting any nested Gmail OAuth secrets. */
 function serializeBranding(branding) {

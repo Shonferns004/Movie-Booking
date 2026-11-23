@@ -61,6 +61,20 @@ export class GmailObserverServer {
         return;
       }
 
+      // POST /restart — reload credentials and pick IMAP push or the Gmail API poller
+      if (pathname === '/restart' && method === 'POST') {
+        if (!hasBearer(req, getObserverToken(), getAdminToken())) {
+          res.writeHead(401, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Unauthorized', code: 'AUTH_REQUIRED' }));
+          return;
+        }
+        this.poller.stop();
+        this.poller.start();
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, message: 'Gmail observer restarted' }));
+        return;
+      }
+
       // GET /oauth/url
       if (pathname === '/oauth/url') {
         // The `state` minted here authorises a later callback, so only trusted callers may request it.
