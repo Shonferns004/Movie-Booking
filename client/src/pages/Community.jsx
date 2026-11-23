@@ -505,8 +505,8 @@ function FeatureRail({ movie, events, images, onPick }) {
   if (!movie && !event) return null;
 
   return (
-    <section className="relative mx-auto max-w-[1180px] px-4 py-8 sm:px-8 lg:py-12">
-      <div className="kk-shell">
+    <section className="relative w-full py-6 lg:py-10">
+      <div className="kk-shell kk-shell-bleed">
         <div className="relative overflow-hidden px-5 pb-8 pt-14 sm:px-8">
           <button
             type="button"

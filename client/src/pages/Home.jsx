@@ -406,12 +406,12 @@ export default function Home() {
           onFocus={() => setPaused(true)}
           onBlur={() => setPaused(false)}
         >
-          <p className="kk-rise mb-6 max-w-md text-sm text-[#F2F0EC]/75">
+          <p className="kk-rise mb-6 max-w-md px-5 text-sm text-[#F2F0EC]/75 sm:px-8">
             Pick your seats on a live map, hold them while you pay, and walk in with a QR ticket.
           </p>
 
           {featured ? (
-            <div className="kk-shell">
+            <div className="kk-shell kk-shell-bleed">
               <div className="kk-hero-split">
                 {/* Poster hero */}
                 <div className="relative min-h-[330px] overflow-hidden sm:min-h-[440px]">
@@ -501,7 +501,7 @@ export default function Home() {
 
                   <Link
                     to={`/movies/${featured.slug || featured.id}`}
-                    className="kk-btn inline-flex items-center justify-center gap-2 rounded-full bg-[#C8FF1F] px-6 py-3.5 text-sm font-bold text-[#1E2227] hover:bg-[#A8D819] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1E2227]"
+                    className="kk-btn inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#C8FF1F] px-6 py-3.5 text-sm font-bold text-[#1E2227] hover:bg-[#A8D819] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1E2227] sm:w-auto sm:min-w-[240px] sm:self-start"
                   >
                     <span className="material-symbols-outlined text-[19px]">local_activity</span>
                     Book seats
@@ -557,7 +557,7 @@ export default function Home() {
           {movies.length > 1 && (
             <div
               ref={railRef}
-              className="kk-rail mt-6 px-1"
+              className="kk-rail mt-6 !px-5 sm:!px-8"
               role="tablist"
               aria-label="Choose a movie"
             >
