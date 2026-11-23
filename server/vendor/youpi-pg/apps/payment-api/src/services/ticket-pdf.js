@@ -39,14 +39,14 @@ export async function buildTicketPdf({ booking, seats = [], tickets = [] }) {
   });
 
   // Header band.
-  doc.rect(0, 0, 595, 112).fill('#0A2A31');
-  doc.fill('#F4B63F').font('Helvetica-Bold').fontSize(22).text('KONKANI SAMUDAI', 42, 34);
-  doc.fill('#EFEBE0').font('Helvetica').fontSize(9).text('CINEMA & SCREENHOUSE', 42, 64);
-  doc.fill('#EFEBE0').fontSize(10).text(`Booking ${booking.booking_reference}`, 42, 82);
+  doc.rect(0, 0, 595, 112).fill('#1E2227');
+  doc.fill('#C8FF1F').font('Helvetica-Bold').fontSize(22).text('KONKANI SAMUDAI', 42, 34);
+  doc.fill('#F2F0EC').font('Helvetica').fontSize(9).text('CINEMA & SCREENHOUSE', 42, 64);
+  doc.fill('#F2F0EC').fontSize(10).text(`Booking ${booking.booking_reference}`, 42, 82);
 
-  doc.fillColor('#0A2A31').font('Helvetica-Bold').fontSize(20)
+  doc.fillColor('#1E2227').font('Helvetica-Bold').fontSize(20)
     .text(booking.movie_title || 'Movie screening', 42, 142, { width: 511 });
-  doc.fillColor('#444444').font('Helvetica').fontSize(10);
+  doc.fillColor('#3A4148').font('Helvetica').fontSize(10);
   doc.text(showTime(booking.starts_at), 42, 176);
   doc.text(`${booking.theatre_name || ''}${booking.auditorium_name ? ` · ${booking.auditorium_name}` : ''}`, 42, 192);
   doc.text(
@@ -59,7 +59,7 @@ export async function buildTicketPdf({ booking, seats = [], tickets = [] }) {
   doc.text(`Seats: ${seatLabels.join(', ') || '—'}`, 42, 228);
   doc.text(`Order total: ${money(booking.total_minor)}`, 42, 244);
 
-  doc.moveTo(42, 268).lineTo(553, 268).strokeColor('#D8D2C4').lineWidth(1).stroke();
+  doc.moveTo(42, 268).lineTo(553, 268).strokeColor('#B5AFA6').lineWidth(1).stroke();
 
   let y = 292;
   for (const ticket of tickets) {
@@ -76,17 +76,17 @@ export async function buildTicketPdf({ booking, seats = [], tickets = [] }) {
     }
     if (qr) doc.image(qr, 42, y, { width: 110 });
 
-    doc.fillColor('#0A2A31').font('Helvetica-Bold').fontSize(12)
+    doc.fillColor('#1E2227').font('Helvetica-Bold').fontSize(12)
       .text(`Seat ${ticket.seat_label || ''}`, 172, y + 16);
-    doc.fillColor('#666666').font('Helvetica').fontSize(9)
+    doc.fillColor('#5A6158').font('Helvetica').fontSize(9)
       .text(ticket.category_name || 'Standard', 172, y + 34);
-    doc.fillColor('#999999').font('Helvetica').fontSize(8)
+    doc.fillColor('#8C877F').font('Helvetica').fontSize(8)
       .text(ticket.ticket_reference || '', 172, y + 50);
 
     y += 126;
   }
 
-  doc.fillColor('#888888').font('Helvetica').fontSize(8)
+  doc.fillColor('#B5AFA6').font('Helvetica').fontSize(8)
     .text('Show this PDF at the entrance. Each QR code is valid for one seat.',
       42, 790, { width: 511, align: 'center' });
 
