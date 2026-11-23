@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 
 import '../models/observer_config.dart';
@@ -5,6 +7,7 @@ import '../state/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_card.dart';
 import '../widgets/status_pill.dart';
+import 'pair_qr_scan_screen.dart';
 import 'test_send_sheet.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -136,6 +139,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return value;
   }
 
+  /// Reads the public gateway URL out of a scanned pairing QR payload.
+  String _serverFromPairingPayload(String raw) {
+    final text = raw.trim();
+    if (!text.startsWith('{')) return '';
+    try {
+      final json = jsonDecode(text);
+      if (json is! Map) return '';
+      for (final key in ['serverUrl', 'gatewayUrl', 'apiBaseUrl']) {
+        final value = (json[key] ?? '').toString().trim();
+        if (value.startsWith('http://') || value.startsWith('https://')) {
+          return value;
+        }
+      }
+    } catch (_) {
+      // Not JSON; the caller treats it as a bare enrollment secret.
+    }
+    return '';
+  }
+
   Future<void> _detectAccount() async {
     final state = AppScope.of(context);
     if (!state.config.isConfigured) {
@@ -188,14 +210,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (!accepted) return;
       await state.setConsent(true);
     }
-    final baseUrl = _normalizeUrl(_url.text);
-    if (baseUrl.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter the gateway base URL first.')),
-      );
-      return;
-    }
-
+    if (!mounted) return;
     final controller = TextEditingController();
     final secret = await showDialog<String>(
       context: context,
@@ -207,8 +222,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Paste the enrollment secret from Admin → Services → Android SMS '
-                'Companion. You can also paste the full pairing QR payload.',
+                'Scan the pairing QR from Admin → Store Settings → Android SMS Hub, '
+                'or paste the enrollment secret / full QR payload.',
                 style: Theme.of(dialogContext).textTheme.bodySmall?.copyWith(
                       height: 1.45,
                     ),
@@ -225,10 +240,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   hintText: 'Enrollment secret or { ... } QR JSON',
                 ),
               ),
+              const SizedBox(height: 10),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  final code = await Navigator.of(dialogContext).push<String>(
+                    MaterialPageRoute(
+                      builder: (_) => const PairQrScanScreen(),
+                    ),
+                  );
+                  if (code != null && code.trim().isNotEmpty) {
+                    controller.text = code.trim();
+                  }
+                },
+                icon: const Icon(Icons.qr_code_scanner_rounded, size: 18),
+                label: const Text('Scan pairing QR'),
+              ),
               const SizedBox(height: 12),
               Text(
-                'This phone will call $baseUrl. The QR\'s own serverUrl is ignored '
-                'because it points at the gateway\'s internal port.',
+                'The QR server URL is filled in automatically. Without a QR, '
+                'enter the gateway URL above the first time.',
                 style: Theme.of(dialogContext).textTheme.bodySmall?.copyWith(
                       fontSize: 10.5,
                       height: 1.4,
@@ -254,8 +284,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
     if (!mounted || secret == null || secret.isEmpty) return;
 
+    final qrBase = _serverFromPairingPayload(secret);
+    if (qrBase.isNotEmpty) {
+      _url.text = _normalizeUrl(qrBase);
+      _markDirty();
+    }
+    if (_normalizeUrl(_url.text).isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Enter the gateway base URL or scan a pairing QR.'),
+        ),
+      );
+      return;
+    }
+
     setState(() => _pairing = true);
-    final result = await state.pairDevice(secret: secret, baseUrl: baseUrl);
+    final result = await state.pairDevice(
+      secret: secret,
+      baseUrl: _normalizeUrl(_url.text),
+    );
     if (!mounted) return;
     setState(() => _pairing = false);
 
@@ -742,7 +789,7 @@ class _PairingCard extends StatelessWidget {
                     Text(
                       paired
                           ? 'Signed observations · /api/v1/observers/sms'
-                          : 'Use the enrollment secret from the admin panel',
+                          : 'Scan the pairing QR from the admin panel',
                       style: body,
                     ),
                   ],
@@ -774,9 +821,8 @@ class _PairingCard extends StatelessWidget {
           ] else ...[
             const SizedBox(height: 10),
             Text(
-              'Open Admin → Services → Android SMS Companion, copy the '
-              'enrollment secret, and paste it here. No camera permission is '
-              'needed.',
+              'Open Admin → Store Settings → Android SMS Hub and scan the '
+              'pairing QR. You can also paste the enrollment secret manually.',
               style: body,
             ),
             const SizedBox(height: 12),

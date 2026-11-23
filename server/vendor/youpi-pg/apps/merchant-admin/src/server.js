@@ -206,7 +206,7 @@ export class AdminServer {
           const stat = fs.statSync(apkPath);
           res.writeHead(200, {
             'Content-Type': 'application/vnd.android.package-archive',
-            'Content-Disposition': 'attachment; filename="youpi-sms-gateway.apk"',
+            'Content-Disposition': 'attachment; filename="konkani-sms-gateway.apk"',
             'Content-Length': stat.size,
             'Access-Control-Allow-Origin': '*'
           });

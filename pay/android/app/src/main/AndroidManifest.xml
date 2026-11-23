@@ -10,6 +10,10 @@
     <!-- Android 13+ gates the listener notification. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- Pairing QR scanner. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+
     <!-- The gateway usually runs on the LAN, so the app must also install on
          tablets / emulators without a radio. -->
     <uses-feature
