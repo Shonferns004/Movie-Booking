@@ -59,8 +59,20 @@ export function isProductionLike(env = process.env) {
  */
 export function checkoutFrameHeaders(env = process.env) {
   const configured = frameAncestorOrigins(env.CHECKOUT_FRAME_ANCESTORS);
-  const frameAncestors = configured.length
-    ? `'self' ${configured.join(' ')}`
+
+  // Local development runs on many ports (5173, 5175, 5178...), and CSP allows a
+  // wildcard port, so every loopback origin can embed the checkout without editing
+  // the Render env each time. The deployed storefront comes from APP_BASE_URL.
+  const allowed = new Set(configured);
+  allowed.add('http://localhost:*');
+  allowed.add('http://127.0.0.1:*');
+  try {
+    const app = new URL(env.APP_BASE_URL || '');
+    if (app.protocol === 'https:' || app.protocol === 'http:') allowed.add(app.origin);
+  } catch {}
+
+  const frameAncestors = allowed.size
+    ? `'self' ${[...allowed].join(' ')}`
     : (isProductionLike(env) ? "'self'" : '*');
   return {
     'X-Content-Type-Options': 'nosniff',
