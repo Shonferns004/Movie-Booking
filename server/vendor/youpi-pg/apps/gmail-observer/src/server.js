@@ -38,8 +38,10 @@ export class GmailObserverServer {
         res.end(JSON.stringify({
           status: 'UP',
           service: 'gmail-observer',
+          mode: this.poller.mode,
           isRunning: this.poller.isRunning,
           lastPollAt: this.poller.lastPollAt,
+          lastEmailAt: this.poller.lastEmailAt,
           observedCount: this.poller.observedCount
         }));
         return;
@@ -393,11 +395,23 @@ export class GmailObserverServer {
         if (this.automator.mode === 'STANDBY' && !this.automator.isEnsuring) {
           this.automator.autoEnsureConnection().catch(() => {});
         }
+        const status = this.automator.getStatus();
+        // IMAP push does not use the browser automator, so report the real channel
+        // instead of a misleading "STANDBY".
+        if (this.poller.mode === 'IMAP') {
+          status.mode = 'IMAP';
+          status.status = 'CONNECTED';
+          status.isLoggedIn = true;
+          status.isRunning = true;
+          status.emailsObserved = this.poller.observedCount;
+          status.lastCheckedAt = this.poller.lastPollAt;
+          status.lastEmailAt = this.poller.lastEmailAt;
+        }
         res.writeHead(200, {
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': '*'
         });
-        res.end(JSON.stringify(this.automator.getStatus()));
+        res.end(JSON.stringify(status));
         return;
       }
 

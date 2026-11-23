@@ -4,6 +4,38 @@ import { ImapFlow } from 'imapflow';
 import { simpleParser } from 'mailparser';
 import { BankEmailParser } from './parser.js';
 
+const KNOWN_BANK_DOMAINS = [
+  'hdfcbank.net', 'hdfcbank.com',
+  'icicibank.com',
+  'sbi.co.in', 'onlinesbi.com', 'sbicard.com',
+  'axisbank.com',
+  'kotak.com', 'kotak.co.in',
+  'paytmbank.com', 'paytm.com',
+  'yesbank.in', 'pnb.co.in',
+  'bankofbaroda.co.in', 'bankofbaroda.com', 'bankofbaroda.in',
+  'indusind.com',
+  'idfcfirstbank.com', 'idfcbank.com',
+  'canarabank.com',
+  'unionbankofindia.co.in',
+  'federalbank.co.in',
+  'idbibank.com', 'idbi.com',
+  'rblbank.com', 'aubank.in', 'bandhanbank.com',
+  'southindianbank.com', 'csb.co.in', 'dcbbank.com',
+];
+
+/** Mirrors the verification pipeline's sender allowlist. */
+function isAcceptedBankSender(domain) {
+  if (!domain) return false;
+  return (
+    domain.endsWith('.bank.in') ||
+    domain.endsWith('.fin.in') ||
+    domain === 'bank.in' ||
+    domain === 'fin.in' ||
+    domain.endsWith('.youpi.local') ||
+    KNOWN_BANK_DOMAINS.some((root) => domain === root || domain.endsWith(`.${root}`))
+  );
+}
+
 function extractBodyFromGmailPayload(payload) {
   if (!payload) return '';
   if (payload.body?.data) {
@@ -56,8 +88,10 @@ export class GmailPoller {
     });
 
     this.isRunning = false;
+    this.mode = 'STANDBY';
     this.timer = null;
     this.lastPollAt = null;
+    this.lastEmailAt = null;
     this.observedCount = 0;
     this.credentials = null;
     this.cachedAccessToken = null;
@@ -149,6 +183,29 @@ export class GmailPoller {
    * @param {{ subject: string, body: string, date?: string | Date, from?: string, id?: string }} email
    */
   async processEmail(email) {
+    // The verification pipeline only accepts official bank alert domains. Skip
+    // unrelated inbox mail (KYC, DigiLocker, marketing...) before submission so the
+    // log is not filled with expected rejections.
+    const senderRaw = String(email.fromAddress || email.from || '');
+    const domainMatch = senderRaw.match(/@([A-Za-z0-9.-]+)/);
+    const senderDomain = domainMatch
+      ? domainMatch[1].toLowerCase().replace(/[>),;]+$/, '')
+      : '';
+    const isBankDomain =
+      isAcceptedBankSender(senderDomain) ||
+      email.isTest ||
+      String(email.from || '').trim() === 'TEST';
+
+    if (!isBankDomain && !email.isTest) {
+      if (this._lastSkippedDomain !== senderDomain) {
+        this._lastSkippedDomain = senderDomain;
+        console.log(
+          `[Gmail Observer] ignoring non-bank sender "${senderDomain || 'unknown'}" (not a bank alert sender)`,
+        );
+      }
+      return { accepted: false, skipped: true, reason: 'NON_BANK_SENDER' };
+    }
+
     let parsed = null;
     try {
       parsed = BankEmailParser.parse(email);
@@ -226,6 +283,7 @@ export class GmailPoller {
 
   _startApiPolling() {
     if (!this.isRunning || this.timer) return;
+    this.mode = 'API';
     console.log(`[Gmail Observer] Gmail API poller started (interval: ${this.pollIntervalMs}ms)`);
 
     // Run first poll cycle immediately
@@ -270,8 +328,23 @@ export class GmailPoller {
     });
 
     await client.connect();
-    await client.mailboxOpen('INBOX');
-    console.log(`[Gmail Observer] IMAP push connected for ${user}`);
+
+    // Watch Gmail's All Mail when available. Bank alerts are often filtered into a
+    // label (or archived) by Gmail rules, and watching INBOX alone silently missed
+    // them, leaving paid sessions unverified.
+    let mailboxPath = 'INBOX';
+    try {
+      const boxes = await client.list();
+      const allMail =
+        boxes.find((box) => box.specialUse === '\\All') ||
+        boxes.find((box) => /\/(all mail|all)$/i.test(box.path));
+      if (allMail?.path) mailboxPath = allMail.path;
+    } catch {}
+    await client.mailboxOpen(mailboxPath);
+
+    this.mode = 'IMAP';
+    this.lastPollAt = new Date();
+    console.log(`[Gmail Observer] IMAP push connected for ${user} (watching ${mailboxPath})`);
     await this._drainImap(25);
   }
 
@@ -281,6 +354,7 @@ export class GmailPoller {
     const exists = client.mailbox?.exists || 0;
     if (!exists) return;
 
+    this.lastPollAt = new Date();
     const from = Math.max(1, exists - limit + 1);
     for await (const message of client.fetch(`${from}:*`, { source: true, uid: true })) {
       if (!message?.source) continue;
@@ -292,14 +366,17 @@ export class GmailPoller {
         const body = parsed.text
           || (parsed.html ? String(parsed.html).replace(/<[^>]+>/g, ' ') : '');
 
-        await this.processEmail({
+        const result = await this.processEmail({
           id: `imap_${key}`,
           messageId: parsed.messageId || `imap_${key}`,
           subject: parsed.subject || '',
           body,
           from: parsed.from?.text || '',
+          fromAddress: parsed.from?.value?.[0]?.address || '',
           date: parsed.date || new Date(),
         });
+
+        if (result?.accepted) this.lastEmailAt = new Date();
 
         this.processedUids.add(key);
         if (this.processedUids.size > 800) {
@@ -330,6 +407,7 @@ export class GmailPoller {
     }
     this._closeImap();
     this.isRunning = false;
+    this.mode = 'STANDBY';
     this._isPolling = false;
     console.log('[Gmail Observer] Poller stopped.');
   }
