@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Merchant Hub - YOUPI PG</title>
+  <title>Konkani Samudai - Admin</title>
   <script>
     /* Apply saved theme pref (system | light | dark) before first paint to avoid a flash. */
     (function () {
@@ -1200,28 +1200,17 @@
   <header>
     <div class="brand-group">
       <div class="brand-title">
-        <span>🛡️ YOUPI PG</span>
+        <span>Konkani Samudai - Admin</span>
       </div>
-      <span class="brand-badge">Merchant Hub</span>
+      <span class="brand-badge">Admin</span>
     </div>
 
     <div class="header-quick-stats">
-      <!-- Theme: System (default) / Light / Dark -->
-      <div class="theme-switch" role="radiogroup" aria-label="Colour theme"><button type="button" role="radio" data-theme-pref="system" onclick="setThemePref('system')" title="Follow system setting"><svg class="i" aria-hidden="true"><use href="#i-computer-desktop"/></svg>System</button><button type="button" role="radio" data-theme-pref="light" onclick="setThemePref('light')" title="Light theme"><svg class="i" aria-hidden="true"><use href="#i-sun"/></svg>Light</button><button type="button" role="radio" data-theme-pref="dark" onclick="setThemePref('dark')" title="Dark theme"><svg class="i" aria-hidden="true"><use href="#i-moon"/></svg>Dark</button></div>
-
       <!-- Active VPA Display -->
       <span class="badge badge-info" id="accountVpaDisplay" style="cursor:pointer;"
         onclick="switchSection('storeSettings', 'subViewStoreVpa')">
         VPA: Loading...
       </span>
-
-      <!-- Environment Mode -->
-      <div
-        style="display:flex; align-items:center; gap:0.4rem; background:var(--bg-card); padding:0.3rem 0.75rem; border-radius:9999px; border:1px solid var(--border);">
-        <span style="font-size:0.72rem; color:var(--text-muted); font-weight:700;">ENV:</span>
-        <span class="badge badge-info" id="headerEnvBadge" style="font-size:0.72rem; padding:0.15rem 0.5rem;">💻
-          LOCALHOST</span>
-      </div>
 
       <!-- Live Polling Indicator -->
       <div class="live-pulse-badge">
@@ -2510,10 +2499,8 @@
     const themeMQ = window.matchMedia('(prefers-color-scheme: dark)');
 
     function getThemePref() {
-      try {
-        const v = localStorage.getItem(THEME_KEY);
-        return v === 'light' || v === 'dark' ? v : 'system';
-      } catch (e) { return 'system'; }
+      // The admin panel is dark-only. No theme switch is shown.
+      return 'dark';
     }
 
     function applyTheme(pref) {

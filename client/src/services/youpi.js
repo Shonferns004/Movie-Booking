@@ -41,10 +41,14 @@ export async function openYoupiCheckout(order, { name, phone, email, description
   // session to the checkout page so it does not ask for the number again.
   let checkoutUrl = order.checkoutUrl;
   try {
-    const customerToken = typeof window !== 'undefined' ? localStorage.getItem('youpiCustomerToken') : null;
-    if (checkoutUrl && customerToken) {
+    if (checkoutUrl) {
       const url = new URL(checkoutUrl);
-      url.searchParams.set('customerToken', customerToken);
+      const customerToken = typeof window !== 'undefined' ? localStorage.getItem('youpiCustomerToken') : null;
+      if (customerToken) url.searchParams.set('customerToken', customerToken);
+      if (name) url.searchParams.set('customerName', name);
+      if (phone) url.searchParams.set('customerPhone', phone);
+      if (email) url.searchParams.set('customerEmail', email);
+      url.searchParams.set('skipAuth', '1');
       checkoutUrl = url.toString();
     }
   } catch {

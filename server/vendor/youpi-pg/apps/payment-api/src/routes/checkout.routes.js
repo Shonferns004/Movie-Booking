@@ -723,6 +723,8 @@ export function registerCheckoutRoutes(server, ctx) {
       sellingMode,
       enabledMethods,
       customer,
+      skipCustomerAuth: Boolean(session.metadata?.skipCustomerAuth),
+      merchantCustomer: session.metadata?.merchantCustomer || null,
       hasActiveSessionConflict,
       conflictingSession,
       queuePosition: session.queuePosition || 0,

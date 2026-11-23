@@ -295,6 +295,9 @@ export async function createYoupiOrder({ bookingReference, customer, publicBase 
   // APP_BASE_URL for that redirect; publicBase is only a same-origin fallback.
   const appOrigin = (env.APP_BASE_URL || publicBase || '').replace(/\/$/, '');
   const returnUrl = `${appOrigin}/booking/${booking.booking_reference}`;
+  const merchantCustomer = customer && (customer.name || customer.email || customer.mobile)
+    ? { name: customer.name || '', email: customer.email || '', phone: customer.mobile || '' }
+    : null;
 
   let session;
   try {
@@ -318,6 +321,8 @@ export async function createYoupiOrder({ bookingReference, customer, publicBase 
         metadata: {
           bookingReference: booking.booking_reference,
           bookingId: booking.id,
+          skipCustomerAuth: Boolean(merchantCustomer),
+          ...(merchantCustomer ? { merchantCustomer } : {}),
         },
       }),
     });
@@ -343,6 +348,22 @@ export async function createYoupiOrder({ bookingReference, customer, publicBase 
   // talks to a single origin. `base` is empty only when the caller cannot be resolved.
   const base = (publicBase || '').replace(/\/$/, '');
 
+  // Hand the signed-in profile to the portal so it never asks for the same mobile/OTP
+  // again. The portal reads and then strips these parameters from the URL.
+  let checkoutUrl = `${base}/checkout/${session.paymentId}`;
+  if (merchantCustomer && base) {
+    try {
+      const portalCheckoutUrl = new URL(checkoutUrl);
+      if (merchantCustomer.name) portalCheckoutUrl.searchParams.set('customerName', merchantCustomer.name);
+      if (merchantCustomer.phone) portalCheckoutUrl.searchParams.set('customerPhone', merchantCustomer.phone);
+      if (merchantCustomer.email) portalCheckoutUrl.searchParams.set('customerEmail', merchantCustomer.email);
+      portalCheckoutUrl.searchParams.set('skipAuth', '1');
+      checkoutUrl = portalCheckoutUrl.toString();
+    } catch {
+      // Keep the plain checkout URL if it cannot be parsed.
+    }
+  }
+
   return {
     payment,
     orderId,
@@ -355,7 +376,7 @@ export async function createYoupiOrder({ bookingReference, customer, publicBase 
     currency: booking.currency || 'INR',
     provider: 'youpi',
     paymentId: session.paymentId,
-    checkoutUrl: `${base}/checkout/${session.paymentId}`,
+    checkoutUrl,
     scriptUrl: `${base}/youpi.js?v=2`,
     apiUrl: `${base}/youpi`,
     portalUrl: base,
@@ -462,6 +483,14 @@ export async function createYoupiSession({
   customer,
 }) {
   const gateway = youpiApi();
+  const merchantCustomer = customer && (customer.fullName || customer.email || customer.phone)
+    ? { name: customer.fullName || '', email: customer.email || '', phone: customer.phone || '' }
+    : null;
+  const sessionMetadata = {
+    ...(metadata || {}),
+    skipCustomerAuth: Boolean(merchantCustomer),
+    ...(merchantCustomer ? { merchantCustomer } : {}),
+  };
   let res;
   try {
     res = await fetch(`${gateway}/api/v1/payments`, {
@@ -481,7 +510,7 @@ export async function createYoupiSession({
         customer: customer && (customer.email || customer.phone || customer.fullName)
           ? { email: customer.email, phoneNumber: customer.phone, fullName: customer.fullName }
           : undefined,
-        metadata,
+        metadata: sessionMetadata,
       }),
     });
   } catch (e) {
@@ -493,6 +522,29 @@ export async function createYoupiSession({
   if (!res.ok) {
     throw badRequest(body.error || body.message || `youpi create payment failed (${res.status})`);
   }
+
+  // The gateway builds its checkout URL from merchant branding, which may still say
+  // "localhost" on a hosted deployment. Force the public portal origin and carry the
+  // signed-in profile so the customer is not asked for a second OTP.
+  const portalBase = (env.YOUPI_PUBLIC_BASE_URL || youpiApi().replace(/\/youpi\/?$/, ''))
+    .replace(/\/+$/, '');
+  if (body.paymentId && portalBase) {
+    let checkoutUrl = `${portalBase}/checkout/${body.paymentId}`;
+    if (merchantCustomer) {
+      try {
+        const portalUrl = new URL(checkoutUrl);
+        if (merchantCustomer.name) portalUrl.searchParams.set('customerName', merchantCustomer.name);
+        if (merchantCustomer.phone) portalUrl.searchParams.set('customerPhone', merchantCustomer.phone);
+        if (merchantCustomer.email) portalUrl.searchParams.set('customerEmail', merchantCustomer.email);
+        portalUrl.searchParams.set('skipAuth', '1');
+        checkoutUrl = portalUrl.toString();
+      } catch {
+        // Keep the plain checkout URL if it cannot be parsed.
+      }
+    }
+    body.checkoutUrl = checkoutUrl;
+  }
+
   return body;
 }
 

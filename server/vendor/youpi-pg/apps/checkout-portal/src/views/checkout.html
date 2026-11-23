@@ -2200,8 +2200,24 @@
       }
 
       // 3. Pre-Gateway Customer Authentication Gate (Preserves identity up to 1 week)
+      const merchantCustomer = data && data.merchantCustomer;
+      const merchantSkipAuth = Boolean(
+        data &&
+        data.skipCustomerAuth &&
+        merchantCustomer &&
+        (merchantCustomer.name || merchantCustomer.phone || merchantCustomer.email)
+      );
       if (data.customer) {
         activeCustomer = data.customer;
+      } else if (!activeCustomer && merchantSkipAuth) {
+        // The merchant (movie app) already authenticated this visitor and passed their
+        // profile with the checkout. Do not ask for the same mobile/OTP again.
+        activeCustomer = {
+          id: '',
+          name: merchantCustomer.name || 'Customer',
+          email: merchantCustomer.email || '',
+          mobileNumber: merchantCustomer.phone || ''
+        };
       } else if (!activeCustomer) {
         const preserved = getPreservedIdentity();
         if (preserved && preserved.customer) {
@@ -2209,7 +2225,7 @@
           activeToken = preserved.token || activeToken;
         }
       }
-      const hasCustomer = Boolean(data.customer || activeCustomer);
+      const hasCustomer = Boolean(data.customer || activeCustomer || merchantSkipAuth);
 
       if (!hasCustomer) {
         setGatewayAuthMode(true);
@@ -2226,7 +2242,7 @@
       if (activeCustomer) {
         updateCustomerDisplay(activeCustomer);
         // Automatically bind customer to the payment session if session is INITIATED or unbound
-        if (activeToken && PAYMENT_ID && (!data.customer || data.status === 'INITIATED')) {
+        if (activeCustomer.id && activeToken && PAYMENT_ID && (!data.customer || data.status === 'INITIATED')) {
           window.autoBindCustomerToSession(activeCustomer.id, activeToken);
         }
       }
@@ -3058,20 +3074,34 @@
     }
 
     // Identity handoff from the movie app: an already-verified customer session token
-    // is passed on the checkout URL so the customer is not asked for a second OTP.
+    // and/or the signed-in profile is passed on the checkout URL so the customer is
+    // not asked for a second OTP.
     try {
       const handoffParams = new URLSearchParams(window.location.search);
       const handoffToken = handoffParams.get('customerToken');
+      const handoffName = handoffParams.get('customerName') || '';
+      const handoffPhone = handoffParams.get('customerPhone') || '';
+      const handoffEmail = handoffParams.get('customerEmail') || '';
+      const handoffSkipAuth = handoffParams.get('skipAuth') === '1';
       if (handoffToken) {
         localStorage.setItem('ypg_customer_token', handoffToken);
-        handoffParams.delete('customerToken');
-        const remaining = handoffParams.toString();
-        window.history.replaceState(
-          {},
-          '',
-          `${window.location.pathname}${remaining ? `?${remaining}` : ''}${window.location.hash}`
-        );
       }
+      if (handoffSkipAuth && (handoffName || handoffPhone || handoffEmail)) {
+        window.__merchantHandoffCustomer = {
+          name: handoffName,
+          phone: handoffPhone,
+          email: handoffEmail
+        };
+      }
+      for (const key of ['customerToken', 'customerName', 'customerPhone', 'customerEmail', 'skipAuth']) {
+        handoffParams.delete(key);
+      }
+      const remaining = handoffParams.toString();
+      window.history.replaceState(
+        {},
+        '',
+        `${window.location.pathname}${remaining ? `?${remaining}` : ''}${window.location.hash}`
+      );
     } catch (e) { }
 
     // Boot checkout - restore preserved 1-week identity if available
@@ -3083,6 +3113,18 @@
     } else {
       activeCustomer = null;
       activeToken = localStorage.getItem('ypg_customer_token') || null;
+    }
+
+    // A merchant-handoff profile from the movie app is enough to skip the OTP gate.
+    if (!activeCustomer && window.__merchantHandoffCustomer) {
+      const handoff = window.__merchantHandoffCustomer;
+      activeCustomer = {
+        id: '',
+        name: handoff.name || 'Customer',
+        email: handoff.email || '',
+        mobileNumber: handoff.phone || ''
+      };
+      updateCustomerDisplay(activeCustomer);
     }
 
     try {

@@ -246,10 +246,14 @@ export default function Checkout() {
     // the checkout page so it does not ask for the same number again.
     let checkoutUrl = activeOrder.checkoutUrl;
     try {
-      const customerToken = localStorage.getItem('youpiCustomerToken');
-      if (checkoutUrl && customerToken) {
+      if (checkoutUrl) {
         const url = new URL(checkoutUrl);
-        url.searchParams.set('customerToken', customerToken);
+        const customerToken = localStorage.getItem('youpiCustomerToken');
+        if (customerToken) url.searchParams.set('customerToken', customerToken);
+        if (name.trim()) url.searchParams.set('customerName', name.trim());
+        if (mobile.trim()) url.searchParams.set('customerPhone', mobile.trim());
+        if (email.trim()) url.searchParams.set('customerEmail', email.trim());
+        url.searchParams.set('skipAuth', '1');
         checkoutUrl = url.toString();
       }
     } catch {
