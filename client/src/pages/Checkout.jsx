@@ -6,11 +6,12 @@ import { loadYoupiScript } from '../services/youpi.js';
 const C = {
   ink: '#1E2227',
   tide: '#262C33',
-  shell: '#F2F0EC',
+  shell: '#B5AFA6',
   kokum: '#C8FF1F',
   mango: '#C8FF1F',
   green: '#B6E36A',
   greenSoft: '#232A1C',
+  accentInk: '#3C4A10',
 };
 
 const rupees = (minor = 0) => new Intl.NumberFormat('en-IN', {
@@ -433,7 +434,7 @@ export default function Checkout() {
                   type="button"
                   onClick={() => setNotice('Your seats are reserved. Change them from the seat map before paying.')}
                   className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold"
-                  style={{ color: C.kokum }}
+                  style={{ color: C.accentInk }}
                 >
                   <span className="material-symbols-outlined text-[13px]">edit</span>
                   M-Ticket
@@ -500,7 +501,7 @@ export default function Checkout() {
               type="button"
               onClick={() => setEditingContact((open) => !open)}
               className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold"
-              style={{ color: C.kokum }}
+              style={{ color: C.accentInk }}
             >
               <span className="material-symbols-outlined text-[14px]">edit</span>
               {editingContact ? 'Done' : 'Edit'}

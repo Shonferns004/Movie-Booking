@@ -437,7 +437,7 @@ export default function Home() {
                 <div className="flex min-w-0 flex-1 flex-col justify-between gap-4 sm:gap-6">
                   <div>
                     <p
-                      className="kk-rise flex flex-wrap items-center gap-2 text-sm font-semibold text-[#C8FF1F]"
+                      className="kk-rise flex flex-wrap items-center gap-2 text-sm font-semibold text-[#1E2227]"
                       style={{ animationDelay: '120ms' }}
                     >
                       Now showing
@@ -464,7 +464,7 @@ export default function Home() {
               </div>
 
               {/* Stub */}
-              <div className="flex flex-col justify-between gap-6 border-t-2 border-dashed border-[#1E2227]/40 bg-[#C8FF1F] p-6 text-[#1E2227] md:w-64 md:border-l-2 md:border-t-0">
+              <div className="flex flex-col justify-between gap-6 border-t-2 border-dashed border-[#1E2227]/40 bg-[#1E2227] p-6 text-[#F2F0EC] md:w-64 md:border-l-2 md:border-t-0">
                 <dl className="space-y-4 text-sm">
                   {[
                     ['Language', featured.language || 'English'],
@@ -473,7 +473,7 @@ export default function Home() {
                     ['Release', featured.release_date ? new Date(featured.release_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'TBA'],
                   ].map(([label, value], i) => (
                     <div key={label} className="kk-rise" style={{ animationDelay: `${350 + i * 90}ms` }}>
-                      <dt className="text-xs font-medium text-[#1E2227]/65">{label}</dt>
+                      <dt className="text-xs font-medium text-[#B5AFA6]">{label}</dt>
                       <dd className="kk-display text-xl font-bold">{value}</dd>
                     </div>
                   ))}
