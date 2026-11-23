@@ -29,7 +29,7 @@ const STYLES = `
 
 .kk-date { transition: background-color .18s ease, color .18s ease, border-color .18s ease, transform .18s ease, box-shadow .18s ease; }
 .kk-date:not(:disabled):hover { background-color: rgba(242,240,236, .07); }
-.kk-date.is-active { background-color: #C8FF1F; border-color: #C8FF1F; color: #fff; box-shadow: 0 10px 26px rgba(200,255,31, .3); }
+.kk-date.is-active { background-color: #C8FF1F; border-color: #C8FF1F; color: #1E2227; box-shadow: 0 10px 26px rgba(200,255,31, .3); }
 
 .kk-time { transition: background-color .18s ease, border-color .18s ease, transform .18s ease, box-shadow .18s ease; }
 .kk-time:not(.is-disabled):hover { transform: translateY(-2px); background-color: rgba(242,240,236, .08); box-shadow: 0 10px 22px rgba(0, 0, 0, .22); }
@@ -295,7 +295,7 @@ export default function MovieDetails() {
         <p className="mt-3 max-w-md text-sm text-[#F2F0EC]/65">
           It may have been removed or the link may be incorrect.
         </p>
-        <Link to="/movies" className="mt-6 rounded-xl bg-[#C8FF1F] px-5 py-3 text-sm font-bold text-white">
+        <Link to="/movies" className="mt-6 rounded-xl bg-[#C8FF1F] px-5 py-3 text-sm font-bold text-[#1E2227]">
           Back to movies
         </Link>
       </div>
@@ -386,7 +386,7 @@ export default function MovieDetails() {
               <div className="mt-5 flex flex-wrap items-center gap-3">
                 <a
                   href="#showtimes"
-                  className="inline-flex items-center gap-2 rounded-lg bg-[#C8FF1F] px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-black/20 transition hover:bg-[#A8D819]"
+                  className="inline-flex items-center gap-2 rounded-lg bg-[#C8FF1F] px-5 py-2.5 text-sm font-bold text-[#1E2227] shadow-lg shadow-black/20 transition hover:bg-[#A8D819]"
                 >
                   Book tickets <span aria-hidden="true">↓</span>
                 </a>
@@ -446,7 +446,7 @@ export default function MovieDetails() {
                     aria-pressed={active}
                     className={`kk-filter shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold ${
                       active
-                        ? 'is-active bg-[#F2F0EC] text-[#1E2227]'
+                        ? 'is-active bg-[#B5AFA6] text-[#1E2227]'
                         : 'border border-[#F2F0EC]/15 text-[#F2F0EC]/65'
                     }`}
                   >
@@ -508,7 +508,7 @@ export default function MovieDetails() {
                   })
                   .finally(() => setShowsLoading(false));
               }}
-              className="mt-4 rounded-lg bg-[#C8FF1F] px-4 py-2 text-sm font-bold text-white"
+              className="mt-4 rounded-lg bg-[#C8FF1F] px-4 py-2 text-sm font-bold text-[#1E2227]"
             >
               Try again
             </button>

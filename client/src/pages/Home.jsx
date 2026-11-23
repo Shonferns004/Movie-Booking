@@ -291,7 +291,7 @@ const isNew = (m) => {
 };
 
 const NewTag = () => (
-  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#C8FF1F] px-2.5 py-0.5 text-xs font-semibold text-white shadow-md shadow-black/30">
+  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#C8FF1F] px-2.5 py-0.5 text-xs font-semibold text-[#1E2227] shadow-md shadow-black/30">
     <span className="relative flex h-2 w-2">
       <span className="kk-ping absolute inline-flex h-full w-full rounded-full bg-white" />
       <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
@@ -426,7 +426,7 @@ export default function Home() {
               className="kk-ticket-in relative z-10 flex min-w-0 flex-1 flex-col overflow-hidden rounded-3xl shadow-2xl shadow-black/40 md:flex-row"
             >
               {/* Main ticket body */}
-              <div className="relative flex flex-1 gap-4 bg-[#F2F0EC] p-4 text-[#1E2227] sm:gap-6 sm:p-8 md:items-stretch">
+              <div className="relative flex flex-1 gap-4 bg-[#B5AFA6] p-4 text-[#1E2227] sm:gap-6 sm:p-8 md:items-stretch">
                 <Tilt className="w-24 shrink-0 self-start sm:w-40 md:w-56 lg:w-64">
                   <img
                     src={posterOf(featured)}
@@ -480,7 +480,7 @@ export default function Home() {
                 </dl>
                 <Link
                   to={`/movies/${featured.slug || featured.id}`}
-                  className="kk-btn rounded-xl bg-[#C8FF1F] px-5 py-3 text-center text-sm font-semibold text-white hover:bg-[#A8D819] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1E2227]"
+                  className="kk-btn rounded-xl bg-[#C8FF1F] px-5 py-3 text-center text-sm font-semibold text-[#1E2227] hover:bg-[#A8D819] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1E2227]"
                 >
                   Book seats
                 </Link>
@@ -567,7 +567,7 @@ export default function Home() {
                       <NewTag />
                     </span>
                   )}
-                  <span className="kk-cta absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#C8FF1F] to-[#C8FF1F]/85 py-3 text-center text-sm font-semibold text-white">
+                  <span className="kk-cta absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#C8FF1F] to-[#C8FF1F]/85 py-3 text-center text-sm font-semibold text-[#1E2227]">
                     Book seats
                   </span>
                 </div>

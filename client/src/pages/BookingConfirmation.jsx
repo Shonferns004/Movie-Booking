@@ -79,7 +79,7 @@ export default function BookingConfirmation() {
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#C8FF1F]/15 text-2xl text-[#E8A7A0]">!</div>
           <h1 className="mt-4 font-serif text-2xl">Booking unavailable</h1>
           <p className="mt-3 text-sm leading-6 text-[#F2F0EC]/65">{error}</p>
-          <button onClick={() => window.location.reload()} className="mt-6 rounded-xl bg-[#C8FF1F] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#D6FF5C]">Try again</button>
+          <button onClick={() => window.location.reload()} className="mt-6 rounded-xl bg-[#C8FF1F] px-5 py-3 text-sm font-bold text-[#1E2227] transition hover:bg-[#D6FF5C]">Try again</button>
           <div><Link to="/movies" className="mt-4 inline-block text-sm text-[#C8FF1F]">Back to movies</Link></div>
         </div>
       </main>
@@ -156,7 +156,7 @@ export default function BookingConfirmation() {
                         <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider ${ticketStatus.text}`}><span className={`h-1.5 w-1.5 rounded-full ${ticketStatus.dot}`} />{ticketStatus.label}</span>
                       </div>
                       <div className="flex flex-col items-center px-5 py-6 text-center">
-                        <div className="rounded-2xl bg-[#F2F0EC] p-3 shadow-[0_8px_30px_rgba(0,0,0,0.2)]">
+                        <div className="rounded-2xl bg-[#B5AFA6] p-3 shadow-[0_8px_30px_rgba(0,0,0,0.2)]">
                           <QRCodeSVG value={ticket.ticket_reference} size={148} level="M" includeMargin bgColor="#F2F0EC" fgColor="#1E2227" />
                         </div>
                         <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.18em] text-[#F2F0EC]/40">Ticket reference</p>
@@ -186,7 +186,7 @@ export default function BookingConfirmation() {
                 <p className="font-semibold">Ready for the big screen?</p>
                 <p className="mt-1 text-xs leading-5 text-[#F2F0EC]/55">Keep your QR codes bright and ready to scan at entry.</p>
               </div>
-              <Link to="/movies" className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[#C8FF1F] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-[#C8FF1F]/15 transition hover:-translate-y-0.5 hover:bg-[#D6FF5C]">Explore more movies <span aria-hidden="true">→</span></Link>
+              <Link to="/movies" className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[#C8FF1F] px-5 py-3 text-sm font-bold text-[#1E2227] shadow-lg shadow-[#C8FF1F]/15 transition hover:-translate-y-0.5 hover:bg-[#D6FF5C]">Explore more movies <span aria-hidden="true">→</span></Link>
             </div>
           </div>
         </section>

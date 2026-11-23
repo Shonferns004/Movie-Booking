@@ -41,8 +41,8 @@ export default function TicketArtwork({ booking }) {
 
   return (
     <article
-      className="kk-ticket-art relative grid w-full grid-cols-[minmax(0,1fr)] overflow-hidden rounded-[22px] bg-[#0A0A0C] text-white shadow-[0_30px_70px_-35px_rgba(0,0,0,0.9)] sm:grid-cols-[minmax(0,1fr)_300px]"
-      style={{ '--kk-ticket-bg': '#0A2A31' }}
+      className="kk-ticket-art relative grid w-full grid-cols-[minmax(0,1fr)] overflow-hidden rounded-[22px] bg-[#14181B] text-white shadow-[0_30px_70px_-35px_rgba(0,0,0,0.9)] sm:grid-cols-[minmax(0,1fr)_300px]"
+      style={{ '--kk-ticket-bg': '#1E2227' }}
     >
       {/* Left: cinema panel */}
       <div className="relative min-w-0 overflow-hidden px-5 py-6 sm:px-8 sm:py-7">
@@ -56,7 +56,7 @@ export default function TicketArtwork({ booking }) {
             />
             <div
               aria-hidden="true"
-              className="absolute inset-0 bg-gradient-to-r from-[#0A0A0C]/95 via-[#0A0A0C]/82 to-[#0A0A0C]/55"
+              className="absolute inset-0 bg-gradient-to-r from-[#14181B]/95 via-[#14181B]/85 to-[#14181B]/55"
             />
           </>
         )}
@@ -67,15 +67,15 @@ export default function TicketArtwork({ booking }) {
             fill="currentColor"
           >
             <circle cx="50" cy="50" r="46" />
-            <circle cx="50" cy="50" r="9" fill="#0A0A0C" />
-            <circle cx="50" cy="20" r="8" fill="#0A0A0C" />
-            <circle cx="50" cy="80" r="8" fill="#0A0A0C" />
-            <circle cx="20" cy="50" r="8" fill="#0A0A0C" />
-            <circle cx="80" cy="50" r="8" fill="#0A0A0C" />
-            <circle cx="29" cy="29" r="8" fill="#0A0A0C" />
-            <circle cx="71" cy="29" r="8" fill="#0A0A0C" />
-            <circle cx="29" cy="71" r="8" fill="#0A0A0C" />
-            <circle cx="71" cy="71" r="8" fill="#0A0A0C" />
+            <circle cx="50" cy="50" r="9" fill="#14181B" />
+            <circle cx="50" cy="20" r="8" fill="#14181B" />
+            <circle cx="50" cy="80" r="8" fill="#14181B" />
+            <circle cx="20" cy="50" r="8" fill="#14181B" />
+            <circle cx="80" cy="50" r="8" fill="#14181B" />
+            <circle cx="29" cy="29" r="8" fill="#14181B" />
+            <circle cx="71" cy="29" r="8" fill="#14181B" />
+            <circle cx="29" cy="71" r="8" fill="#14181B" />
+            <circle cx="71" cy="71" r="8" fill="#14181B" />
           </svg>
           <svg
             className="absolute -right-4 bottom-0 h-28 w-52 text-white/[0.07]"
@@ -86,7 +86,7 @@ export default function TicketArtwork({ booking }) {
             <rect x="96" y="60" width="26" height="16" rx="3" />
             <path d="M122 52 L160 32 L160 96 L122 76 Z" />
             <circle cx="40" cy="24" r="18" />
-            <circle cx="40" cy="24" r="5" fill="#0A0A0C" />
+            <circle cx="40" cy="24" r="5" fill="#14181B" />
             <rect x="12" y="26" width="10" height="18" rx="2" />
             <rect x="92" y="86" width="10" height="18" rx="2" />
           </svg>
@@ -95,7 +95,7 @@ export default function TicketArtwork({ booking }) {
         <div className="relative flex h-full min-w-0 flex-col justify-between gap-6">
           <div>
             <div className="flex items-start justify-between gap-3">
-              <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-[#F4B63F]">
+              <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-[#C8FF1F]">
                 Konkani Samudai · Movie pass
               </p>
               {cancelled && (
@@ -114,7 +114,7 @@ export default function TicketArtwork({ booking }) {
                 <p className="text-[8px] font-bold uppercase tracking-[0.22em] text-white/45">{weekday}</p>
                 <p className="mt-0.5 text-[15px] font-semibold leading-none">{dayMonth}</p>
               </div>
-              <span className="h-8 w-[2px] bg-[#C61D23]" aria-hidden="true" />
+              <span className="h-8 w-[2px] bg-[#C8FF1F]" aria-hidden="true" />
               <div>
                 <p className="text-[8px] font-bold uppercase tracking-[0.22em] text-white/45">Start at</p>
                 <p className="mt-0.5 text-[15px] font-semibold leading-none">{time}</p>
@@ -143,7 +143,7 @@ export default function TicketArtwork({ booking }) {
       </div>
 
       {/* Perforation + red stub */}
-      <div className="relative min-w-0 border-t border-dashed border-white/25 bg-[#C61D23] px-5 py-5 sm:border-l sm:border-t-0 sm:px-6">
+      <div className="relative min-w-0 border-t border-dashed border-[#1E2227]/25 bg-[#C8FF1F] px-5 py-5 sm:border-l sm:border-t-0 sm:px-6">
         <span
           aria-hidden="true"
           className="absolute -left-2.5 -top-2.5 hidden h-5 w-5 rounded-full sm:block"
@@ -166,17 +166,17 @@ export default function TicketArtwork({ booking }) {
         />
 
         <div className="grid grid-cols-3 text-center">
-          <span className="text-[8px] font-bold uppercase tracking-[0.22em] text-white/70">Gate</span>
-          <span className="text-[8px] font-bold uppercase tracking-[0.22em] text-white/70">Row</span>
-          <span className="text-[8px] font-bold uppercase tracking-[0.22em] text-white/70">Seat</span>
+          <span className="text-[8px] font-bold uppercase tracking-[0.22em] text-[#1E2227]/70">Gate</span>
+          <span className="text-[8px] font-bold uppercase tracking-[0.22em] text-[#1E2227]/70">Row</span>
+          <span className="text-[8px] font-bold uppercase tracking-[0.22em] text-[#1E2227]/70">Seat</span>
         </div>
-        <div className="mt-1 grid grid-cols-3 border-y border-white/35 py-2 text-center">
+        <div className="mt-1 grid grid-cols-3 border-y border-[#1E2227]/35 py-2 text-center">
           <span className="text-[18px] font-semibold leading-none">{gate}</span>
           <span className="text-[18px] font-semibold leading-none">{rows.join(', ') || '—'}</span>
           <span className="text-[15px] font-semibold leading-none">{numbers.join(', ') || '—'}</span>
         </div>
         {seatClass && (
-          <p className="mt-2 text-center text-[7px] font-bold uppercase tracking-[0.2em] text-white/65">
+          <p className="mt-2 text-center text-[7px] font-bold uppercase tracking-[0.2em] text-[#1E2227]/65">
             {seatClass}
           </p>
         )}
@@ -196,13 +196,13 @@ export default function TicketArtwork({ booking }) {
               </div>
             ))
           ) : (
-            <div className="rounded-lg border border-dashed border-white/40 px-4 py-3 text-center text-[8px] font-bold uppercase tracking-[0.14em] text-white/70">
+            <div className="rounded-lg border border-dashed border-[#1E2227]/40 px-4 py-3 text-center text-[8px] font-bold uppercase tracking-[0.14em] text-[#1E2227]/70">
               QR pending · open gate pass
             </div>
           )}
         </div>
 
-        <p className="mt-3 flex min-w-0 items-center justify-between gap-2 text-[8px] font-bold uppercase tracking-[0.16em] text-white/75">
+        <p className="mt-3 flex min-w-0 items-center justify-between gap-2 text-[8px] font-bold uppercase tracking-[0.16em] text-[#1E2227]/75">
           <span className="shrink-0">Ticket number</span>
           <span className="truncate font-mono text-[9px] tracking-[0.06em]">{ticketNumber || '—'}</span>
         </p>

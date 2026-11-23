@@ -5,7 +5,7 @@ const rupees = (value) =>
 
 /**
  * Event pass artwork: the show's own ticket with a background image chosen in
- * the admin app. A cream veil keeps the text readable over any photo.
+ * the admin app. A titanium veil keeps the text readable over any photo.
  */
 export default function EventTicketArtwork({ ticket, backgroundUrl }) {
   const title = ticket?.eventTitle || 'Community event';
@@ -21,8 +21,8 @@ export default function EventTicketArtwork({ ticket, backgroundUrl }) {
 
   return (
     <article
-      className="event-ticket relative overflow-hidden rounded-[22px] bg-[#FFF3CF] text-[#7A3B2E] shadow-[0_30px_70px_-35px_rgba(0,0,0,0.6)]"
-      style={{ '--kk-ticket-bg': '#082328' }}
+      className="event-ticket relative overflow-hidden rounded-[22px] bg-[#B5AFA6] text-[#1E2227] shadow-[0_30px_70px_-35px_rgba(0,0,0,0.6)]"
+      style={{ '--kk-ticket-bg': '#1E2227' }}
     >
       {backgroundUrl ? (
         <img
@@ -37,7 +37,7 @@ export default function EventTicketArtwork({ ticket, backgroundUrl }) {
           className="absolute inset-0"
           style={{
             background:
-              'radial-gradient(420px 220px at 12% 15%, rgba(244,182,63,0.35), transparent 65%), radial-gradient(380px 200px at 92% 85%, rgba(127,203,168,0.32), transparent 70%)',
+              'radial-gradient(420px 220px at 12% 15%, rgba(200,255,31,0.35), transparent 65%), radial-gradient(380px 200px at 92% 85%, rgba(30,34,39,0.18), transparent 70%)',
           }}
         />
       )}
@@ -45,13 +45,13 @@ export default function EventTicketArtwork({ ticket, backgroundUrl }) {
         className="absolute inset-0"
         style={{
           background:
-            'linear-gradient(90deg, rgba(255, 246, 216, 0.94) 0%, rgba(255, 246, 216, 0.86) 52%, rgba(255, 246, 216, 0.74) 100%)',
+            'linear-gradient(90deg, rgba(181, 175, 166, 0.94) 0%, rgba(181, 175, 166, 0.86) 52%, rgba(181, 175, 166, 0.74) 100%)',
         }}
       />
 
       <div className="relative grid sm:grid-cols-[minmax(0,1fr)_190px]">
         <div className="px-6 py-6 sm:px-8 sm:py-7">
-          <p className="text-[9px] font-bold uppercase tracking-[0.28em] text-[#A0522D]">
+          <p className="text-[9px] font-bold uppercase tracking-[0.28em] text-[#1E2227]/80">
             Konkani Samudai · Event pass
           </p>
           <h2 className="mt-3 line-clamp-3 font-['Fraunces',Georgia,serif] text-[36px] font-bold uppercase leading-[0.98] tracking-[-0.01em] sm:text-[50px]">
@@ -63,22 +63,22 @@ export default function EventTicketArtwork({ ticket, backgroundUrl }) {
             {time ? ` · ${time}` : ''}
           </p>
           {venue && (
-            <p className="mt-1 text-[10.5px] uppercase tracking-[0.12em] text-[#7A3B2E]/70">{venue}</p>
+            <p className="mt-1 text-[10.5px] uppercase tracking-[0.12em] text-[#1E2227]/70">{venue}</p>
           )}
 
           <p className="mt-5 text-[12px] font-bold uppercase tracking-[0.16em]">
             Ticket price: {rupees(amount)}
           </p>
-          <p className="mt-1 text-[9px] uppercase tracking-[0.12em] text-[#7A3B2E]/55">
+          <p className="mt-1 text-[9px] uppercase tracking-[0.12em] text-[#1E2227]/55">
             (indirect taxes included)
           </p>
-          <p className="mt-3 text-[10px] text-[#7A3B2E]/75">
+          <p className="mt-3 text-[10px] text-[#1E2227]/75">
             {quantity} × {tier}
             {buyer ? ` · ${buyer}` : ''}
           </p>
         </div>
 
-        <div className="relative border-t border-dashed border-[#7A3B2E]/30 px-4 py-5 sm:border-l sm:border-t-0">
+        <div className="relative border-t border-dashed border-[#1E2227]/30 px-4 py-5 sm:border-l sm:border-t-0">
           <span
             aria-hidden="true"
             className="absolute -left-2.5 -top-2.5 hidden h-5 w-5 rounded-full sm:block"
@@ -102,16 +102,16 @@ export default function EventTicketArtwork({ ticket, backgroundUrl }) {
 
           <div className="flex h-full items-center justify-center gap-3">
             <span
-              className="text-[9px] font-bold uppercase tracking-[0.3em] text-[#7A3B2E]/70"
+              className="text-[9px] font-bold uppercase tracking-[0.3em] text-[#1E2227]/70"
               style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
             >
               Admit one
             </span>
             <div className="overflow-hidden rounded-lg">
-              <StyledQr value={orderId} size={104} accent="#7A3B2E" background="#FFFDF7" logo={false} />
+              <StyledQr value={orderId} size={104} accent="#1E2227" background="#F2F0EC" logo={false} />
             </div>
           </div>
-          <p className="mt-2 truncate text-center font-mono text-[7px] tracking-[0.04em] text-[#7A3B2E]/60">
+          <p className="mt-2 truncate text-center font-mono text-[7px] tracking-[0.04em] text-[#1E2227]/60">
             {orderId}
           </p>
         </div>

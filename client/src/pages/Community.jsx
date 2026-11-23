@@ -366,7 +366,7 @@ function Hero({ images, event, movie, onPick, stats, isMember }) {
           <div className="mt-6 flex flex-wrap items-center gap-2.5 sm:mt-8 sm:gap-3">
             <a
               href="#events"
-              className="js-hero-cta group inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[#C8FF1F] px-5 text-[12px] font-bold tracking-wide text-white shadow-[0_14px_30px_-16px_rgba(200,255,31,0.9)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#D6FF5C] sm:h-12 sm:px-7 sm:text-[13px]"
+              className="js-hero-cta group inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[#C8FF1F] px-5 text-[12px] font-bold tracking-wide text-[#1E2227] shadow-[0_14px_30px_-16px_rgba(200,255,31,0.9)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#D6FF5C] sm:h-12 sm:px-7 sm:text-[13px]"
             >
               Explore events
               <span className="material-symbols-outlined text-[18px] transition-transform group-hover:translate-x-0.5">arrow_forward</span>
@@ -631,7 +631,7 @@ function EventCard({ event, onPick }) {
         <button
           type="button"
           onClick={() => onPick(event)}
-          className="inline-flex items-center gap-1.5 rounded-full bg-[#F2F0EC]/[0.08] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[#F2F0EC] transition-colors hover:bg-[#C8FF1F] hover:text-white"
+          className="inline-flex items-center gap-1.5 rounded-full bg-[#F2F0EC]/[0.08] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[#F2F0EC] transition-colors hover:bg-[#C8FF1F] hover:text-[#1E2227]"
         >
           Get tickets
           <span className="material-symbols-outlined text-[14px]">north_east</span>
@@ -754,7 +754,7 @@ function PhotoLibrary({ images }) {
           </p>
           <Link
             to="/gallery"
-            className="mt-5 inline-flex rounded-full bg-[#F2F0EC] px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#1A1E23]"
+            className="mt-5 inline-flex rounded-full bg-[#B5AFA6] px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#1A1E23]"
           >
             Visit the gallery
           </Link>
@@ -884,7 +884,7 @@ function Join({ onBecomeMember, membership, myMembership }) {
               <button
                 type="button"
                 onClick={onBecomeMember}
-                className="kk-ripple mt-6 w-full rounded-full bg-[#F2F0EC] py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#1A1E23] transition-colors hover:bg-[#C8FF1F]"
+                className="kk-ripple mt-6 w-full rounded-full bg-[#B5AFA6] py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#1A1E23] transition-colors hover:bg-[#C8FF1F]"
               >
                 {myMembership ? 'View your membership' : 'Start membership'}
               </button>
@@ -1313,7 +1313,7 @@ function TicketModal({ event, onClose }) {
                 type="button"
                 onClick={pay}
                 disabled={busy}
-                className="mt-4 w-full rounded-full bg-[#C8FF1F] py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-white disabled:opacity-60"
+                className="mt-4 w-full rounded-full bg-[#C8FF1F] py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#1E2227] disabled:opacity-60"
               >
                 {busy ? 'Opening secure payment…' : `Pay ${rupees(total)} with YouPI`}
               </button>
@@ -1576,7 +1576,7 @@ function MembershipModal({ onClose, plan: initialPlan, onMemberChange }) {
               </p>
               <Link
                 to="/login"
-                className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#C8FF1F] px-6 py-3 text-[12px] font-bold uppercase tracking-[0.12em] text-white"
+                className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#C8FF1F] px-6 py-3 text-[12px] font-bold uppercase tracking-[0.12em] text-[#1E2227]"
               >
                 Sign in to continue
                 <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
@@ -1602,7 +1602,7 @@ function MembershipModal({ onClose, plan: initialPlan, onMemberChange }) {
               <button
                 type="button"
                 onClick={onClose}
-                className="mt-6 w-full rounded-full bg-[#F2F0EC] py-3 text-[11px] font-bold uppercase tracking-[0.14em] text-[#1A1E23]"
+                className="mt-6 w-full rounded-full bg-[#B5AFA6] py-3 text-[11px] font-bold uppercase tracking-[0.14em] text-[#1A1E23]"
               >
                 Done
               </button>
@@ -1726,7 +1726,7 @@ function MembershipModal({ onClose, plan: initialPlan, onMemberChange }) {
                   type="button"
                   onClick={pay}
                   disabled={busy}
-                  className="mt-5 w-full rounded-full bg-[#C8FF1F] py-3.5 text-[11px] font-bold uppercase tracking-[0.14em] text-white shadow-[0_18px_40px_-20px_rgba(200,255,31,0.9)] transition-transform hover:-translate-y-0.5 disabled:opacity-60"
+                  className="mt-5 w-full rounded-full bg-[#C8FF1F] py-3.5 text-[11px] font-bold uppercase tracking-[0.14em] text-[#1E2227] shadow-[0_18px_40px_-20px_rgba(200,255,31,0.9)] transition-transform hover:-translate-y-0.5 disabled:opacity-60"
                 >
                   {busy ? 'Opening secure payment…' : `Pay ${rupees(total)}`}
                 </button>
@@ -1788,7 +1788,7 @@ const PAGE_CSS = `
 .community-page .stub-perf::before { left: -22px; }
 .community-page .stub-perf::after { right: -22px; }
 .community-page .seal {
-  background: radial-gradient(circle at 35% 30%, #FFD98A, #C8FF1F 62%, #D99A22);
+  background: radial-gradient(circle at 35% 30%, #E7FF9E, #C8FF1F 62%, #A8D819);
   box-shadow: 0 18px 40px -18px rgba(200,255,31,0.7), inset 0 0 0 1px rgba(23,27,31,0.18);
 }
 .community-page .seal::after {

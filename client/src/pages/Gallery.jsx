@@ -106,7 +106,7 @@ export default function Gallery() {
             </p>
             <Link
               to="/"
-              className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#F2F0EC] px-5 py-2.5 text-[11px] font-bold uppercase tracking-[0.1em] text-[#1A1E23] transition-transform hover:-translate-y-0.5"
+              className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#B5AFA6] px-5 py-2.5 text-[11px] font-bold uppercase tracking-[0.1em] text-[#1A1E23] transition-transform hover:-translate-y-0.5"
             >
               Back to the community
               <span className="material-symbols-outlined text-[15px]">arrow_forward</span>
@@ -153,7 +153,7 @@ export default function Gallery() {
           </div>
           <Link
             to="/#join"
-            className="inline-flex shrink-0 items-center gap-2 self-start rounded-full bg-[#C8FF1F] px-5 py-2.5 text-[11px] font-bold uppercase tracking-[0.1em] text-white transition-transform hover:-translate-y-0.5"
+            className="inline-flex shrink-0 items-center gap-2 self-start rounded-full bg-[#C8FF1F] px-5 py-2.5 text-[11px] font-bold uppercase tracking-[0.1em] text-[#1E2227] transition-transform hover:-translate-y-0.5"
           >
             Become a member
             <span className="material-symbols-outlined text-[15px]">arrow_forward</span>

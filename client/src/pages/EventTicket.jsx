@@ -109,7 +109,7 @@ export default function EventTicket() {
             <p className="text-[13px] text-[#F2F0EC]/70">{error}</p>
             <Link
               to="/"
-              className="mt-4 inline-flex rounded-full bg-[#F2F0EC] px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#1A1E23]"
+              className="mt-4 inline-flex rounded-full bg-[#B5AFA6] px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#1A1E23]"
             >
               Back to community
             </Link>

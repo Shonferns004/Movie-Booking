@@ -174,7 +174,7 @@ export default function Checkout() {
           </span>
           <h1 className="kk-display text-2xl font-semibold">No active seat hold</h1>
           <p className="mt-2 text-sm leading-6 text-[#F2F0EC]/65">Choose your seats first, then return here to complete your booking.</p>
-          <Link to="/movies" className="mt-6 inline-flex items-center justify-center rounded-full bg-[#C8FF1F] px-6 py-3 text-sm font-semibold text-[#F2F0EC] transition hover:bg-[#D6FF5C]">
+          <Link to="/movies" className="mt-6 inline-flex items-center justify-center rounded-full bg-[#C8FF1F] px-6 py-3 text-sm font-semibold text-[#1E2227] transition hover:bg-[#D6FF5C]">
             Browse movies
           </Link>
         </div>
@@ -607,7 +607,7 @@ export default function Checkout() {
       </main>
 
       {/* Pay bar */}
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#1E2227]/15 bg-[#F2F0EC] text-[#1E2227] shadow-[0_-10px_30px_rgba(0,0,0,.25)]">
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#1E2227]/15 bg-[#B5AFA6] text-[#1E2227] shadow-[0_-10px_30px_rgba(0,0,0,.25)]">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="min-w-0">
             <p className="text-[10px] font-bold uppercase tracking-[.14em] text-[#1E2227]/45">Order total</p>
@@ -620,7 +620,7 @@ export default function Checkout() {
             type="button"
             onClick={payNow}
             disabled={loading}
-            className="kk-pay min-w-[160px] rounded-lg px-6 py-3.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-55 sm:min-w-[210px]"
+            className="kk-pay min-w-[160px] rounded-lg px-6 py-3.5 text-sm font-bold text-[#1E2227] disabled:cursor-not-allowed disabled:opacity-55 sm:min-w-[210px]"
             style={{ background: C.kokum }}
           >
             {payLabel}

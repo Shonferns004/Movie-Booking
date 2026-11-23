@@ -50,7 +50,7 @@ function TicketPassModal({ booking, onClose, onDownload }) {
       onClick={onClose}
     >
       <div
-        className="kk-pass-sheet max-h-[93vh] w-full overflow-y-auto rounded-t-[28px] bg-[#F2F0EC] text-[#1E2227] shadow-[0_40px_100px_-40px_rgba(0,0,0,0.8)] sm:max-w-[820px] sm:rounded-[26px]"
+        className="kk-pass-sheet max-h-[93vh] w-full overflow-y-auto rounded-t-[28px] bg-[#B5AFA6] text-[#1E2227] shadow-[0_40px_100px_-40px_rgba(0,0,0,0.8)] sm:max-w-[820px] sm:rounded-[26px]"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-[#1E2227]/15 sm:hidden" />
@@ -58,13 +58,13 @@ function TicketPassModal({ booking, onClose, onDownload }) {
         <div className="p-5 sm:p-7">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
-              <p className="text-[9px] font-bold uppercase tracking-[0.24em] text-[#1E2227]/45">
+              <p className="text-[9px] font-bold uppercase tracking-[0.24em] text-[#1E2227]/70">
                 Booking confirmed
               </p>
               <h2 className="mt-1 truncate font-['Fraunces',Georgia,serif] text-[25px] font-bold leading-tight sm:text-[30px]">
                 {booking.title}
               </h2>
-              <p className="mt-1 text-[10px] uppercase tracking-[0.12em] text-[#1E2227]/55">
+              <p className="mt-1 text-[10px] uppercase tracking-[0.12em] text-[#1E2227]/70">
                 {[booking.language, booking.certification].filter(Boolean).join(' · ') || 'Movie ticket'}
               </p>
             </div>
@@ -72,7 +72,7 @@ function TicketPassModal({ booking, onClose, onDownload }) {
               type="button"
               onClick={onClose}
               aria-label="Close ticket"
-              className="shrink-0 rounded-full border border-[#1E2227]/15 p-2 text-[#1E2227]/60 transition-colors hover:text-[#1E2227]"
+              className="shrink-0 rounded-full border border-[#1E2227]/15 p-2 text-[#1E2227]/70 transition-colors hover:text-[#1E2227]"
             >
               <span className="material-symbols-outlined text-[18px]">close</span>
             </button>
@@ -89,18 +89,18 @@ function TicketPassModal({ booking, onClose, onDownload }) {
                           value={seat.ticket_reference}
                           size={single ? 196 : 128}
                           background="#FFFFFF"
-                          accent="#C61D23"
+                          accent="#1E2227"
                           margin={8}
                         />
                       </div>
-                      <span className="mt-1.5 text-[9px] font-bold uppercase tracking-[0.16em] text-[#1E2227]/55">
+                      <span className="mt-1.5 text-[9px] font-bold uppercase tracking-[0.16em] text-[#1E2227]/70">
                         {seat.seat_label}
                       </span>
                     </div>
                   ) : null,
                 )
               ) : (
-                <p className="py-8 text-center text-[11px] text-[#1E2227]/50">QR issued after payment.</p>
+                <p className="py-8 text-center text-[11px] text-[#1E2227]/70">QR issued after payment.</p>
               )}
             </div>
 
@@ -109,24 +109,24 @@ function TicketPassModal({ booking, onClose, onDownload }) {
                 {[booking.theatre_name, booking.auditorium_name].filter(Boolean).join(' · ')}
               </p>
 
-              <div className="mt-3 flex items-center justify-between gap-2 rounded-xl bg-[#C61D23] px-4 py-3 text-white">
+              <div className="mt-3 flex items-center justify-between gap-2 rounded-xl bg-[#C8FF1F] px-4 py-3 text-[#1E2227]">
                 <div>
-                  <p className="text-[8px] font-bold uppercase tracking-[0.16em] text-white/70">Date</p>
+                  <p className="text-[8px] font-bold uppercase tracking-[0.16em] text-[#1E2227]/70">Date</p>
                   <p className="mt-0.5 text-[11px] font-semibold">{dateLabel}</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-[8px] font-bold uppercase tracking-[0.16em] text-white/70">Time</p>
+                  <p className="text-[8px] font-bold uppercase tracking-[0.16em] text-[#1E2227]/70">Time</p>
                   <p className="mt-0.5 text-[11px] font-semibold">{timeLabel}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-[8px] font-bold uppercase tracking-[0.16em] text-white/70">Seats</p>
+                  <p className="text-[8px] font-bold uppercase tracking-[0.16em] text-[#1E2227]/70">Seats</p>
                   <p className="mt-0.5 text-[11px] font-semibold">
                     {seats.map((seat) => seat.seat_label).join(', ') || '—'}
                   </p>
                 </div>
               </div>
 
-              <div className="mt-2 flex items-center justify-between text-[9px] uppercase tracking-[0.14em] text-[#1E2227]/50">
+              <div className="mt-2 flex items-center justify-between text-[9px] uppercase tracking-[0.14em] text-[#1E2227]/70">
                 <span>{seatClass || 'Standard'}</span>
                 <span className="truncate font-mono tracking-[0.04em]">{booking.booking_reference}</span>
               </div>
@@ -368,7 +368,7 @@ export default function MyTickets() {
                   ? 'Try another filter to see your other Konkani Samudai passes.'
                   : 'Book a show and your digital pass with individual gate QR codes will appear here.'}
               </p>
-              <Link to="/movies" className="mt-6 rounded-xl px-5 py-3 text-sm font-bold text-white" style={{ background: COLORS.kokum }}>
+              <Link to="/movies" className="mt-6 rounded-xl px-5 py-3 text-sm font-bold text-[#1E2227]" style={{ background: COLORS.kokum }}>
                 Browse movies →
               </Link>
             </div>

@@ -2,24 +2,24 @@ import { useEffect, useRef } from 'react';
 import QRCodeStyling from 'qr-code-styling';
 
 /**
- * Branded QR: rounded ink dots, extra-rounded corners with a kokum accent and a
+ * Branded QR: rounded ink dots, extra-rounded corners with a lime monogram and a
  * small gold “KS” monogram in the middle (error correction level H keeps it
  * scannable). Rendered as SVG so it stays crisp in print/PDF.
  */
 
 const LOGO = `data:image/svg+xml;utf8,${encodeURIComponent(
   `<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="0 0 72 72">
-     <circle cx="36" cy="36" r="34" fill="#F4B63F"/>
-     <circle cx="36" cy="36" r="30" fill="none" stroke="#0A2A31" stroke-opacity=".22" stroke-width="2"/>
-     <text x="36" y="45" font-family="Georgia, 'Times New Roman', serif" font-size="26" font-weight="700" text-anchor="middle" fill="#0A2A31">KS</text>
+     <circle cx="36" cy="36" r="34" fill="#C8FF1F"/>
+     <circle cx="36" cy="36" r="30" fill="none" stroke="#1E2227" stroke-opacity=".22" stroke-width="2"/>
+     <text x="36" y="45" font-family="Georgia, 'Times New Roman', serif" font-size="26" font-weight="700" text-anchor="middle" fill="#1E2227">KS</text>
    </svg>`,
 )}`;
 
 export default function StyledQr({
   value,
   size = 128,
-  accent = '#C61D23',
-  background = '#FFFDF7',
+  accent = '#1E2227',
+  background = '#F2F0EC',
   margin = 6,
   logo = false,
 }) {
@@ -45,12 +45,12 @@ export default function StyledQr({
           type: 'linear',
           rotation: Math.PI / 4,
           colorStops: [
-            { offset: 0, color: '#0A2A31' },
-            { offset: 1, color: '#174A54' },
+            { offset: 0, color: '#1E2227' },
+            { offset: 1, color: '#171B1F' },
           ],
         },
       },
-      cornersSquareOptions: { type: 'extra-rounded', color: '#0A2A31' },
+      cornersSquareOptions: { type: 'extra-rounded', color: '#171B1F' },
       cornersDotOptions: { type: 'dot', color: accent },
       ...(logo
         ? {

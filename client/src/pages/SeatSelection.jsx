@@ -326,7 +326,7 @@ export default function SeatSelection() {
             {loadingError || 'Finding the best seats for your screening…'}
           </p>
           {loadingError && (
-            <button type="button" onClick={load} className="mt-5 rounded-xl px-5 py-2.5 font-semibold text-white" style={{ background: C.kokum }}>
+            <button type="button" onClick={load} className="mt-5 rounded-xl px-5 py-2.5 font-semibold text-[#1E2227]" style={{ background: C.kokum }}>
               Try again
             </button>
           )}
@@ -519,7 +519,7 @@ export default function SeatSelection() {
               type="button"
               onClick={hold}
               disabled={!selected.length || holding}
-              className="kk-pay min-w-[130px] rounded-lg px-5 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40 sm:min-w-[170px]"
+              className="kk-pay min-w-[130px] rounded-lg px-5 py-3 text-sm font-bold text-[#1E2227] disabled:cursor-not-allowed disabled:opacity-40 sm:min-w-[170px]"
               style={{ background: C.kokum }}
             >
               {holding ? 'Holding seats…' : selected.length ? `Pay ${rupees(totalMinor)}` : 'Select seats'}
@@ -549,7 +549,7 @@ export default function SeatSelection() {
             if (event.target === event.currentTarget) setPickerOpen(false);
           }}
         >
-          <div className="w-full max-w-2xl overflow-hidden rounded-2xl bg-[#F2F0EC] text-[#1E2227] shadow-2xl">
+          <div className="w-full max-w-2xl overflow-hidden rounded-2xl bg-[#B5AFA6] text-[#1E2227] shadow-2xl">
             <div className="relative px-6 pb-5 pt-6 sm:px-8">
               <button
                 type="button"
@@ -587,7 +587,7 @@ export default function SeatSelection() {
                       onClick={() => setDraft(n)}
                       aria-pressed={active}
                       className={`kk-pill flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-25 ${
-                        active ? 'text-white' : 'text-[#1E2227]/75 hover:bg-[#1E2227]/[0.08]'
+                        active ? 'text-[#1E2227]' : 'text-[#1E2227]/75 hover:bg-[#1E2227]/[0.08]'
                       }`}
                       style={active ? { background: C.kokum } : undefined}
                     >
@@ -606,8 +606,8 @@ export default function SeatSelection() {
                   const tone = stat.status === 'FILLED'
                     ? C.kokum
                     : stat.status === 'ALMOST FULL'
-                      ? '#B8791A'
-                      : '#1E7A4E';
+                      ? '#F08A80'
+                      : '#B6E36A';
                   return (
                     <div key={stat.name} className="min-w-[84px] text-center">
                       <p className="truncate text-[9px] font-bold uppercase tracking-[.1em] text-[#1E2227]/55">
@@ -634,7 +634,7 @@ export default function SeatSelection() {
               <button
                 type="button"
                 onClick={confirmCount}
-                className="kk-pay w-full rounded-lg py-3.5 text-sm font-bold text-white"
+                className="kk-pay w-full rounded-lg py-3.5 text-sm font-bold text-[#1E2227]"
                 style={{ background: C.kokum }}
               >
                 Select Seats
