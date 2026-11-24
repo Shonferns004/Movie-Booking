@@ -275,58 +275,89 @@ class _LiveTabState extends State<_LiveTab> {
             ],
           ),
           const SizedBox(height: 14),
-          _Panel(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const _SectionTitle('Active UPI slot'),
-                const SizedBox(height: 8),
-                if (slot != null && slot['status'] == 'ACTIVE')
-                  _KeyValue(
-                    'Order #${slot['orderId'] ?? '-'}',
-                    _money(slot['amountPaise']),
-                    trailing: _Pill('ACTIVE',
-                        color: KkSurface.accent, textColor: KkSurface.onPrimary),
-                  )
-                else
-                  Text(
-                    'No customer is checking out right now.',
-                    style: _body(),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _Panel(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (slot != null && slot['status'] == 'ACTIVE') ...[
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '#${slot['orderId'] ?? '-'}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: _body(bold: true),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            _Pill(
+                              'ACTIVE',
+                              color: KkSurface.accent,
+                              textColor: KkSurface.onPrimary,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          _money(slot['amountPaise']),
+                          style: _body(bold: true),
+                        ),
+                      ] else
+                        Text('No active slot', style: _muted()),
+                      if (activeAccount != null) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          '${activeAccount['upiId'] ?? '-'}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: _muted(),
+                        ),
+                      ],
+                    ],
                   ),
-                if (activeAccount != null) ...[
-                  const SizedBox(height: 10),
-                  Text(
-                    'Receiving UPI: ${activeAccount['upiId'] ?? '-'}',
-                    style: _muted(),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _Panel(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (waiting.isEmpty)
+                        Text('No queue', style: _muted())
+                      else
+                        ...waiting.take(4).map(
+                          (item) => Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Row(
+                              children: [
+                                Text(
+                                  '#${item['queuePosition']}',
+                                  style: _muted(),
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    _money(item['amountPaise']),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: _body(bold: true),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          _Panel(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const _SectionTitle('Waiting queue'),
-                const SizedBox(height: 8),
-                if (waiting.isEmpty)
-                  Text('The waiting queue is empty.', style: _body())
-                else
-                  ...waiting.map(
-                    (item) => Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: _KeyValue(
-                        '#${item['queuePosition']} · Order #${item['orderId']}',
-                        _money(item['amountPaise']),
-                        trailing: _Pill('QUEUED',
-                            color: KkSurface.outline,
-                            textColor: KkSurface.onSurface),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           _Panel(
