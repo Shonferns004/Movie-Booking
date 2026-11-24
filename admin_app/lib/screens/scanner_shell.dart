@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../services/api.dart';
 import '../services/auth_service.dart';
 import '../widgets/app_toast.dart';
@@ -321,7 +320,7 @@ class _ScannerShellState extends State<ScannerShell> {
                   children: [
                     Text(
                       _showTitle(s),
-                      style: GoogleFonts.notoSerif(
+                      style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w600,
                         color: KkSurface.onSurface,
@@ -331,7 +330,7 @@ class _ScannerShellState extends State<ScannerShell> {
                     const SizedBox(height: 2),
                     Text(
                       _showSubtitle(s),
-                      style: GoogleFonts.publicSans(
+                      style: TextStyle(
                         fontSize: 13,
                         color: KkSurface.onSurfaceVariant,
                       ),
@@ -384,7 +383,7 @@ class _ScannerShellState extends State<ScannerShell> {
               const SizedBox(width: 12),
               Text(
                 'Scanned tickets: ${widget.scannedCount}',
-                style: GoogleFonts.publicSans(
+                style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                   color: KkSurface.onSurface,
@@ -417,7 +416,7 @@ class _ScannerShellState extends State<ScannerShell> {
           const SizedBox(width: 8),
           Text(
             'Manual entry fallback',
-            style: GoogleFonts.publicSans(
+            style: TextStyle(
               fontSize: 13,
               color: KkSurface.onSurfaceVariant,
             ),
@@ -427,7 +426,7 @@ class _ScannerShellState extends State<ScannerShell> {
             onPressed: _busy ? null : _manualEntry,
             child: Text(
               'Enter ticket code',
-              style: GoogleFonts.publicSans(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
                 color: KkSurface.primary,
@@ -456,7 +455,7 @@ class _ScannerShellState extends State<ScannerShell> {
       children: [
         Text(
           'Recent gate activity',
-          style: GoogleFonts.publicSans(
+          style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
             color: KkSurface.onSurface,
@@ -499,7 +498,7 @@ class _ScannerShellState extends State<ScannerShell> {
                       Text(
                         '${s['result'] ?? 'UNKNOWN'}'
                             '${s['rejection_reason'] != null && s['rejection_reason'].toString().isNotEmpty ? ' • ${s['rejection_reason']}' : ''}',
-                        style: GoogleFonts.publicSans(
+                        style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
                           color: KkSurface.onSurface,
@@ -507,7 +506,7 @@ class _ScannerShellState extends State<ScannerShell> {
                       ),
                       Text(
                         '${s['scanned_at'] ?? ''}',
-                        style: GoogleFonts.publicSans(
+                        style: TextStyle(
                           fontSize: 11,
                           color: KkSurface.onSurfaceVariant,
                         ),
@@ -525,7 +524,7 @@ class _ScannerShellState extends State<ScannerShell> {
                   ),
                   child: Text(
                     valid ? 'Valid' : 'Rejected',
-                    style: GoogleFonts.publicSans(
+                    style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                       color: valid
@@ -559,7 +558,7 @@ class _ScannerShellState extends State<ScannerShell> {
                 const SizedBox(height: 2),
                 Text(
                   label,
-                  style: GoogleFonts.publicSans(
+                  style: TextStyle(
                     fontSize: 11,
                     fontWeight: active ? FontWeight.w600 : FontWeight.w500,
                     color: labelColor,
@@ -651,7 +650,7 @@ class _ScanButtonState extends State<_ScanButton> {
                 const SizedBox(height: 8),
                 Text(
                   'START',
-                  style: GoogleFonts.publicSans(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 1.4,
@@ -660,7 +659,7 @@ class _ScanButtonState extends State<_ScanButton> {
                 ),
                 Text(
                   'SCANNING',
-                  style: GoogleFonts.publicSans(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 1.4,
@@ -732,7 +731,7 @@ class _IosSheetButton extends StatelessWidget {
                 ],
                 Text(
                   label,
-                  style: GoogleFonts.publicSans(
+                  style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.2,
@@ -802,7 +801,7 @@ class _ManualEntrySheetState extends State<_ManualEntrySheet> {
             Text(
               'Enter ticket code',
               textAlign: TextAlign.center,
-              style: GoogleFonts.notoSerif(
+              style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
                 color: KkSurface.onSurface,
@@ -812,7 +811,7 @@ class _ManualEntrySheetState extends State<_ManualEntrySheet> {
             Text(
               'Type the reference printed under the QR code.',
               textAlign: TextAlign.center,
-              style: GoogleFonts.publicSans(
+              style: TextStyle(
                 fontSize: 13,
                 color: KkSurface.onSurfaceVariant,
               ),
@@ -829,14 +828,14 @@ class _ManualEntrySheetState extends State<_ManualEntrySheet> {
                   keyboardType: TextInputType.text,
                   textInputAction: TextInputAction.done,
                   onSubmitted: (_) => _submit(),
-                  style: GoogleFonts.publicSans(
+                  style: TextStyle(
                     fontSize: 14,
                     letterSpacing: 1.2,
                     color: KkSurface.onSurface,
                   ),
                   decoration: InputDecoration(
                     hintText: 'TKT-XXXXXXXX',
-                    hintStyle: GoogleFonts.publicSans(
+                    hintStyle: TextStyle(
                       fontSize: 13,
                       letterSpacing: 1.2,
                       color: KkSurface.onSurfaceVariant,

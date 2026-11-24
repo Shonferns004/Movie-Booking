@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -1720,7 +1719,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           const SizedBox(width: 6),
           Text(
             label,
-            style: GoogleFonts.syne(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w900,
               letterSpacing: 0.5,

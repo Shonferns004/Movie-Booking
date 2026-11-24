@@ -948,7 +948,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
           Text(
             title,
             textAlign: TextAlign.center,
-            style: GoogleFonts.syne(
+            style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,
               color: const Color(0xFFF2F0EC),
@@ -2824,7 +2824,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
                     group.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.syne(
+                    style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
                       color: const Color(0xFFF2F0EC),

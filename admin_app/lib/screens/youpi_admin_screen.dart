@@ -4,8 +4,9 @@ import '../widgets/kk_pull_to_refresh.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:google_fonts/google_fonts.dart';
 
+import '../services/api.dart';
+import '../services/auth_service.dart';
 import '../services/sms_observer/sms_observer_controller.dart';
 import '../services/youpi_admin_api.dart';
 import 'scanner_shell.dart' show KkSurface;
@@ -73,7 +74,7 @@ class _YoupiAdminScreenState extends State<YoupiAdminScreen> {
               'Admin gateway token is missing from this build. '
               'Install the official admin APK.',
               textAlign: TextAlign.center,
-              style: GoogleFonts.publicSans(
+              style: TextStyle(
                 fontSize: 14,
                 color: KkSurface.onSurfaceVariant,
               ),
@@ -133,7 +134,7 @@ class _YoupiAdminScreenState extends State<YoupiAdminScreen> {
       surfaceTintColor: Colors.transparent,
       title: Text(
         widget.settingsOnly ? 'Settings' : 'Konkani Samudai Payments',
-        style: GoogleFonts.publicSans(
+        style: TextStyle(
           fontSize: 17,
           fontWeight: FontWeight.w700,
           color: KkSurface.onSurface,
@@ -160,11 +161,28 @@ class _LiveTabState extends State<_LiveTab> {
   Map<String, dynamic>? _payments;
   String? _error;
   bool _loading = true;
+  late final SmsObserverController _observer;
 
   @override
   void initState() {
     super.initState();
+    _observer = SmsObserverController();
+    _observer.addListener(_onObserverChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _observer.start();
+    });
     _load();
+  }
+
+  void _onObserverChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _observer.removeListener(_onObserverChanged);
+    _observer.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -221,11 +239,6 @@ class _LiveTabState extends State<_LiveTab> {
       0,
       (sum, p) => sum + (int.tryParse('${p['amountPaise']}') ?? 0),
     );
-    final pendingCounter = payments
-        .where((p) =>
-            p['status'] == 'ACTIVE' &&
-            (p['method'] == 'CASH_COUNTER' || p['method'] == 'CARD_COUNTER'))
-        .length;
 
     return KkPullToRefresh(
       color: KkSurface.accent,
@@ -234,14 +247,31 @@ class _LiveTabState extends State<_LiveTab> {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 14, 16, KkSurface.navClearance),
         children: [
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
+          Row(
             children: [
-              _Kpi('Today', _money(volume)),
-              _Kpi('Successful', '${success.length}'),
-              _Kpi('Waiting', '${waiting.length}'),
-              _Kpi('Counter', '$pendingCounter'),
+              Expanded(child: _Kpi('Today', _money(volume))),
+              const SizedBox(width: 10),
+              Expanded(child: _Kpi('Successful', '${success.length}')),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(child: _Kpi('Waiting', '${waiting.length}')),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _Kpi(
+                  'Forwarded',
+                  '${_observer.state?.stats.forwarded ?? 0}',
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _Kpi(
+                  'Failed',
+                  '${_observer.state?.stats.failed ?? 0}',
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 14),
@@ -403,7 +433,7 @@ class _AllPaymentsPageState extends State<_AllPaymentsPage> {
         surfaceTintColor: Colors.transparent,
         title: Text(
           'All payments',
-          style: GoogleFonts.publicSans(
+          style: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w700,
             color: KkSurface.onSurface,
@@ -483,7 +513,7 @@ class _AllPaymentsPageState extends State<_AllPaymentsPage> {
             Expanded(
               child: Text(
                 'Order #${p['orderId'] ?? '-'}',
-                style: GoogleFonts.publicSans(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                   color: KkSurface.onSurface,
@@ -492,7 +522,7 @@ class _AllPaymentsPageState extends State<_AllPaymentsPage> {
             ),
             Text(
               _money(p['amountPaise']),
-              style: GoogleFonts.publicSans(
+              style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w800,
                 color: KkSurface.onSurface,
@@ -520,6 +550,116 @@ class _AllPaymentsPageState extends State<_AllPaymentsPage> {
           style: _muted(),
         ),
       ],
+    );
+  }
+}
+
+class _MembershipEditorSheet extends StatefulWidget {
+  const _MembershipEditorSheet({required this.initialAmountMinor});
+
+  final int initialAmountMinor;
+
+  @override
+  State<_MembershipEditorSheet> createState() =>
+      _MembershipEditorSheetState();
+}
+
+class _MembershipEditorSheetState extends State<_MembershipEditorSheet> {
+  late final TextEditingController _controller;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(
+      text: (widget.initialAmountMinor / 100).toStringAsFixed(0),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final value = double.tryParse(_controller.text.trim());
+    if (value == null || value < 1) {
+      _snack(context, 'Enter an amount of at least ₹1.');
+      return;
+    }
+    setState(() => _saving = true);
+    try {
+      final token = await AuthService.validAccessToken('');
+      if (token.isEmpty) {
+        _snack(context, 'Your admin session has expired. Please log in again.');
+        return;
+      }
+      final plan = await Api.updateMembershipAmount(
+        token,
+        (value * 100).round(),
+      );
+      if (!mounted) return;
+      Navigator.of(context).pop(plan);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      _snack(context, '$e');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.6,
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 42,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: KkSurface.outline,
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              const _SectionTitle('Membership price'),
+              const SizedBox(height: 4),
+              Text(
+                'Amount per year. Applies to new memberships immediately.',
+                style: _muted(),
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: _controller,
+                autofocus: true,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(
+                  labelText: 'Amount per year (₹)',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 14),
+              FilledButton.icon(
+                onPressed: _saving ? null : _save,
+                icon: const Icon(TablerIcons.check, size: 17),
+                label: Text(_saving ? 'Saving...' : 'Save'),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -959,7 +1099,7 @@ class _WhatsAppMessagesPageState extends State<_WhatsAppMessagesPage> {
         surfaceTintColor: Colors.transparent,
         title: Text(
           'WhatsApp messages',
-          style: GoogleFonts.publicSans(
+          style: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w700,
             color: KkSurface.onSurface,
@@ -1534,31 +1674,6 @@ class _ThisPhonePanelState extends State<_ThisPhonePanel> {
                     onGrant: _observer.requestNotificationPermission,
                   ),
                 const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _ObserverStat(
-                        label: 'Forwarded',
-                        value: state?.stats.forwarded ?? 0,
-                        color: KkSurface.accent,
-                      ),
-                    ),
-                    Expanded(
-                      child: _ObserverStat(
-                        label: 'Waiting',
-                        value: state?.stats.pending ?? 0,
-                        color: KkSurface.secondary,
-                      ),
-                    ),
-                    Expanded(
-                      child: _ObserverStat(
-                        label: 'Failed',
-                        value: state?.stats.failed ?? 0,
-                        color: KkSurface.error,
-                      ),
-                    ),
-                  ],
-                ),
               ],
               if (_pairError != null) ...[
                 const SizedBox(height: 8),
@@ -1633,36 +1748,6 @@ class _ObserverPermissionRow extends StatelessWidget {
   }
 }
 
-class _ObserverStat extends StatelessWidget {
-  const _ObserverStat({
-    required this.label,
-    required this.value,
-    required this.color,
-  });
-
-  final String label;
-  final int value;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '$value',
-          style: GoogleFonts.publicSans(
-            fontSize: 20,
-            fontWeight: FontWeight.w800,
-            color: color,
-          ),
-        ),
-        Text(label.toUpperCase(), style: _muted(size: 9.5)),
-      ],
-    );
-  }
-}
-
 class _GatewayTab extends StatefulWidget {
   const _GatewayTab();
 
@@ -1674,6 +1759,8 @@ class _GatewayTabState extends State<_GatewayTab> {
   Map<String, dynamic>? _whatsapp;
   List<Map<String, dynamic>> _vpaAccounts = const [];
   String _activeVpa = '';
+  int _membershipAmountMinor = 120000;
+  String _membershipLabel = 'Annual membership';
   String? _error;
   bool _loading = true;
   late final SmsObserverController _observer;
@@ -1723,6 +1810,21 @@ class _GatewayTabState extends State<_GatewayTab> {
           'lastError': {'message': '$e'},
         };
       }
+
+      int membershipAmount = _membershipAmountMinor;
+      String membershipLabel = _membershipLabel;
+      try {
+        final movieToken = await AuthService.validAccessToken('');
+        if (movieToken.isNotEmpty) {
+          final plan = await Api.getMembershipSettings(movieToken);
+          membershipAmount =
+              (plan['amountMinor'] as num?)?.toInt() ?? membershipAmount;
+          membershipLabel = (plan['label'] ?? membershipLabel).toString();
+        }
+      } catch (_) {
+        // Keep the gateway settings usable even when the movie session is offline.
+      }
+
       if (!mounted) return;
       final accounts =
           (results[1]['accounts'] as List?)?.cast<Map<String, dynamic>>() ??
@@ -1737,6 +1839,8 @@ class _GatewayTabState extends State<_GatewayTab> {
       setState(() {
         _whatsapp = whatsapp;
         _vpaAccounts = accounts;
+        _membershipAmountMinor = membershipAmount;
+        _membershipLabel = membershipLabel;
         _activeVpa = '${activeAccount?['upiId'] ?? results[0]['upiId'] ?? ''}';
         _error = null;
         _loading = false;
@@ -1794,6 +1898,32 @@ class _GatewayTabState extends State<_GatewayTab> {
       MaterialPageRoute(builder: (_) => const _WhatsAppMessagesPage()),
     );
     if (mounted) await _load(quiet: true);
+  }
+
+  Future<void> _editMembership() async {
+    final plan = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: KkSurface.container,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
+        ),
+        child: _MembershipEditorSheet(
+          initialAmountMinor: _membershipAmountMinor,
+        ),
+      ),
+    );
+    if (plan == null || !mounted) return;
+    setState(() {
+      _membershipAmountMinor =
+          (plan['amountMinor'] as num?)?.toInt() ?? _membershipAmountMinor;
+      _membershipLabel = (plan['label'] ?? _membershipLabel).toString();
+    });
+    _snack(context, 'Membership price updated.');
   }
 
   @override
@@ -1907,6 +2037,37 @@ class _GatewayTabState extends State<_GatewayTab> {
               ),
             ),
           ),
+          const SizedBox(height: 12),
+          GestureDetector(
+            onTap: _editMembership,
+            child: _Panel(
+              child: Row(
+                children: [
+                  const _SectionTitle('Membership'),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      '₹${(_membershipAmountMinor / 100).toStringAsFixed(0)}/year',
+                      textAlign: TextAlign.right,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        fontFamily: 'monospace',
+                        color: KkSurface.onSurface,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(
+                    TablerIcons.chevronRight,
+                    size: 18,
+                    color: KkSurface.onSurfaceVariant,
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -1982,7 +2143,7 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: GoogleFonts.publicSans(
+      style: TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w700,
         color: KkSurface.onSurface,
@@ -2000,7 +2161,6 @@ class _Kpi extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 150,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: KkSurface.container,
@@ -2014,7 +2174,7 @@ class _Kpi extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             value,
-            style: GoogleFonts.publicSans(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w800,
               color: KkSurface.onSurface,
@@ -2076,7 +2236,7 @@ class _Pill extends StatelessWidget {
       ),
       child: Text(
         text,
-        style: GoogleFonts.publicSans(
+        style: TextStyle(
           fontSize: 9.5,
           fontWeight: FontWeight.w700,
           letterSpacing: 0.3,
@@ -2115,14 +2275,14 @@ class _ErrorView extends StatelessWidget {
 }
 
 TextStyle _body({bool bold = false, double size = 12.5}) =>
-    GoogleFonts.publicSans(
+    TextStyle(
       fontSize: size,
       height: 1.4,
       fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
       color: KkSurface.onSurface,
     );
 
-TextStyle _muted({double size = 11}) => GoogleFonts.publicSans(
+TextStyle _muted({double size = 11}) => TextStyle(
       fontSize: size,
       height: 1.4,
       color: KkSurface.onSurfaceVariant,

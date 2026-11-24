@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:tabler_icons_plus/tabler_icons_plus.dart';
 
 import '../services/auth_service.dart';
@@ -96,7 +95,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 const SizedBox(height: 24),
                 Text(
                   'Konkani Samudai',
-                  style: GoogleFonts.publicSans(
+                  style: TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.w800,
                     letterSpacing: -0.6,
@@ -106,7 +105,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 const SizedBox(height: 5),
                 Text(
                   'A D M I N',
-                  style: GoogleFonts.publicSans(
+                  style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 5.5,
@@ -128,7 +127,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 const SizedBox(height: 12),
                 Text(
                   'Preparing your cinema control room',
-                  style: GoogleFonts.publicSans(
+                  style: TextStyle(
                     fontSize: 11,
                     color: KkSurface.onSurfaceVariant,
                   ),
