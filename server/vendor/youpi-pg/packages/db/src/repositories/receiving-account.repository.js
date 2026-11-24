@@ -176,10 +176,42 @@ export class ReceivingAccountRepository {
     }
 
     if (account.isSlotBusy || account.currentActiveSessionId) {
-      throw new Error(`Cannot delete account ${account.upiId} because it has an active checkout session.`);
+      throw new Error(`Cannot delete account ${account.upiId} because it has an active checkout session. Wait for it to finish, then try again.`);
     }
 
-    this.db.execute('DELETE FROM payment_receiving_accounts WHERE id = ? AND merchant_id = ?', [accountId, merchantId]);
+    const now = new Date().toISOString();
+    this.db.transaction(() => {
+      // Historical sessions keep their amount, status and observation trail, but
+      // the account reference is detached first. Without this PostgreSQL rejects
+      // the delete with payment_sessions_receiving_account_id_fkey.
+      this.db.execute(
+        'UPDATE payment_sessions SET receiving_account_id = NULL, updated_at = ? WHERE receiving_account_id = ?',
+        [now, accountId]
+      );
+      this.db.execute(
+        'DELETE FROM payment_observations WHERE receiving_account_id = ?',
+        [accountId]
+      );
+      this.db.execute(
+        'DELETE FROM payment_receiving_accounts WHERE id = ? AND merchant_id = ?',
+        [accountId, merchantId]
+      );
+
+      // Deleting the active VPA must not leave the merchant unable to take a
+      // payment. Promote the next saved account, if there is one.
+      if (account.isActive) {
+        const next = this.db.queryOne(
+          'SELECT id FROM payment_receiving_accounts WHERE merchant_id = ? ORDER BY created_at DESC LIMIT 1',
+          [merchantId]
+        );
+        if (next) {
+          this.db.execute(
+            'UPDATE payment_receiving_accounts SET is_active = TRUE, updated_at = ? WHERE id = ?',
+            [now, next.id]
+          );
+        }
+      }
+    });
     return true;
   }
 
