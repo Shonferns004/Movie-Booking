@@ -327,7 +327,7 @@ class _LiveTabState extends State<_LiveTab> {
       onRefresh: _load,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, KkSurface.navClearance),
         children: [
           Wrap(
             spacing: 10,
@@ -471,7 +471,7 @@ class _PaymentsTabState extends State<_PaymentsTab> {
       onRefresh: _load,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, KkSurface.navClearance),
         children: [
           if (_payments.isEmpty)
             _Panel(child: Text('No payments have been recorded.', style: _body()))
@@ -680,7 +680,7 @@ class _AccountsTabState extends State<_AccountsTab> {
       onRefresh: _load,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, KkSurface.navClearance),
         children: [
           Row(
             children: [
@@ -1400,7 +1400,7 @@ class _GatewayTabState extends State<_GatewayTab> {
       onRefresh: _load,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, KkSurface.navClearance),
         children: [
           _ThisPhonePanel(observer: _observer),
           const SizedBox(height: 12),
