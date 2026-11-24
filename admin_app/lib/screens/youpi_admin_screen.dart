@@ -14,7 +14,7 @@ import 'package:tabler_icons_plus/tabler_icons_plus.dart';
 class YoupiAdminScreen extends StatefulWidget {
   const YoupiAdminScreen({super.key, this.initialTab = 0});
 
-  /// Which internal tab to show first (0 Live, 1 Payments, 2 Settings).
+  /// Which internal tab to show first (0 Live, 1 Settings).
   final int initialTab;
 
   @override
@@ -97,8 +97,8 @@ class _YoupiAdminScreenState extends State<YoupiAdminScreen> {
     }
 
     return DefaultTabController(
-      length: 3,
-      initialIndex: widget.initialTab.clamp(0, 2).toInt(),
+      length: 2,
+      initialIndex: widget.initialTab.clamp(0, 1).toInt(),
       child: Scaffold(
         backgroundColor: KkSurface.bg,
         appBar: AppBar(
@@ -130,7 +130,6 @@ class _YoupiAdminScreenState extends State<YoupiAdminScreen> {
             unselectedLabelColor: KkSurface.onSurfaceVariant,
             tabs: const [
               Tab(text: 'Live'),
-              Tab(text: 'Payments'),
               Tab(text: 'Settings'),
             ],
           ),
@@ -139,7 +138,6 @@ class _YoupiAdminScreenState extends State<YoupiAdminScreen> {
           key: ValueKey(_token),
           children: const [
             _LiveTab(),
-            _PaymentsTab(),
             _GatewayTab(),
           ],
         ),
@@ -290,6 +288,12 @@ class _LiveTabState extends State<_LiveTab> {
     }
   }
 
+  void _openAllPayments() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const _AllPaymentsPage()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -398,9 +402,14 @@ class _LiveTabState extends State<_LiveTab> {
                 Row(
                   children: [
                     const Expanded(child: _SectionTitle('Recent payments')),
-                    TextButton(
+                    IconButton(
                       onPressed: _load,
-                      child: const Text('Refresh'),
+                      tooltip: 'Refresh',
+                      icon: const Icon(TablerIcons.refresh, size: 18),
+                    ),
+                    TextButton(
+                      onPressed: _openAllPayments,
+                      child: const Text('Show all'),
                     ),
                   ],
                 ),
@@ -418,15 +427,16 @@ class _LiveTabState extends State<_LiveTab> {
   }
 }
 
-class _PaymentsTab extends StatefulWidget {
-  const _PaymentsTab();
+class _AllPaymentsPage extends StatefulWidget {
+  const _AllPaymentsPage();
 
   @override
-  State<_PaymentsTab> createState() => _PaymentsTabState();
+  State<_AllPaymentsPage> createState() => _AllPaymentsPageState();
 }
 
-class _PaymentsTabState extends State<_PaymentsTab> {
+class _AllPaymentsPageState extends State<_AllPaymentsPage> {
   List<Map<String, dynamic>> _payments = const [];
+  String _search = '';
   String? _error;
   bool _loading = true;
 
@@ -461,24 +471,96 @@ class _PaymentsTabState extends State<_PaymentsTab> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) return const Center(child: CircularProgressIndicator());
-    if (_error != null) return _ErrorView(message: _error!, onRetry: _load);
-    return RefreshIndicator(
-      color: KkSurface.accent,
-      onRefresh: _load,
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, KkSurface.navClearance),
+    final query = _search.trim().toLowerCase();
+    final filtered = query.isEmpty
+        ? _payments
+        : _payments.where((p) {
+            final haystack = [
+              p['orderId'],
+              p['status'],
+              p['method'],
+              p['verificationTag'],
+              (p['verificationSources'] as List?)?.join(' '),
+              _money(p['amountPaise']),
+              p['amountPaise'],
+              _date(p['createdAt']),
+              p['completedAt'] != null ? _date(p['completedAt']) : null,
+            ]
+                .whereType<Object>()
+                .map((value) => '$value'.toLowerCase())
+                .join(' ');
+            return haystack.contains(query);
+          }).toList();
+
+    return Scaffold(
+      backgroundColor: KkSurface.bg,
+      appBar: AppBar(
+        backgroundColor: KkSurface.bg,
+        surfaceTintColor: Colors.transparent,
+        title: Text(
+          'All payments',
+          style: GoogleFonts.publicSans(
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+            color: KkSurface.onSurface,
+          ),
+        ),
+      ),
+      body: Column(
         children: [
-          if (_payments.isEmpty)
-            _Panel(child: Text('No payments have been recorded.', style: _body()))
-          else
-            ..._payments.map(
-              (payment) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: _Panel(child: _paymentTile(payment)),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+            child: TextField(
+              onChanged: (value) => setState(() => _search = value),
+              decoration: InputDecoration(
+                hintText: 'Search order, status, amount...',
+                prefixIcon: const Icon(TablerIcons.search, size: 18),
+                suffixIcon: _search.isEmpty
+                    ? null
+                    : IconButton(
+                        onPressed: () => setState(() => _search = ''),
+                        tooltip: 'Clear search',
+                        icon: const Icon(TablerIcons.x, size: 16),
+                      ),
+                isDense: true,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
+          ),
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : _error != null
+                    ? _ErrorView(message: _error!, onRetry: _load)
+                    : RefreshIndicator(
+                        color: KkSurface.accent,
+                        onRefresh: _load,
+                        child: ListView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                          children: [
+                            if (filtered.isEmpty)
+                              _Panel(
+                                child: Text(
+                                  query.isEmpty
+                                      ? 'No payments have been recorded.'
+                                      : 'No payments match "$query".',
+                                  style: _body(),
+                                ),
+                              )
+                            else
+                              ...filtered.map(
+                                (payment) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 10),
+                                  child: _Panel(child: _paymentTile(payment)),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+          ),
         ],
       ),
     );
@@ -1603,11 +1685,13 @@ class _GatewayTabState extends State<_GatewayTab> {
     super.dispose();
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  Future<void> _load({bool quiet = false}) async {
+    if (!quiet) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
     try {
       final results = await Future.wait([
         YoupiAdminApi.get('/admin/merchant-settings'),
@@ -1639,10 +1723,16 @@ class _GatewayTabState extends State<_GatewayTab> {
         _settings = results[0];
         _whatsapp = whatsapp;
         _activeVpa = '${activeAccount?['upiId'] ?? results[0]['upiId'] ?? ''}';
+        _error = null;
         _loading = false;
       });
     } catch (e) {
       if (!mounted) return;
+      if (quiet) {
+        // Keep the current contents visible; only report the refresh failure.
+        _snack(context, '$e');
+        return;
+      }
       setState(() {
         _error = e.toString();
         _loading = false;
@@ -1668,7 +1758,7 @@ class _GatewayTabState extends State<_GatewayTab> {
     if (lastError.isNotEmpty && mounted) {
       _snack(context, 'WhatsApp reconnect failed: $lastError');
     }
-    if (mounted) await _load();
+    if (mounted) await _load(quiet: true);
   }
 
   Future<void> _disconnectWhatsApp() async {
@@ -1679,7 +1769,7 @@ class _GatewayTabState extends State<_GatewayTab> {
     if (!ok) return;
     try {
       await YoupiAdminApi.post('/admin/whatsapp/disconnect');
-      await _load();
+      await _load(quiet: true);
     } catch (e) {
       _snack(context, '$e');
     }
@@ -1695,7 +1785,7 @@ class _GatewayTabState extends State<_GatewayTab> {
       ),
       builder: (_) => const _VpaManagerSheet(),
     );
-    if (mounted) await _load();
+    if (mounted) await _load(quiet: true);
   }
 
   Future<void> _openWhatsAppMessages() async {
@@ -1758,12 +1848,12 @@ class _GatewayTabState extends State<_GatewayTab> {
       );
       if (!mounted) return;
       if (saved != null) {
-        await _load();
+        await _load(quiet: true);
         if (mounted) _snack(context, '${template.title} saved.');
       }
       // Save or back: reopen the WhatsApp messages list with fresh SET state.
     }
-    if (mounted) await _load();
+    if (mounted) await _load(quiet: true);
   }
 
   @override
@@ -1777,7 +1867,7 @@ class _GatewayTabState extends State<_GatewayTab> {
 
     return RefreshIndicator(
       color: KkSurface.accent,
-      onRefresh: _load,
+      onRefresh: () => _load(quiet: true),
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 14, 16, KkSurface.navClearance),

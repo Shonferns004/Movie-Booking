@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api.dart';
 import '../services/auth_service.dart';
 import 'scanner_shell.dart';
+import 'youpi_admin_screen.dart';
 import 'package:tabler_icons_plus/tabler_icons_plus.dart';
 
 /// Profile tab — identity, total scans, recent activity.
@@ -141,8 +142,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
         const SizedBox(height: 16),
         _buildRecentScans(),
         const SizedBox(height: 16),
+        _buildSettingsButton(context),
+        const SizedBox(height: 16),
         _buildSignOut(context),
       ],
+    );
+  }
+
+  Widget _buildSettingsButton(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 48,
+      child: OutlinedButton.icon(
+        onPressed: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const YoupiAdminScreen(initialTab: 1),
+            ),
+          );
+        },
+        icon: const Icon(TablerIcons.settings, size: 20),
+        label: Text(
+          'PAYMENT SETTINGS',
+          style: GoogleFonts.publicSans(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.8,
+          ),
+        ),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: KkSurface.onSurface,
+          side: const BorderSide(color: KkSurface.outlineVariant),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+      ),
     );
   }
 
