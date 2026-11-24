@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/skeleton.dart';
+import 'package:tabler_icons_plus/tabler_icons_plus.dart';
 
 class AddShowSheet extends StatefulWidget {
   final String? token;
@@ -307,7 +308,7 @@ class _AddShowSheetState extends State<AddShowSheet> {
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: sumi600),
                     ),
-                    child: const Icon(Icons.close, size: 14, color: sumi300),
+                    child: const Icon(TablerIcons.x, size: 14, color: sumi300),
                   ),
                 ),
               ],
@@ -371,7 +372,7 @@ class _AddShowSheetState extends State<AddShowSheet> {
                                     height: 52,
                                     color: sumi800,
                                     child: const Icon(
-                                      Icons.add_photo_alternate_outlined,
+                                      TablerIcons.photoPlus,
                                       size: 23,
                                       color: terracotta,
                                     ),
@@ -386,7 +387,7 @@ class _AddShowSheetState extends State<AddShowSheet> {
                                       height: 52,
                                       color: sumi800,
                                       child: const Icon(
-                                        Icons.broken_image_outlined,
+                                        TablerIcons.photoOff,
                                         size: 21,
                                         color: sumi400,
                                       ),
@@ -424,8 +425,8 @@ class _AddShowSheetState extends State<AddShowSheet> {
                           const SizedBox(width: 6),
                           Icon(
                             _pickedThumb == null
-                                ? Icons.chevron_right_rounded
-                                : Icons.check_circle_outline_rounded,
+                                ? TablerIcons.chevronRight
+                                : TablerIcons.circleCheck,
                             size: 19,
                             color: _pickedThumb == null ? sumi400 : terracotta,
                           ),
@@ -457,7 +458,7 @@ class _AddShowSheetState extends State<AddShowSheet> {
                             const SizedBox(height: 4),
                             _pickerBox(
                               _dateCtrl,
-                              Icons.calendar_today,
+                              TablerIcons.calendar,
                               _pickDate,
                               sumi850,
                               sumi600,
@@ -476,7 +477,7 @@ class _AddShowSheetState extends State<AddShowSheet> {
                             const SizedBox(height: 4),
                             _pickerBox(
                               _timeCtrl,
-                              Icons.access_time,
+                              TablerIcons.clock,
                               _pickTime,
                               sumi850,
                               sumi600,
@@ -509,7 +510,7 @@ class _AddShowSheetState extends State<AddShowSheet> {
                         borderRadius: BorderRadius.circular(12),
                         menuMaxHeight: 260,
                         icon: const Icon(
-                          Icons.keyboard_arrow_down_rounded,
+                          TablerIcons.chevronDown,
                           size: 18,
                           color: sumi300,
                         ),
@@ -537,7 +538,7 @@ class _AddShowSheetState extends State<AddShowSheet> {
                       ),
                       sumi850,
                       sumi600,
-                      icon: Icons.location_city_outlined,
+                      icon: TablerIcons.building,
                     ),
                   const SizedBox(height: 10),
                   // auditorium
@@ -560,7 +561,7 @@ class _AddShowSheetState extends State<AddShowSheet> {
                         borderRadius: BorderRadius.circular(12),
                         menuMaxHeight: 260,
                         icon: const Icon(
-                          Icons.keyboard_arrow_down_rounded,
+                          TablerIcons.chevronDown,
                           size: 18,
                           color: sumi300,
                         ),
@@ -580,7 +581,7 @@ class _AddShowSheetState extends State<AddShowSheet> {
                       ),
                       sumi850,
                       sumi600,
-                      icon: Icons.meeting_room_outlined,
+                      icon: TablerIcons.door,
                     ),
                 ],
               ),

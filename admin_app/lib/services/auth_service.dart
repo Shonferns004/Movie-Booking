@@ -23,6 +23,9 @@ class AuthService {
 
   static String? get accessToken => _accessToken;
   static bool get hasToken => _accessToken?.isNotEmpty ?? false;
+  static bool get hasSession =>
+      (_accessToken?.isNotEmpty ?? false) ||
+      (_refreshToken?.isNotEmpty ?? false);
 
   static Future<void> init() async {
     if (_prefs != null) return;

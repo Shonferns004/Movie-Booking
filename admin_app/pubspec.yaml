@@ -1,4 +1,4 @@
-name: konkani_admin
+﻿name: konkani_admin
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -36,10 +36,12 @@ dependencies:
   qr_flutter: ^4.1.0
   shared_preferences: ^2.3.2
   image_picker: ^1.1.2
-  webview_flutter: ^4.8.0
+  share_plus: ^10.1.4
+  path_provider: ^2.1.4
+  flutter_svg: ^2.0.10+1
   google_fonts: ^6.2.1
-  lucide_icons_flutter: ^4.0.1
   web_socket_channel: ^3.0.3
+  tabler_icons_plus: ^3.52.0
 
 dev_dependencies:
   flutter_test:

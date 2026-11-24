@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/profile_screen.dart';
-import 'screens/auth_gate.dart';
 import 'screens/scanner_shell.dart' show KkSurface;
 import 'screens/community_home_screen.dart';
+import 'screens/youpi_admin_screen.dart';
 import 'services/auth_service.dart';
+import 'package:tabler_icons_plus/tabler_icons_plus.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -18,6 +18,7 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   int _index = 0; // Home is the default tab
+  bool _navCompact = false;
   String? _token;
   List<String> _roles = const [];
   bool _loading = true;
@@ -38,6 +39,10 @@ class _MainShellState extends State<MainShell> {
         .toList();
     final token = await AuthService.validAccessToken(cached);
     if (!mounted) return;
+    if (token.isEmpty) {
+      Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+      return;
+    }
     setState(() {
       _token = token;
       _roles = roles;
@@ -58,81 +63,122 @@ class _MainShellState extends State<MainShell> {
 
     return Scaffold(
       backgroundColor: KkSurface.bg,
-      // IndexedStack keeps each tab alive, so switching does not reload everything.
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: KkSurface.accent))
           : scannerOnly
               ? const HomeScreen()
-              : IndexedStack(
-                  index: _index,
+              : Stack(
                   children: [
-                    // Home = community command centre (hero, members, notices, events).
-                    CommunityHomeScreen(token: _token),
-                    // The dashboard (formerly the Home page) lives in the Movies tab.
-                    const HomeScreen(),
-                    ProfileScreen(
-                      token: _token ?? '',
-                      shows: const [],
-                      onSignOut: _signOut,
+                    Positioned.fill(
+                      child: NotificationListener<ScrollNotification>(
+                        onNotification: (notification) {
+                          if (notification.metrics.axis != Axis.vertical) {
+                            return false;
+                          }
+                          final compact = notification.metrics.pixels > 24;
+                          if (compact != _navCompact) {
+                            setState(() => _navCompact = compact);
+                          }
+                          return false;
+                        },
+                        child: IndexedStack(
+                          index: _index,
+                          children: [
+                            // Home = community command centre (hero, members, notices, events).
+                            CommunityHomeScreen(token: _token),
+                            // The dashboard (formerly the Home page) lives in the Movies tab.
+                            const HomeScreen(),
+                            // Native YouPI payment/admin hub. Starts on the Payments tab.
+                            const YoupiAdminScreen(initialTab: 1),
+                            ProfileScreen(
+                              token: _token ?? '',
+                              shows: const [],
+                              onSignOut: _signOut,
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
+                    _buildFloatingNav(),
                   ],
                 ),
-      bottomNavigationBar: scannerOnly ? null : _buildNav(),
     );
   }
 
-  /// Same tab bar as the scanner shell: Lucide icons, poppins labels, hairline border.
-  Widget _buildNav() {
+  /// Solid black floating pill with a green active icon.
+  Widget _buildFloatingNav() {
+    final width = MediaQuery.sizeOf(context).width;
+    final baseHorizontal = width >= 700 ? 64.0 : 30.0;
+    final horizontal = baseHorizontal + (_navCompact ? 22.0 : 0.0);
+    final barHeight = _navCompact ? 50.0 : 54.0;
+    // Taller phones get a little more breathing room under the bar.
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final baseBottom = screenHeight >= 800 ? 30.0 : 22.0;
+    final bottomMargin = baseBottom + (_navCompact ? -4.0 : 0.0);
+
     Widget item(IconData icon, String label, int index) {
       final active = _index == index;
-      final iconColor = active ? KkSurface.accent : KkSurface.onSurfaceVariant;
-      final labelColor = active ? KkSurface.onSurface : KkSurface.onSurfaceVariant;
       return Expanded(
-        child: InkWell(
-          onTap: () => setState(() => _index = index),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, size: 24, color: iconColor),
-                const SizedBox(height: 2),
-                Text(
-                  label,
-                  style: GoogleFonts.publicSans(
-                    fontSize: 11,
-                    fontWeight: active ? FontWeight.w600 : FontWeight.w500,
-                    color: labelColor,
-                  ),
-                ),
-              ],
+        child: Tooltip(
+          message: label,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(24),
+            onTap: () => setState(() {
+              _index = index;
+              _navCompact = false;
+            }),
+            child: Center(
+              child: Icon(
+                icon,
+                size: active ? 24 : 22,
+                color: active ? KkSurface.accent : KkSurface.onSurfaceVariant,
+              ),
             ),
           ),
         ),
       );
     }
 
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-        child: Container(
-          decoration: BoxDecoration(
-            color: KkSurface.container,
-            borderRadius: BorderRadius.circular(30),
-            border: Border.all(color: KkSurface.border),
-            boxShadow: const [
-              BoxShadow(color: Color(0x66000000), blurRadius: 26, offset: Offset(0, 12)),
-            ],
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: 0,
+      child: SafeArea(
+        top: false,
+        minimum: const EdgeInsets.only(bottom: 10),
+        child: AnimatedPadding(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+          padding: EdgeInsets.fromLTRB(
+            horizontal,
+            0,
+            horizontal,
+            bottomMargin,
           ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+            height: barHeight,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF080A0D),
+              borderRadius: BorderRadius.circular(barHeight / 2),
+              border: Border.all(color: const Color(0xFF262C33)),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x66000000),
+                  blurRadius: 18,
+                  offset: Offset(0, 8),
+                ),
+              ],
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                item(LucideIcons.house, 'Home', 0),
-                item(LucideIcons.film, 'Movies', 1),
-                item(LucideIcons.circleUser, 'Profile', 2),
+                item(TablerIcons.home, 'Home', 0),
+                item(TablerIcons.movie, 'Movies', 1),
+                item(TablerIcons.creditCard, 'Payments', 2),
+                item(TablerIcons.userCircle, 'Profile', 3),
               ],
             ),
           ),
@@ -170,7 +216,7 @@ class KonkaniAdminApp extends StatelessWidget {
           style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)), backgroundColor: const Color(0xFFC8FF1F), foregroundColor: const Color(0xFF171B1F)),
         ),
       ),
-      home: const AuthGate(),
+      home: AuthService.hasSession ? const MainShell() : const LoginScreen(),
       routes: {
         '/login': (_) => const LoginScreen(),
         // The shell holds the five tabs; '/home' stays the landing route so existing

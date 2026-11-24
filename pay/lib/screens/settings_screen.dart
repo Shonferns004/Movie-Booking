@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../models/observer_config.dart';
 import '../state/app_state.dart';
@@ -9,6 +11,7 @@ import '../widgets/app_card.dart';
 import '../widgets/status_pill.dart';
 import 'pair_qr_scan_screen.dart';
 import 'test_send_sheet.dart';
+import 'package:tabler_icons_plus/tabler_icons_plus.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -252,8 +255,46 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     controller.text = code.trim();
                   }
                 },
-                icon: const Icon(Icons.qr_code_scanner_rounded, size: 18),
+                icon: const Icon(TablerIcons.qrcode, size: 18),
                 label: const Text('Scan pairing QR'),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  final picked = await ImagePicker().pickImage(
+                    source: ImageSource.gallery,
+                  );
+                  if (picked == null) return;
+                  final scanner = MobileScannerController();
+                  try {
+                    final capture = await scanner.analyzeImage(picked.path);
+                    final code = (capture != null &&
+                            capture.barcodes.isNotEmpty)
+                        ? (capture.barcodes.first.rawValue ?? '').trim()
+                        : '';
+                    if (code.isEmpty) {
+                      if (dialogContext.mounted) {
+                        ScaffoldMessenger.of(dialogContext).showSnackBar(
+                          const SnackBar(
+                            content: Text('No QR code found in that image.'),
+                          ),
+                        );
+                      }
+                      return;
+                    }
+                    controller.text = code;
+                  } catch (e) {
+                    if (dialogContext.mounted) {
+                      ScaffoldMessenger.of(dialogContext).showSnackBar(
+                        SnackBar(content: Text('Could not read that QR: $e')),
+                      );
+                    }
+                  } finally {
+                    await scanner.dispose();
+                  }
+                },
+                icon: const Icon(TablerIcons.photo, size: 18),
+                label: const Text('Upload QR from gallery'),
               ),
               const SizedBox(height: 12),
               Text(
@@ -434,8 +475,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             setState(() => _obscureToken = !_obscureToken),
                         icon: Icon(
                           _obscureToken
-                              ? Icons.visibility_rounded
-                              : Icons.visibility_off_rounded,
+                              ? TablerIcons.eye
+                              : TablerIcons.eyeOff,
                           size: 19,
                           color: AppColors.faint,
                         ),
@@ -498,7 +539,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     color: AppColors.accent2,
                                   ),
                                 )
-                              : const Icon(Icons.radar_rounded, size: 17),
+                              : const Icon(TablerIcons.radar, size: 17),
                           label: Text(_detecting ? 'Looking…' : 'Detect from live checkout'),
                         ),
                       ),
@@ -575,7 +616,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   ListTile(
                     contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.send_rounded,
+                    leading: const Icon(TablerIcons.send,
                         size: 19, color: AppColors.accent2),
                     title: const Text(
                       'Send a test observation',
@@ -585,14 +626,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       'Preview the parser and POST a sample credit SMS',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
-                    trailing: const Icon(Icons.chevron_right_rounded,
+                    trailing: const Icon(TablerIcons.chevronRight,
                         size: 20, color: AppColors.faint),
                     onTap: () => showTestSendSheet(context),
                   ),
                   const Divider(height: 1),
                   ListTile(
                     contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.battery_saver_rounded,
+                    leading: const Icon(TablerIcons.battery,
                         size: 19, color: AppColors.accent2),
                     title: const Text(
                       'Retry queued messages',
@@ -602,7 +643,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       'Replays everything still waiting for delivery',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
-                    trailing: const Icon(Icons.chevron_right_rounded,
+                    trailing: const Icon(TablerIcons.chevronRight,
                         size: 20, color: AppColors.faint),
                     onTap: state.flushQueue,
                   ),
@@ -617,7 +658,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   ListTile(
                     contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.privacy_tip_rounded,
+                    leading: const Icon(TablerIcons.shieldLock,
                         size: 19, color: AppColors.accent2),
                     title: const Text(
                       'Privacy policy',
@@ -627,14 +668,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       'How payment observations are collected and stored',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
-                    trailing: const Icon(Icons.open_in_new_rounded,
+                    trailing: const Icon(TablerIcons.externalLink,
                         size: 18, color: AppColors.faint),
                     onTap: () => AppScope.of(context).openPrivacyPolicy(),
                   ),
                   const Divider(height: 1),
                   ListTile(
                     contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.delete_forever_rounded,
+                    leading: const Icon(TablerIcons.trashX,
                         size: 19, color: AppColors.danger),
                     title: const Text(
                       'Delete my data',
@@ -766,8 +807,8 @@ class _PairingCard extends StatelessWidget {
                 ),
                 child: Icon(
                   paired
-                      ? Icons.verified_user_rounded
-                      : Icons.qr_code_scanner_rounded,
+                      ? TablerIcons.shieldCheck
+                      : TablerIcons.qrcode,
                   size: 18,
                   color: AppColors.accent2,
                 ),
@@ -815,7 +856,7 @@ class _PairingCard extends StatelessWidget {
             const SizedBox(height: 12),
             OutlinedButton.icon(
               onPressed: busy ? null : onUnpair,
-              icon: const Icon(Icons.link_off_rounded, size: 17),
+              icon: const Icon(TablerIcons.linkOff, size: 17),
               label: const Text('Unpair this phone'),
             ),
           ] else ...[
@@ -834,7 +875,7 @@ class _PairingCard extends StatelessWidget {
                       height: 14,
                       child: CircularProgressIndicator(strokeWidth: 1.8),
                     )
-                  : const Icon(Icons.link_rounded, size: 18),
+                  : const Icon(TablerIcons.link, size: 18),
               label: Text(busy ? 'Pairing…' : 'Pair this phone'),
             ),
           ],

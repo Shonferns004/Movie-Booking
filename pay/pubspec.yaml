@@ -1,5 +1,5 @@
-name: konkani_sms_gateway
-description: "Konkani Samudai SMS payment observer — forwards bank credit SMS to the YouPI gateway."
+﻿name: konkani_sms_gateway
+description: "Konkani Samudai SMS payment observer â€” forwards bank credit SMS to the YouPI gateway."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -36,6 +36,8 @@ dependencies:
   cupertino_icons: ^1.0.8
   web_socket_channel: ^3.0.3
   mobile_scanner: ^5.2.3
+  image_picker: ^1.1.2
+  tabler_icons_plus: ^3.52.0
 
 dev_dependencies:
   flutter_test:

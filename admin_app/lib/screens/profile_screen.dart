@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/api.dart';
 import '../services/auth_service.dart';
 import 'scanner_shell.dart';
+import 'package:tabler_icons_plus/tabler_icons_plus.dart';
 
 /// Profile tab — identity, total scans, recent activity.
 class ProfileScreen extends StatefulWidget {
@@ -154,7 +154,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   color: KkSurface.containerHigh,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(LucideIcons.badge,
+                child: const Icon(TablerIcons.id,
                     size: 28, color: KkSurface.accentBorder),
               ),
               Positioned(
@@ -252,7 +252,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   color: KkSurface.onSurfaceVariant,
                 ),
               ),
-              const Icon(LucideIcons.scanQrCode,
+              const Icon(TablerIcons.qrcode,
                   size: 18, color: KkSurface.onSurfaceVariant),
             ],
           ),
@@ -295,7 +295,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   color: KkSurface.onSurfaceVariant,
                 ),
               ),
-              const Icon(LucideIcons.film,
+              const Icon(TablerIcons.movie,
                   size: 18, color: KkSurface.onSurfaceVariant),
             ],
           ),
@@ -379,7 +379,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 color: KkSurface.containerHigh,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(LucideIcons.scanQrCode,
+              child: const Icon(TablerIcons.qrcode,
                   size: 18, color: KkSurface.onSurfaceVariant),
             ),
             const SizedBox(width: 12),
@@ -430,7 +430,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
-                    valid ? LucideIcons.check : LucideIcons.x,
+                    valid ? TablerIcons.check : TablerIcons.x,
                     size: 18,
                     color: valid
                         ? KkSurface.onSecondaryContainer
@@ -529,7 +529,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             );
           }
         },
-        icon: const Icon(LucideIcons.logOut, size: 20),
+        icon: const Icon(TablerIcons.logout, size: 20),
         label: Text(
           'LOG OUT',
           style: GoogleFonts.publicSans(

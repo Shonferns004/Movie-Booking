@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/api.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/skeleton.dart';
+import 'package:tabler_icons_plus/tabler_icons_plus.dart';
 
 class SeatBuilderScreen extends StatefulWidget {
   final String token;
@@ -155,7 +156,7 @@ class _SeatBuilderScreenState extends State<SeatBuilderScreen> {
                         border: Border.all(color: const Color(0xFF2a2a2e)),
                       ),
                       child: const Icon(
-                        Icons.close,
+                        TablerIcons.x,
                         size: 14,
                         color: Color(0xFF8e8e96),
                       ),
@@ -783,7 +784,7 @@ class _SeatBuilderScreenState extends State<SeatBuilderScreen> {
                   fontSize: 12,
                 ),
                 prefixIcon: const Icon(
-                  Icons.search,
+                  TablerIcons.search,
                   size: 16,
                   color: Color(0xFF71717A),
                 ),
@@ -811,7 +812,7 @@ class _SeatBuilderScreenState extends State<SeatBuilderScreen> {
           const SizedBox(width: 10),
           ElevatedButton.icon(
             onPressed: _addTheatre,
-            icon: const Icon(Icons.add, size: 16),
+            icon: const Icon(TablerIcons.plus, size: 16),
             label: const Text(
               'Add',
               style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
@@ -919,7 +920,7 @@ class _SeatBuilderScreenState extends State<SeatBuilderScreen> {
                   ),
                   IconButton(
                     icon: const Icon(
-                      Icons.edit,
+                      TablerIcons.edit,
                       size: 16,
                       color: Color(0xFFA1A1AA),
                     ),
@@ -927,7 +928,7 @@ class _SeatBuilderScreenState extends State<SeatBuilderScreen> {
                   ),
                   IconButton(
                     icon: const Icon(
-                      Icons.delete,
+                      TablerIcons.trash,
                       size: 16,
                       color: Color(0xFFA1A1AA),
                     ),
@@ -952,7 +953,7 @@ class _SeatBuilderScreenState extends State<SeatBuilderScreen> {
           ),
           ElevatedButton.icon(
             onPressed: _addAuditorium,
-            icon: const Icon(Icons.add),
+            icon: const Icon(TablerIcons.plus),
             label: const Text('Add'),
           ),
         ],

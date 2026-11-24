@@ -7,6 +7,7 @@ import 'screens/status_screen.dart';
 import 'screens/test_send_sheet.dart';
 import 'state/app_state.dart';
 import 'theme/app_theme.dart';
+import 'package:tabler_icons_plus/tabler_icons_plus.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -80,18 +81,18 @@ class _AppShellState extends State<AppShell> {
           onDestinationSelected: _goTo,
           destinations: const [
             NavigationDestination(
-              icon: Icon(Icons.sensors_rounded),
-              selectedIcon: Icon(Icons.sensors_rounded),
+              icon: Icon(TablerIcons.accessPoint),
+              selectedIcon: Icon(TablerIcons.accessPoint),
               label: 'Status',
             ),
             NavigationDestination(
-              icon: Icon(Icons.receipt_long_rounded),
-              selectedIcon: Icon(Icons.receipt_long_rounded),
+              icon: Icon(TablerIcons.receipt),
+              selectedIcon: Icon(TablerIcons.receipt),
               label: 'Activity',
             ),
             NavigationDestination(
-              icon: Icon(Icons.tune_rounded),
-              selectedIcon: Icon(Icons.tune_rounded),
+              icon: Icon(TablerIcons.adjustments),
+              selectedIcon: Icon(TablerIcons.adjustments),
               label: 'Settings',
             ),
           ],

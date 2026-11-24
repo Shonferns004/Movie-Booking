@@ -6,6 +6,7 @@ import 'gallery_screen.dart';
 import 'members_screen.dart';
 import 'notices_admin_screen.dart';
 import 'scanner_shell.dart' show KkSurface;
+import 'package:tabler_icons_plus/tabler_icons_plus.dart';
 
 /// Home tab: the community command centre.
 ///
@@ -280,7 +281,7 @@ class _CommunityHomeScreenState extends State<CommunityHomeScreen> {
                       _HeroThumb(image: _heroAt(2)),
                       const Spacer(),
                       const Icon(
-                        Icons.arrow_forward,
+                        TablerIcons.arrowRight,
                         size: 18,
                         color: KkSurface.onSurface,
                       ),
@@ -300,13 +301,13 @@ class _CommunityHomeScreenState extends State<CommunityHomeScreen> {
   Widget _statsRow() {
     return Row(
       children: [
-        _statTile('Members', _members.length, Icons.groups_2_outlined),
+        _statTile('Members', _members.length, TablerIcons.usersGroup),
         const SizedBox(width: 10),
-        _statTile('Events', _events.length, Icons.celebration_outlined),
+        _statTile('Events', _events.length, TablerIcons.confetti),
         const SizedBox(width: 10),
-        _statTile('Notices', _notices.length, Icons.campaign_outlined),
+        _statTile('Notices', _notices.length, TablerIcons.speakerphone),
         const SizedBox(width: 10),
-        _statTile('Heroes', _hero.length, Icons.photo_library_outlined),
+        _statTile('Heroes', _hero.length, TablerIcons.photo),
       ],
     );
   }
@@ -359,14 +360,14 @@ class _CommunityHomeScreenState extends State<CommunityHomeScreen> {
             _actionTile(
               label: 'Members',
               hint: '$_activeMembers active',
-              icon: Icons.badge_outlined,
+              icon: TablerIcons.id,
               onTap: () => _open(MembersScreen(token: widget.token)),
             ),
             const SizedBox(width: 10),
             _actionTile(
               label: 'Gallery',
               hint: 'Hero images',
-              icon: Icons.photo_library_outlined,
+              icon: TablerIcons.photo,
               onTap: () => _open(GalleryScreen(token: widget.token)),
             ),
           ],
@@ -377,14 +378,14 @@ class _CommunityHomeScreenState extends State<CommunityHomeScreen> {
             _actionTile(
               label: 'Notices',
               hint: 'Post an update',
-              icon: Icons.campaign_outlined,
+              icon: TablerIcons.speakerphone,
               onTap: () => _open(NoticesAdminScreen(token: widget.token)),
             ),
             const SizedBox(width: 10),
             _actionTile(
               label: 'Events',
               hint: 'Festivals & tickets',
-              icon: Icons.celebration_outlined,
+              icon: TablerIcons.confetti,
               onTap: () => _open(EventsAdminScreen(token: widget.token)),
             ),
           ],
@@ -462,7 +463,7 @@ class _CommunityHomeScreenState extends State<CommunityHomeScreen> {
   Widget _noticesCard() {
     if (_notices.isEmpty) {
       return _emptyCard(
-        icon: Icons.campaign_outlined,
+        icon: TablerIcons.speakerphone,
         message: 'No notices published yet.',
         actionLabel: 'Post the first notice',
         onTap: () => _open(NoticesAdminScreen(token: widget.token)),
@@ -523,7 +524,7 @@ class _CommunityHomeScreenState extends State<CommunityHomeScreen> {
   Widget _eventsCard() {
     if (_events.isEmpty) {
       return _emptyCard(
-        icon: Icons.celebration_outlined,
+        icon: TablerIcons.confetti,
         message: 'Nothing on the calendar yet.',
         actionLabel: 'Publish an event',
         onTap: () => _open(EventsAdminScreen(token: widget.token)),
@@ -622,7 +623,7 @@ class _CommunityHomeScreenState extends State<CommunityHomeScreen> {
   Widget _membersCard() {
     if (_members.isEmpty) {
       return _emptyCard(
-        icon: Icons.groups_2_outlined,
+        icon: TablerIcons.usersGroup,
         message: 'The roll is empty.',
         actionLabel: 'Add the first member',
         onTap: () => _open(MembersScreen(token: widget.token)),
@@ -790,7 +791,7 @@ class _CommunityHomeScreenState extends State<CommunityHomeScreen> {
       ),
       child: Row(
         children: [
-          const Icon(Icons.cloud_off_outlined, size: 18, color: KkSurface.error),
+          const Icon(TablerIcons.cloudOff, size: 18, color: KkSurface.error),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -868,13 +869,13 @@ class _HeroThumb extends StatelessWidget {
               url,
               fit: BoxFit.cover,
               errorBuilder: (_, _, _) => const Icon(
-                Icons.image_outlined,
+                TablerIcons.photo,
                 size: 14,
                 color: KkSurface.containerHighest,
               ),
             )
           : const Icon(
-              Icons.add_photo_alternate_outlined,
+              TablerIcons.photoPlus,
               size: 14,
               color: KkSurface.containerHighest,
             ),

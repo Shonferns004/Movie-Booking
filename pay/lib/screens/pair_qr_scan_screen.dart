@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../theme/app_theme.dart';
+import 'package:tabler_icons_plus/tabler_icons_plus.dart';
 
 /// Scans the pairing QR from the merchant admin panel and returns the raw JSON.
 class PairQrScanScreen extends StatefulWidget {
@@ -44,7 +45,7 @@ class _PairQrScanScreenState extends State<PairQrScanScreen> {
               setState(() => _torchOn = !_torchOn);
             },
             icon: Icon(
-              _torchOn ? Icons.flash_on_rounded : Icons.flash_off_rounded,
+              _torchOn ? TablerIcons.bolt : TablerIcons.boltOff,
             ),
           ),
         ],

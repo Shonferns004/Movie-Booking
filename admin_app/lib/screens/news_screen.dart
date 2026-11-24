@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/api.dart';
 import '../widgets/skeleton.dart';
+import 'package:tabler_icons_plus/tabler_icons_plus.dart';
 
 /// News tab: a live activity feed built from the booking log.
 ///
@@ -88,7 +89,7 @@ class _NewsScreenState extends State<NewsScreen> {
         actions: [
           IconButton(
             onPressed: _loading ? null : _load,
-            icon: const Icon(Icons.refresh, size: 18),
+            icon: const Icon(TablerIcons.refresh, size: 18),
           ),
         ],
       ),

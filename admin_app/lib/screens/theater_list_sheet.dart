@@ -5,6 +5,7 @@ import '../services/api.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/skeleton.dart';
 import 'seat_builder_screen.dart';
+import 'package:tabler_icons_plus/tabler_icons_plus.dart';
 
 class TheaterListSheet extends StatefulWidget {
   final String? token;
@@ -179,7 +180,7 @@ class _TheaterListSheetState extends State<TheaterListSheet> {
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: sumi600),
                     ),
-                    child: const Icon(Icons.close, size: 14, color: sumi300),
+                    child: const Icon(TablerIcons.x, size: 14, color: sumi300),
                   ),
                 ),
               ],
@@ -197,7 +198,7 @@ class _TheaterListSheetState extends State<TheaterListSheet> {
                       hintText: 'Search by theater or location...',
                       hintStyle: TextStyle(fontSize: 12, color: sumi300),
                       prefixIcon: const Icon(
-                        Icons.search,
+                        TablerIcons.search,
                         size: 16,
                         color: sumi300,
                       ),
@@ -225,7 +226,7 @@ class _TheaterListSheetState extends State<TheaterListSheet> {
                 const SizedBox(width: 10),
                 ElevatedButton.icon(
                   onPressed: _addTheatre,
-                  icon: const Icon(Icons.add, size: 16),
+                  icon: const Icon(TablerIcons.plus, size: 16),
                   label: const Text(
                     'Add',
                     style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
@@ -334,7 +335,7 @@ class _TheaterListSheetState extends State<TheaterListSheet> {
                               ),
                               IconButton(
                                 icon: Icon(
-                                  Icons.delete,
+                                  TablerIcons.trash,
                                   size: 16,
                                   color: sumi300,
                                 ),

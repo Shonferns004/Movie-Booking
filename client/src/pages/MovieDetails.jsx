@@ -550,7 +550,7 @@ export default function MovieDetails() {
         ) : (
           <div className="rounded-2xl border border-dashed border-[#F2F0EC]/20 bg-[#262C33]/50 px-6 py-14 text-center">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#1E2227] text-[#C8FF1F]">
-              <UiIcon name="event_busy" />
+              <UiIcon name="event_busy" className="text-2xl" />
             </div>
             <h3 className="kk-display mt-4 text-2xl font-bold">No shows here yet.</h3>
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#F2F0EC]/60">

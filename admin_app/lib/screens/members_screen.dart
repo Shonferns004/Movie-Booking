@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/api.dart';
 import '../widgets/app_toast.dart';
+import 'package:tabler_icons_plus/tabler_icons_plus.dart';
 
 /// Members of the Samudai: everyone on the list, plus a manual add.
 class MembersScreen extends StatefulWidget {
@@ -239,7 +240,7 @@ class _MembersScreenState extends State<MembersScreen> {
               borderRadius: BorderRadius.circular(10),
             ),
             child: const Icon(
-              Icons.workspace_premium_outlined,
+              TablerIcons.award,
               size: 20,
               color: Color(0xFFD96B43),
             ),
@@ -273,7 +274,7 @@ class _MembersScreenState extends State<MembersScreen> {
           TextButton.icon(
             onPressed: _editAmount,
             style: TextButton.styleFrom(foregroundColor: const Color(0xFFD96B43)),
-            icon: const Icon(Icons.edit_outlined, size: 16),
+            icon: const Icon(TablerIcons.edit, size: 16),
             label: const Text(
               'Change',
               style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
@@ -297,7 +298,7 @@ class _MembersScreenState extends State<MembersScreen> {
         onPressed: _add,
         backgroundColor: const Color(0xFFD96B43),
         foregroundColor: Colors.white,
-        icon: const Icon(Icons.person_add_alt_1, size: 18),
+        icon: const Icon(TablerIcons.userPlus, size: 18),
         label: const Text('Add member'),
       ),
       body: _loading
@@ -387,8 +388,8 @@ class _MembersScreenState extends State<MembersScreen> {
                                   onPressed: () => _toggleStatus(member),
                                   icon: Icon(
                                     status == 'active'
-                                        ? Icons.verified
-                                        : Icons.verified_outlined,
+                                        ? TablerIcons.rosetteDiscountCheck
+                                        : TablerIcons.rosetteDiscountCheck,
                                     size: 18,
                                     color: status == 'active'
                                         ? const Color(0xFF6FBF8B)
@@ -398,7 +399,7 @@ class _MembersScreenState extends State<MembersScreen> {
                                 IconButton(
                                   tooltip: 'Remove member',
                                   onPressed: () => _delete(member),
-                                  icon: const Icon(Icons.delete_outline, size: 18),
+                                  icon: const Icon(TablerIcons.trash, size: 18),
                                   color: const Color(0xFF9E9890),
                                 ),
                               ],

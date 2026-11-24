@@ -7,6 +7,7 @@ import '../theme/app_theme.dart';
 import '../utils/format.dart';
 import '../widgets/app_card.dart';
 import '../widgets/status_pill.dart';
+import 'package:tabler_icons_plus/tabler_icons_plus.dart';
 
 class StatusScreen extends StatelessWidget {
   const StatusScreen({
@@ -193,7 +194,7 @@ class StatusScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     CheckRow(
-                      icon: Icons.sms_failed_rounded,
+                      icon: TablerIcons.messageReport,
                       title: 'SMS access',
                       subtitle: 'Receive + read bank credit messages',
                       granted: snapshot.smsPermission,
@@ -212,7 +213,7 @@ class StatusScreen extends StatelessWidget {
                     ),
                     const Divider(height: 1),
                     CheckRow(
-                      icon: Icons.notifications_active_rounded,
+                      icon: TablerIcons.bellRinging,
                       title: 'Notifications',
                       subtitle: 'Required on Android 13+ to hold the listener',
                       granted: snapshot.notificationsPermission,
@@ -239,7 +240,7 @@ class StatusScreen extends StatelessWidget {
                     if (!snapshot.smsPermission)
                       TextButton.icon(
                         onPressed: state.openAppSettings,
-                        icon: const Icon(Icons.settings_rounded, size: 16),
+                        icon: const Icon(TablerIcons.settings, size: 16),
                         label: const Text('Open system settings'),
                       ),
                   ],
@@ -380,7 +381,7 @@ class _HeroCard extends StatelessWidget {
             const SizedBox(height: 14),
             FilledButton.icon(
               onPressed: onToggle,
-              icon: const Icon(Icons.arrow_forward_rounded, size: 17),
+              icon: const Icon(TablerIcons.arrowRight, size: 17),
               label: const Text('Set up the gateway'),
             ),
           ],
@@ -445,7 +446,7 @@ class _StatusGlyph extends StatelessWidget {
         border: Border.all(color: color.withValues(alpha: 0.4)),
       ),
       child: Icon(
-        running ? Icons.sensors_rounded : Icons.sensors_off_rounded,
+        running ? TablerIcons.accessPoint : TablerIcons.accessPointOff,
         size: 22,
         color: color,
       ),
@@ -506,7 +507,7 @@ class _LiveCheckoutCard extends StatelessWidget {
                           onPressed: state.config.isConfigured
                               ? state.refreshActiveWindow
                               : null,
-                          icon: const Icon(Icons.refresh_rounded, size: 17),
+                          icon: const Icon(TablerIcons.refresh, size: 17),
                           label: const Text('Check now'),
                         ),
                 ),
@@ -586,7 +587,7 @@ class _RecentEvents extends StatelessWidget {
     if (events.isEmpty) {
       return const AppCard(
         child: EmptyState(
-          icon: Icons.inbox_rounded,
+          icon: TablerIcons.inbox,
           title: 'Nothing observed yet',
           body: 'The moment a bank credit SMS lands on this device it shows up here with its delivery state.',
         ),
@@ -721,7 +722,7 @@ class _PlatformError extends StatelessWidget {
           Row(
             children: [
               const Icon(
-                Icons.error_outline_rounded,
+                TablerIcons.alertCircle,
                 size: 18,
                 color: AppColors.danger,
               ),
@@ -742,7 +743,7 @@ class _PlatformError extends StatelessWidget {
           const SizedBox(height: 12),
           OutlinedButton.icon(
             onPressed: state.refresh,
-            icon: const Icon(Icons.refresh_rounded, size: 17),
+            icon: const Icon(TablerIcons.refresh, size: 17),
             label: const Text('Retry'),
           ),
         ],

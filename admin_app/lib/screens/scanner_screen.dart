@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../services/api.dart';
+import 'package:tabler_icons_plus/tabler_icons_plus.dart';
 
 /// Camera opens only when this screen is pushed from the home card.
 class ScannerScreen extends StatefulWidget {
@@ -62,7 +63,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
               children: [
                 ElevatedButton.icon(
                   onPressed: () => setState(() => _scanning = !_scanning),
-                  icon: Icon(_scanning ? Icons.stop : Icons.qr_code_scanner),
+                  icon: Icon(_scanning ? TablerIcons.playerStop : TablerIcons.qrcode),
                   label: Text(_scanning ? 'Stop Scan' : 'Start Scan'),
                 ),
                 const SizedBox(width: 12),

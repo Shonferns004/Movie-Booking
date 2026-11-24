@@ -528,7 +528,7 @@ function FeatureRail({ movie, events, images, onPick }) {
                     <img src={poster} alt="" loading="lazy" />
                   ) : (
                     <div className="grid h-full place-items-center text-[#B5AFA6]">
-                      <UiIcon name="movie" />
+                      <UiIcon name="movie" className="text-[28px]" />
                     </div>
                   )}
                   <span className="absolute inset-x-2 bottom-2 z-10 line-clamp-2 text-[9px] font-bold uppercase tracking-[0.08em] text-[#F2F0EC]">

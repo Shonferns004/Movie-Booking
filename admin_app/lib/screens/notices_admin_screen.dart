@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/api.dart';
 import '../widgets/app_toast.dart';
+import 'package:tabler_icons_plus/tabler_icons_plus.dart';
 
 /// Notices shown in the "From the committee" list on the landing page.
 class NoticesAdminScreen extends StatefulWidget {
@@ -135,7 +136,7 @@ class _NoticesAdminScreenState extends State<NoticesAdminScreen> {
         onPressed: _add,
         backgroundColor: const Color(0xFFD96B43),
         foregroundColor: Colors.white,
-        icon: const Icon(Icons.campaign, size: 18),
+        icon: const Icon(TablerIcons.speakerphone, size: 18),
         label: const Text('New notice'),
       ),
       body: _loading
@@ -210,7 +211,7 @@ class _NoticesAdminScreenState extends State<NoticesAdminScreen> {
                                 ),
                                 IconButton(
                                   onPressed: () => _delete(notice),
-                                  icon: const Icon(Icons.delete_outline, size: 18),
+                                  icon: const Icon(TablerIcons.trash, size: 18),
                                   color: const Color(0xFF9E9890),
                                 ),
                               ],

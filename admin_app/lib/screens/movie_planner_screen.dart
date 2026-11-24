@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../services/api.dart';
 import '../widgets/app_toast.dart';
+import 'package:tabler_icons_plus/tabler_icons_plus.dart';
 
 /// Full-page planner for a new movie.
 ///
@@ -477,7 +478,7 @@ class _MoviePlannerScreenState extends State<MoviePlannerScreen> {
                           children: [
                             OutlinedButton.icon(
                               onPressed: _posterBusy ? null : _pickPoster,
-                              icon: const Icon(Icons.image_outlined, size: 16),
+                              icon: const Icon(TablerIcons.photo, size: 16),
                               label: Text(_poster == null ? 'Pick poster' : 'Replace poster'),
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: sand,
@@ -515,7 +516,7 @@ class _MoviePlannerScreenState extends State<MoviePlannerScreen> {
                     const SizedBox(height: 10),
                     OutlinedButton.icon(
                       onPressed: _saving ? null : _addPlan,
-                      icon: const Icon(Icons.add, size: 18),
+                      icon: const Icon(TablerIcons.plus, size: 18),
                       label: const Text('Another theatre or timing'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: accent,
@@ -631,7 +632,7 @@ class _MoviePlannerScreenState extends State<MoviePlannerScreen> {
                 IconButton(
                   visualDensity: VisualDensity.compact,
                   onPressed: _saving ? null : () => _removePlan(plan),
-                  icon: Icon(Icons.close, size: 16, color: muted),
+                  icon: Icon(TablerIcons.x, size: 16, color: muted),
                 ),
             ],
           ),
@@ -679,7 +680,7 @@ class _MoviePlannerScreenState extends State<MoviePlannerScreen> {
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: _saving ? null : () => _pickDate(plan),
-                  icon: const Icon(Icons.calendar_today, size: 14),
+                  icon: const Icon(TablerIcons.calendar, size: 14),
                   label: Text('${plan.date.day}/${plan.date.month}/${plan.date.year}', style: const TextStyle(fontSize: 12)),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: sand,
@@ -692,7 +693,7 @@ class _MoviePlannerScreenState extends State<MoviePlannerScreen> {
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: _saving ? null : () => _pickTime(plan),
-                  icon: const Icon(Icons.schedule, size: 14),
+                  icon: const Icon(TablerIcons.clock, size: 14),
                   label: Text(_timeLabel(plan).split(' ').sublist(1).join(' '), style: const TextStyle(fontSize: 12)),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: sand,

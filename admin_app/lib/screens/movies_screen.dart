@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/api.dart';
 import 'show_detail_screen.dart';
+import 'package:tabler_icons_plus/tabler_icons_plus.dart';
 
 /// Movies tab: the catalogue, with every show of each film one tap away.
 class MoviesScreen extends StatefulWidget {
@@ -84,7 +85,7 @@ class _MoviesScreenState extends State<MoviesScreen> {
         actions: [
           IconButton(
             onPressed: _loading ? null : _load,
-            icon: const Icon(Icons.refresh, size: 18),
+            icon: const Icon(TablerIcons.refresh, size: 18),
           ),
         ],
       ),
@@ -159,13 +160,13 @@ class _MoviesScreenState extends State<MoviesScreen> {
                                                     poster,
                                                     fit: BoxFit.cover,
                                                     errorBuilder: (_, _, _) => const Icon(
-                                                      Icons.movie_outlined,
+                                                      TablerIcons.movie,
                                                       size: 20,
                                                       color: Color(0xFF52525A),
                                                     ),
                                                   )
                                                 : const Icon(
-                                                    Icons.movie_outlined,
+                                                    TablerIcons.movie,
                                                     size: 20,
                                                     color: Color(0xFF52525A),
                                                   ),
@@ -198,7 +199,7 @@ class _MoviesScreenState extends State<MoviesScreen> {
                                           ),
                                         ),
                                         Icon(
-                                          expanded ? Icons.expand_less : Icons.expand_more,
+                                          expanded ? TablerIcons.chevronUp : TablerIcons.chevronDown,
                                           size: 18,
                                           color: const Color(0xFF52525A),
                                         ),
@@ -260,7 +261,7 @@ class _MoviesScreenState extends State<MoviesScreen> {
                                                     ),
                                                   ),
                                                   trailing: const Icon(
-                                                    Icons.chevron_right,
+                                                    TablerIcons.chevronRight,
                                                     size: 18,
                                                     color: Color(0xFF52525A),
                                                   ),

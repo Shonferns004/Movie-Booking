@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/api.dart';
 import 'show_detail_screen.dart';
+import 'package:tabler_icons_plus/tabler_icons_plus.dart';
 
 /// Events tab: the upcoming programme, grouped by day.
 class EventsScreen extends StatefulWidget {
@@ -100,7 +101,7 @@ class _EventsScreenState extends State<EventsScreen> {
         actions: [
           IconButton(
             onPressed: _loading ? null : _load,
-            icon: const Icon(Icons.refresh, size: 18),
+            icon: const Icon(TablerIcons.refresh, size: 18),
           ),
         ],
       ),
@@ -169,7 +170,7 @@ class _EventsScreenState extends State<EventsScreen> {
                                     style: const TextStyle(fontSize: 11, color: Color(0xFF9E9890)),
                                   ),
                                   trailing: const Icon(
-                                    Icons.chevron_right,
+                                    TablerIcons.chevronRight,
                                     size: 18,
                                     color: Color(0xFF52525A),
                                   ),

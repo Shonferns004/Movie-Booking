@@ -240,7 +240,7 @@ function Nav() {
             }}
             className="kk-circle md:hidden"
           >
-            <UiIcon name={mobileOpen ? 'close' : 'menu'} />
+            <UiIcon name={mobileOpen ? 'close' : 'menu'} className="text-[20px]" />
           </button>
         </div>
       </div>

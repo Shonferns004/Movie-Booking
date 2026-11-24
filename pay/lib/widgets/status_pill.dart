@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import 'package:tabler_icons_plus/tabler_icons_plus.dart';
 
 enum PillTone { active, idle, error, info }
 
@@ -102,7 +103,7 @@ class CheckRow extends StatelessWidget {
           const SizedBox(width: 8),
           if (granted)
             const Icon(
-              Icons.check_circle_rounded,
+              TablerIcons.circleCheck,
               size: 20,
               color: AppColors.success,
             )
@@ -130,7 +131,7 @@ class BrandMark extends StatelessWidget {
         color: AppColors.accent,
         border: Border.all(color: AppColors.accent2.withValues(alpha: 0.45)),
       ),
-      child: Icon(Icons.sms_rounded, size: size * 0.5, color: Colors.white),
+      child: Icon(TablerIcons.message, size: size * 0.5, color: Colors.white),
     );
   }
 }

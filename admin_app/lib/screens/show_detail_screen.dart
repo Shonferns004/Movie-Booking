@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import '../services/api.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/skeleton.dart';
+import 'package:tabler_icons_plus/tabler_icons_plus.dart';
 
 class ShowDetailScreen extends StatefulWidget {
   final String showId;
@@ -666,7 +667,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
         const SizedBox(height: 10),
         if (_bookings.isEmpty)
           _buildEmptyState(
-            icon: Icons.receipt_long_outlined,
+            icon: TablerIcons.receipt,
             title: 'No bookings yet',
             message: 'Bookings for this show will appear here as soon as tickets are sold.',
           )
@@ -904,7 +905,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
             Row(
               children: [
                 const Icon(
-                  Icons.person_outline,
+                  TablerIcons.user,
                   size: 11,
                   color: Color(0xFF71717A),
                 ),
@@ -1462,7 +1463,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
                       : _confirmDelete,
                   icon: _deletingShow
                       ? const SizedBox.shrink()
-                      : const Icon(Icons.delete_outline, size: 15),
+                      : const Icon(TablerIcons.trash, size: 15),
                   label: Text(
                     _deletingShow ? 'DELETING SHOW' : 'DELETE SHOW',
                     style: GoogleFonts.spaceMono(
@@ -1508,7 +1509,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
               ),
             ),
             child: const Icon(
-              Icons.edit_calendar_outlined,
+              TablerIcons.calendarEvent,
               size: 16,
               color: Color(0xFFD96B43),
             ),
@@ -1629,7 +1630,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
           borderRadius: BorderRadius.circular(14),
           dropdownColor: const Color(0xFF1B1B1D),
           icon: const Icon(
-            Icons.keyboard_arrow_down_rounded,
+            TablerIcons.chevronDown,
             size: 18,
             color: Color(0xFF71717A),
           ),
@@ -1789,7 +1790,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
               const SizedBox(height: 6),
               OutlinedButton.icon(
                 onPressed: _savingShow || _deletingShow ? null : _pickPoster,
-                icon: const Icon(Icons.photo_library_outlined, size: 14),
+                icon: const Icon(TablerIcons.photo, size: 14),
                 label: Text(
                   _pickedPoster == null ? 'CHANGE IMAGE' : 'IMAGE READY',
                   style: GoogleFonts.spaceMono(
@@ -1830,7 +1831,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
   Widget _posterPlaceholder() {
     return const Center(
       child: Icon(
-        Icons.movie_creation_outlined,
+        TablerIcons.movie,
         size: 20,
         color: Color(0xFF52525A),
       ),
@@ -1910,7 +1911,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
             Expanded(
               flex: 3,
               child: _buildEditPicker(
-                icon: Icons.calendar_today_outlined,
+                icon: TablerIcons.calendar,
                 text: _formatEditDate(value),
                 onTap: onDate,
               ),
@@ -1919,7 +1920,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
             Expanded(
               flex: 2,
               child: _buildEditPicker(
-                icon: Icons.schedule,
+                icon: TablerIcons.clock,
                 text: _formatEditTime(value),
                 onTap: onTime,
               ),
@@ -2125,7 +2126,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
           mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(
-              Icons.edit_calendar_outlined,
+              TablerIcons.calendarEvent,
               size: 34,
               color: Color(0xFF5E5E66),
             ),

@@ -16,6 +16,7 @@ import 'show_detail_screen.dart';
 import 'movie_planner_screen.dart';
 import '../services/realtime.dart';
 import 'theater_list_sheet.dart';
+import 'package:tabler_icons_plus/tabler_icons_plus.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -357,7 +358,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       }
                     }
                   },
-                  icon: const Icon(Icons.photo_library),
+                  icon: const Icon(TablerIcons.photo),
                   label: const Text('Pick thumbnail'),
                 ),
                 if (_pickedThumb != null) ...[
@@ -897,7 +898,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         ),
       ),
       child: Center(
-        child: Icon(Icons.movie_outlined, size: 48, color: Color(0xFF3A3A44)),
+        child: Icon(TablerIcons.movie, size: 48, color: Color(0xFF3A3A44)),
       ),
     );
   }
@@ -1227,8 +1228,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        button(Icons.grid_view_rounded, true),
-        button(Icons.view_list_rounded, false),
+        button(TablerIcons.layoutGrid, true),
+        button(TablerIcons.list, false),
       ],
     );
   }
@@ -1354,11 +1355,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         thumb,
                         fit: BoxFit.cover,
                         errorBuilder: (_, _, _) => const Icon(
-                          Icons.movie,
+                          TablerIcons.movie,
                           color: Color(0xFF9E9890),
                         ),
                       )
-                    : const Icon(Icons.movie, color: Color(0xFF9E9890)),
+                    : const Icon(TablerIcons.movie, color: Color(0xFF9E9890)),
               ),
             ),
             Padding(
@@ -1590,11 +1591,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             thumb,
                             fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) => const Icon(
-                              Icons.movie,
+                              TablerIcons.movie,
                               color: Color(0xFF9E9890),
                             ),
                           )
-                        : const Icon(Icons.movie, color: Color(0xFF9E9890)),
+                        : const Icon(TablerIcons.movie, color: Color(0xFF9E9890)),
                   ),
                   const SizedBox(width: 12),
                   Expanded(

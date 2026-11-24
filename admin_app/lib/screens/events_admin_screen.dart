@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/api.dart';
 import '../widgets/app_toast.dart';
+import 'package:tabler_icons_plus/tabler_icons_plus.dart';
 
 /// Community events (festivals, meetings, markets) shown on the landing page.
 class EventsAdminScreen extends StatefulWidget {
@@ -186,7 +187,7 @@ class _EventsAdminScreenState extends State<EventsAdminScreen> {
         onPressed: _add,
         backgroundColor: const Color(0xFFD96B43),
         foregroundColor: Colors.white,
-        icon: const Icon(Icons.festival, size: 18),
+        icon: const Icon(TablerIcons.confetti, size: 18),
         label: const Text('New event'),
       ),
       body: _loading
@@ -264,7 +265,7 @@ class _EventsAdminScreenState extends State<EventsAdminScreen> {
                                 ),
                                 IconButton(
                                   onPressed: () => _delete(event),
-                                  icon: const Icon(Icons.delete_outline, size: 18),
+                                  icon: const Icon(TablerIcons.trash, size: 18),
                                   color: const Color(0xFF9E9890),
                                 ),
                               ],

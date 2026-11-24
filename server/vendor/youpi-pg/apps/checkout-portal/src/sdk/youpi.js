@@ -267,6 +267,13 @@
       const sep = targetUrl.includes('?') ? '&' : '?';
       targetUrl = `${targetUrl}${sep}embedded=1`;
 
+      // Tell the portal which origin is embedding it. Without this the portal relies on
+      // document.referrer, which cross-origin iframes can suppress; the "Back to Store"
+      // message would then have no target and the button would do nothing.
+      if (isBrowser && window.location.origin) {
+        targetUrl += `&youpiParentOrigin=${encodeURIComponent(window.location.origin)}`;
+      }
+
       if (this.options.amount) {
         targetUrl += `&customAmount=${encodeURIComponent(this.options.amount)}`;
       }

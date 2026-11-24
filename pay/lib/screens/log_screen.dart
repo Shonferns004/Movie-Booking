@@ -7,6 +7,7 @@ import '../theme/app_theme.dart';
 import '../utils/format.dart';
 import '../widgets/app_card.dart';
 import '../widgets/status_pill.dart';
+import 'package:tabler_icons_plus/tabler_icons_plus.dart';
 
 class LogScreen extends StatefulWidget {
   const LogScreen({super.key});
@@ -60,7 +61,7 @@ class _LogScreenState extends State<LogScreen> {
                 IconButton(
                   tooltip: 'Drain the queue now',
                   onPressed: state.flushQueue,
-                  icon: const Icon(Icons.bolt_rounded,
+                  icon: const Icon(TablerIcons.bolt,
                       color: AppColors.accent2, size: 21),
                 ),
                 IconButton(
@@ -68,7 +69,7 @@ class _LogScreenState extends State<LogScreen> {
                   onPressed: all.isEmpty
                       ? null
                       : () => _confirmClear(context, state),
-                  icon: const Icon(Icons.delete_outline_rounded, size: 21),
+                  icon: const Icon(TablerIcons.trash, size: 21),
                 ),
               ],
             ),
@@ -106,7 +107,7 @@ class _LogScreenState extends State<LogScreen> {
                       physics: const AlwaysScrollableScrollPhysics(),
                       children: const [
                         EmptyState(
-                          icon: Icons.travel_explore_rounded,
+                          icon: TablerIcons.world,
                           title: 'No messages in this view',
                           body:
                               'Bank credit SMS arrive here automatically once SMS access is granted and the observer is running.',
@@ -457,7 +458,7 @@ class _EventDetail extends StatelessWidget {
                     );
                   }
                 },
-                icon: const Icon(Icons.copy_rounded, size: 15),
+                icon: const Icon(TablerIcons.copy, size: 15),
                 label: const Text('Copy'),
               ),
             ],

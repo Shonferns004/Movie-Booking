@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../services/api.dart';
 import '../widgets/app_toast.dart';
+import 'package:tabler_icons_plus/tabler_icons_plus.dart';
 
 /// Community images, split into the landing hero and the photo library.
 class GalleryScreen extends StatefulWidget {
@@ -124,7 +125,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
             height: double.infinity,
             child: url.startsWith('http')
                 ? Image.network(url, fit: BoxFit.cover)
-                : const Icon(Icons.image, color: Color(0xFF52525A)),
+                : const Icon(TablerIcons.photo, color: Color(0xFF52525A)),
           ),
         ),
         Positioned(
@@ -138,7 +139,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
                 color: Colors.black.withValues(alpha: 0.6),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.close, size: 14, color: Colors.white),
+              child: const Icon(TablerIcons.x, size: 14, color: Colors.white),
             ),
           ),
         ),
@@ -253,7 +254,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
                     },
               backgroundColor: const Color(0xFFD96B43),
               foregroundColor: Colors.white,
-              icon: const Icon(Icons.auto_awesome, size: 18),
+              icon: const Icon(TablerIcons.sparkles, size: 18),
               label: const Text('Hero section'),
             ),
             const SizedBox(height: 10),
@@ -267,7 +268,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
                     },
               backgroundColor: const Color(0xFF1A1A1E),
               foregroundColor: const Color(0xFFF5EFEB),
-              icon: const Icon(Icons.photo_library_outlined, size: 18),
+              icon: const Icon(TablerIcons.photo, size: 18),
               label: const Text('Photo library'),
             ),
             const SizedBox(height: 10),
@@ -282,7 +283,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
               backgroundColor: const Color(0xFFD96B43),
               foregroundColor: Colors.white,
               icon: Icon(
-                _placementOpen ? Icons.close : Icons.add_photo_alternate,
+                _placementOpen ? TablerIcons.x : TablerIcons.photoPlus,
                 size: 18,
               ),
               label: Text(_placementOpen ? 'Cancel' : 'Upload'),
@@ -309,7 +310,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
                         title: 'HERO SECTION',
                         hint: 'Photos in the landing page carousel.',
                         images: _heroImages,
-                        icon: Icons.auto_awesome,
+                        icon: TablerIcons.sparkles,
                         horizontal: true,
                       ),
                       const SizedBox(height: 26),
@@ -317,7 +318,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
                         title: 'PHOTO LIBRARY',
                         hint: 'Photos on the photo library and gallery page.',
                         images: _libraryImages,
-                        icon: Icons.photo_library_outlined,
+                        icon: TablerIcons.photo,
                       ),
                     ],
                   ),

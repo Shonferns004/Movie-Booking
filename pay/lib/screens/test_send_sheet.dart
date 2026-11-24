@@ -6,6 +6,7 @@ import '../theme/app_theme.dart';
 import '../widgets/app_card.dart';
 import '../widgets/status_pill.dart';
 import '../utils/format.dart';
+import 'package:tabler_icons_plus/tabler_icons_plus.dart';
 
 const _sampleSms =
     'Rs.20.00 credited to a/c XX4412 on 22-10-26 by UPI ref 412345678901. '
@@ -171,7 +172,7 @@ class _TestSendSheetState extends State<_TestSendSheet> {
                               color: AppColors.accent2,
                             ),
                           )
-                        : const Icon(Icons.rule_rounded, size: 17),
+                        : const Icon(TablerIcons.listCheck, size: 17),
                     label: Text(_parsing ? 'Parsing…' : 'Parse locally'),
                   ),
                 ),
@@ -188,7 +189,7 @@ class _TestSendSheetState extends State<_TestSendSheet> {
                               color: Colors.white,
                             ),
                           )
-                        : const Icon(Icons.send_rounded, size: 17),
+                        : const Icon(TablerIcons.send, size: 17),
                     label: Text(_sending ? 'Sending…' : 'Send'),
                   ),
                 ),
@@ -203,7 +204,7 @@ class _TestSendSheetState extends State<_TestSendSheet> {
                   borderColor: AppColors.warning.withValues(alpha: 0.45),
                   child: Row(
                     children: [
-                      const Icon(Icons.block_rounded,
+                      const Icon(TablerIcons.ban,
                           size: 18, color: AppColors.warning),
                       const SizedBox(width: 10),
                       Expanded(
@@ -272,8 +273,8 @@ class _TestSendSheetState extends State<_TestSendSheet> {
                       children: [
                         Icon(
                           _result!.ok
-                              ? Icons.check_circle_rounded
-                              : Icons.error_rounded,
+                              ? TablerIcons.circleCheck
+                              : TablerIcons.alertCircle,
                           size: 18,
                           color: _result!.ok
                               ? AppColors.success

@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
-
 import '../services/api.dart';
 import '../services/auth_service.dart';
 import '../widgets/app_toast.dart';
 import '../widgets/skeleton.dart';
 import 'profile_screen.dart';
 import 'scanner_screen.dart';
+import 'package:tabler_icons_plus/tabler_icons_plus.dart';
 
 /// Material 3 surface palette (matches the design tokens used by the web UI).
 class KkSurface {
@@ -338,7 +337,7 @@ class _ScannerShellState extends State<ScannerShell> {
                   color: KkSurface.containerHigh,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.expand_more,
+                child: const Icon(TablerIcons.chevronDown,
                     size: 20, color: KkSurface.onSurface),
               ),
             ],
@@ -369,7 +368,7 @@ class _ScannerShellState extends State<ScannerShell> {
                   color: KkSurface.secondaryContainer,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.confirmation_number_rounded,
+                child: const Icon(TablerIcons.ticket,
                     size: 18, color: KkSurface.onSecondaryContainer),
               ),
               const SizedBox(width: 12),
@@ -403,7 +402,7 @@ class _ScannerShellState extends State<ScannerShell> {
       ),
       child: Row(
         children: [
-          const Icon(Icons.keyboard_rounded,
+          const Icon(TablerIcons.keyboard,
               size: 18, color: KkSurface.onSurfaceVariant),
           const SizedBox(width: 8),
           Text(
@@ -475,7 +474,7 @@ class _ScannerShellState extends State<ScannerShell> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
-                    valid ? Icons.check : Icons.close,
+                    valid ? TablerIcons.check : TablerIcons.x,
                     size: 18,
                     color: valid
                         ? KkSurface.onSecondaryContainer
@@ -575,8 +574,8 @@ class _ScannerShellState extends State<ScannerShell> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              item(LucideIcons.house, 'Home', 0),
-              item(LucideIcons.circleUser, 'Profile', 1),
+              item(TablerIcons.home, 'Home', 0),
+              item(TablerIcons.userCircle, 'Profile', 1),
             ],
           ),
         ),
@@ -637,7 +636,7 @@ class _ScanButtonState extends State<_ScanButton> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(LucideIcons.scanQrCode,
+                const Icon(TablerIcons.qrcode,
                     size: 38, color: Color(0xFF14100E)),
                 const SizedBox(height: 8),
                 Text(
@@ -860,7 +859,7 @@ class _ManualEntrySheetState extends State<_ManualEntrySheet> {
                     child: _IosSheetButton(
                       label: 'Cancel',
                       filled: false,
-                      icon: LucideIcons.x,
+                      icon: TablerIcons.x,
                       onTap: () => Navigator.pop(context),
                     ),
                   ),
@@ -869,7 +868,7 @@ class _ManualEntrySheetState extends State<_ManualEntrySheet> {
                     child: _IosSheetButton(
                       label: 'Verify',
                       filled: true,
-                      icon: LucideIcons.check,
+                      icon: TablerIcons.check,
                       onTap: _submit,
                     ),
                   ),
