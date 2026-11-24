@@ -845,8 +845,7 @@ class _WhatsAppMessagesSheetState extends State<_WhatsAppMessagesSheet> {
         },
       });
       if (!mounted) return;
-      Navigator.of(context).pop();
-      _snack(context, 'WhatsApp messages saved.');
+      Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
@@ -1566,7 +1565,7 @@ class _GatewayTabState extends State<_GatewayTab> {
   }
 
   Future<void> _openWhatsAppMessages() async {
-    await showModalBottomSheet<void>(
+    final saved = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: KkSurface.container,
@@ -1587,6 +1586,9 @@ class _GatewayTabState extends State<_GatewayTab> {
       ),
     );
     if (mounted) await _load();
+    if (saved == true && mounted) {
+      _snack(context, 'WhatsApp messages saved.');
+    }
   }
 
   @override
