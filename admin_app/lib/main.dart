@@ -88,9 +88,9 @@ class _MainShellState extends State<MainShell> {
                             CommunityHomeScreen(token: _token),
                             // The dashboard (formerly the Home page) lives in the Movies tab.
                             const HomeScreen(),
-                            // Native YouPI payment/admin hub. Starts on the Live tab;
-                            // the full payment history is behind "Show all".
-                            const YoupiAdminScreen(initialTab: 0),
+                            // Native YouPI payment/admin hub for the Payments tab.
+                            // Settings lives under Profile -> Payment settings.
+                            const YoupiAdminScreen(showSettingsTab: false),
                             ProfileScreen(
                               token: _token ?? '',
                               shows: const [],

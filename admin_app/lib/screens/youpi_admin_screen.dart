@@ -12,10 +12,21 @@ import 'package:tabler_icons_plus/tabler_icons_plus.dart';
 
 /// Native YouPI payment admin — no WebView.
 class YoupiAdminScreen extends StatefulWidget {
-  const YoupiAdminScreen({super.key, this.initialTab = 0});
+  const YoupiAdminScreen({
+    super.key,
+    this.initialTab = 0,
+    this.showSettingsTab = true,
+    this.settingsOnly = false,
+  });
 
   /// Which internal tab to show first (0 Live, 1 Settings).
   final int initialTab;
+
+  /// When false the screen shows only the Live tab.
+  final bool showSettingsTab;
+
+  /// When true the screen shows only the Settings content.
+  final bool settingsOnly;
 
   @override
   State<YoupiAdminScreen> createState() => _YoupiAdminScreenState();
@@ -96,33 +107,28 @@ class _YoupiAdminScreenState extends State<YoupiAdminScreen> {
       );
     }
 
+    if (widget.settingsOnly) {
+      return Scaffold(
+        backgroundColor: KkSurface.bg,
+        appBar: _buildAppBar(),
+        body: const _GatewayTab(),
+      );
+    }
+
+    if (!widget.showSettingsTab) {
+      return Scaffold(
+        backgroundColor: KkSurface.bg,
+        appBar: _buildAppBar(),
+        body: const _LiveTab(),
+      );
+    }
+
     return DefaultTabController(
       length: 2,
       initialIndex: widget.initialTab.clamp(0, 1).toInt(),
       child: Scaffold(
         backgroundColor: KkSurface.bg,
-        appBar: AppBar(
-          backgroundColor: KkSurface.bg,
-          surfaceTintColor: Colors.transparent,
-          title: Text(
-            'YouPI Admin',
-            style: GoogleFonts.publicSans(
-              fontSize: 17,
-              fontWeight: FontWeight.w700,
-              color: KkSurface.onSurface,
-            ),
-          ),
-          actions: [
-            IconButton(
-              tooltip: 'Gateway token',
-              onPressed: _changeToken,
-              icon: const Icon(
-                TablerIcons.key,
-                size: 20,
-                color: KkSurface.accent,
-              ),
-            ),
-          ],
+        appBar: _buildAppBar(
           bottom: TabBar(
             isScrollable: true,
             indicatorColor: KkSurface.accent,
@@ -142,6 +148,33 @@ class _YoupiAdminScreenState extends State<YoupiAdminScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  AppBar _buildAppBar({PreferredSizeWidget? bottom}) {
+    return AppBar(
+      backgroundColor: KkSurface.bg,
+      surfaceTintColor: Colors.transparent,
+      title: Text(
+        widget.settingsOnly ? 'Settings' : 'YouPI Admin',
+        style: GoogleFonts.publicSans(
+          fontSize: 17,
+          fontWeight: FontWeight.w700,
+          color: KkSurface.onSurface,
+        ),
+      ),
+      actions: [
+        IconButton(
+          tooltip: 'Gateway token',
+          onPressed: _changeToken,
+          icon: const Icon(
+            TablerIcons.key,
+            size: 20,
+            color: KkSurface.accent,
+          ),
+        ),
+      ],
+      bottom: bottom,
     );
   }
 }
@@ -621,7 +654,9 @@ class _AllPaymentsPageState extends State<_AllPaymentsPage> {
 }
 
 class _VpaManagerSheet extends StatefulWidget {
-  const _VpaManagerSheet();
+  const _VpaManagerSheet({required this.initialAccounts});
+
+  final List<Map<String, dynamic>> initialAccounts;
 
   @override
   State<_VpaManagerSheet> createState() => _VpaManagerSheetState();
@@ -635,14 +670,18 @@ class _VpaManagerSheetState extends State<_VpaManagerSheet> {
   @override
   void initState() {
     super.initState();
-    _load();
+    _accounts = widget.initialAccounts;
+    _loading = _accounts.isEmpty;
+    _load(quiet: _accounts.isNotEmpty);
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  Future<void> _load({bool quiet = false}) async {
+    if (!quiet) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
     try {
       final data = await YoupiAdminApi.get('/admin/upi-accounts');
       if (!mounted) return;
@@ -650,6 +689,7 @@ class _VpaManagerSheetState extends State<_VpaManagerSheet> {
         _accounts =
             (data['accounts'] as List?)?.cast<Map<String, dynamic>>() ??
                 const [];
+        _error = null;
         _loading = false;
       });
     } catch (e) {
@@ -710,7 +750,7 @@ class _VpaManagerSheetState extends State<_VpaManagerSheet> {
         ...body,
         'isActive': true,
       });
-      await _load();
+      await _load(quiet: true);
     } catch (e) {
       _snack(context, '$e');
     }
@@ -721,7 +761,7 @@ class _VpaManagerSheetState extends State<_VpaManagerSheet> {
       await YoupiAdminApi.post(
         '/admin/upi-accounts/${account['id']}/activate',
       );
-      await _load();
+      await _load(quiet: true);
     } catch (e) {
       _snack(context, '$e');
     }
@@ -730,7 +770,7 @@ class _VpaManagerSheetState extends State<_VpaManagerSheet> {
   Future<void> _toggle(Map<String, dynamic> account) async {
     try {
       await YoupiAdminApi.post('/admin/upi-accounts/${account['id']}/toggle');
-      await _load();
+      await _load(quiet: true);
     } catch (e) {
       _snack(context, '$e');
     }
@@ -744,7 +784,7 @@ class _VpaManagerSheetState extends State<_VpaManagerSheet> {
     if (!ok) return;
     try {
       await YoupiAdminApi.delete('/admin/upi-accounts/${account['id']}');
-      await _load();
+      await _load(quiet: true);
     } catch (e) {
       _snack(context, '$e');
     }
@@ -1658,6 +1698,7 @@ class _GatewayTab extends StatefulWidget {
 class _GatewayTabState extends State<_GatewayTab> {
   Map<String, dynamic>? _settings;
   Map<String, dynamic>? _whatsapp;
+  List<Map<String, dynamic>> _vpaAccounts = const [];
   String _activeVpa = '';
   String? _error;
   bool _loading = true;
@@ -1722,6 +1763,7 @@ class _GatewayTabState extends State<_GatewayTab> {
       setState(() {
         _settings = results[0];
         _whatsapp = whatsapp;
+        _vpaAccounts = accounts;
         _activeVpa = '${activeAccount?['upiId'] ?? results[0]['upiId'] ?? ''}';
         _error = null;
         _loading = false;
@@ -1783,7 +1825,7 @@ class _GatewayTabState extends State<_GatewayTab> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => const _VpaManagerSheet(),
+      builder: (_) => _VpaManagerSheet(initialAccounts: _vpaAccounts),
     );
     if (mounted) await _load(quiet: true);
   }

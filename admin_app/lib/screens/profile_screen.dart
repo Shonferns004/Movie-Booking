@@ -157,7 +157,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         onPressed: () {
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (_) => const YoupiAdminScreen(initialTab: 1),
+              builder: (_) => const YoupiAdminScreen(settingsOnly: true),
             ),
           );
         },
