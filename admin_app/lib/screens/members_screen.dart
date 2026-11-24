@@ -61,7 +61,7 @@ class _MembersScreenState extends State<MembersScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1E),
+        backgroundColor: const Color(0xFF262C33),
         title: const Text('Membership price'),
         content: TextField(
           controller: rupees,
@@ -113,7 +113,7 @@ class _MembersScreenState extends State<MembersScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1E),
+        backgroundColor: const Color(0xFF262C33),
         title: const Text('Add member'),
         content: SingleChildScrollView(
           child: Column(
@@ -195,7 +195,7 @@ class _MembersScreenState extends State<MembersScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1E),
+        backgroundColor: const Color(0xFF262C33),
         title: const Text('Remove member?'),
         content: Text('${member['name'] ?? 'This member'} will be taken off the roll.'),
         actions: [
@@ -226,7 +226,7 @@ class _MembersScreenState extends State<MembersScreen> {
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1E),
+        color: const Color(0xFF262C33),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFF2A2A2E)),
       ),
@@ -236,13 +236,13 @@ class _MembersScreenState extends State<MembersScreen> {
             width: 38,
             height: 38,
             decoration: BoxDecoration(
-              color: const Color(0xFFD96B43).withValues(alpha: 0.14),
+              color: const Color(0xFFC8FF1F).withValues(alpha: 0.14),
               borderRadius: BorderRadius.circular(10),
             ),
             child: const Icon(
               TablerIcons.award,
               size: 20,
-              color: Color(0xFFD96B43),
+              color: Color(0xFFC8FF1F),
             ),
           ),
           const SizedBox(width: 12),
@@ -265,7 +265,7 @@ class _MembersScreenState extends State<MembersScreen> {
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFFF5EFEB),
+                    color: Color(0xFFF2F0EC),
                   ),
                 ),
               ],
@@ -273,7 +273,7 @@ class _MembersScreenState extends State<MembersScreen> {
           ),
           TextButton.icon(
             onPressed: _editAmount,
-            style: TextButton.styleFrom(foregroundColor: const Color(0xFFD96B43)),
+            style: TextButton.styleFrom(foregroundColor: const Color(0xFFC8FF1F)),
             icon: const Icon(TablerIcons.edit, size: 16),
             label: const Text(
               'Change',
@@ -288,21 +288,21 @@ class _MembersScreenState extends State<MembersScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121214),
+      backgroundColor: const Color(0xFF1E2227),
       appBar: AppBar(
         title: Text('Members · ${_members.length}'),
-        backgroundColor: const Color(0xFF121214),
-        foregroundColor: const Color(0xFFF5EFEB),
+        backgroundColor: const Color(0xFF1E2227),
+        foregroundColor: const Color(0xFFF2F0EC),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _add,
-        backgroundColor: const Color(0xFFD96B43),
-        foregroundColor: Colors.white,
+        backgroundColor: const Color(0xFFC8FF1F),
+        foregroundColor: const Color(0xFF171B1F),
         icon: const Icon(TablerIcons.userPlus, size: 18),
         label: const Text('Add member'),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFFD96B43)))
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFFC8FF1F)))
           : Column(
               children: [
                 _priceCard(),
@@ -311,7 +311,7 @@ class _MembersScreenState extends State<MembersScreen> {
                       ? Center(
                           child: Padding(
                             padding: const EdgeInsets.all(24),
-                            child: Text(_error!, style: const TextStyle(color: Color(0xFFE07A52))),
+                            child: Text(_error!, style: const TextStyle(color: Color(0xFFF08A80))),
                           ),
                         )
                       : _members.isEmpty
@@ -322,7 +322,7 @@ class _MembersScreenState extends State<MembersScreen> {
                               ),
                             )
                           : RefreshIndicator(
-                              color: const Color(0xFFD96B43),
+                              color: const Color(0xFFC8FF1F),
                               onRefresh: _load,
                               child: ListView.separated(
                                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
@@ -335,7 +335,7 @@ class _MembersScreenState extends State<MembersScreen> {
                           return Container(
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF1A1A1E),
+                              color: const Color(0xFF262C33),
                               borderRadius: BorderRadius.circular(14),
                               border: Border.all(color: const Color(0xFF2A2A2E)),
                             ),
@@ -343,11 +343,11 @@ class _MembersScreenState extends State<MembersScreen> {
                               children: [
                                 CircleAvatar(
                                   radius: 18,
-                                  backgroundColor: const Color(0xFFD96B43).withValues(alpha: 0.18),
+                                  backgroundColor: const Color(0xFFC8FF1F).withValues(alpha: 0.18),
                                   child: Text(
                                     (member['name'] ?? '?').toString().characters.first.toUpperCase(),
                                     style: const TextStyle(
-                                      color: Color(0xFFD96B43),
+                                      color: Color(0xFFC8FF1F),
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -362,7 +362,7 @@ class _MembersScreenState extends State<MembersScreen> {
                                         style: const TextStyle(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w600,
-                                          color: Color(0xFFF5EFEB),
+                                          color: Color(0xFFF2F0EC),
                                         ),
                                       ),
                                       const SizedBox(height: 2),

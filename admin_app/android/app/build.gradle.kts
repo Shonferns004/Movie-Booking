@@ -44,6 +44,12 @@ kotlin {
     }
 }
 
+dependencies {
+    // The SMS receiver only enqueues; WorkManager performs the HTTP delivery with
+    // exponential backoff and survives process death.
+    implementation("androidx.work:work-runtime-ktx:2.9.1")
+}
+
 flutter {
     source = "../.."
 }

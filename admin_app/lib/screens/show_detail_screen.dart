@@ -339,12 +339,12 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1E),
+        backgroundColor: const Color(0xFF262C33),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text(
           'Delete this show?',
           style: TextStyle(
-            color: Color(0xFFF5EFEB),
+            color: Color(0xFFF2F0EC),
             fontSize: 17,
             fontWeight: FontWeight.w700,
           ),
@@ -365,7 +365,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
             onPressed: () => Navigator.pop(dialogContext, true),
             child: const Text(
               'DELETE',
-              style: TextStyle(color: Color(0xFFD96B43)),
+              style: TextStyle(color: Color(0xFFC8FF1F)),
             ),
           ),
         ],
@@ -393,7 +393,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121214),
+      backgroundColor: const Color(0xFF1E2227),
       appBar: AppBar(
         title: Text(
           _movieTitle ?? _show?['movie_title']?.toString() ?? 'SHOW DETAILS',
@@ -401,7 +401,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(
             fontWeight: FontWeight.w800,
-            color: Color(0xFFF5EFEB),
+            color: Color(0xFFF2F0EC),
           ),
         ),
         bottom: PreferredSize(
@@ -429,12 +429,12 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
                         ),
                         labelStyle: TextStyle(
                           color: selected
-                              ? const Color(0xFF121214)
-                              : const Color(0xFFF5EFEB),
+                              ? const Color(0xFF1E2227)
+                              : const Color(0xFFF2F0EC),
                         ),
-                        selectedColor: const Color(0xFFD96B43),
-                        backgroundColor: const Color(0xFF1A1A1E),
-                        side: const BorderSide(color: Color(0xFF2F2F37)),
+                        selectedColor: const Color(0xFFC8FF1F),
+                        backgroundColor: const Color(0xFF262C33),
+                        side: const BorderSide(color: Color(0xFF2E353D)),
                         onSelected: (_) {
                           if (id == null || id == _showId) return;
                           setState(() => _showId = id);
@@ -446,9 +446,9 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
                 ),
               TabBar(
                 controller: _tabs,
-                labelColor: const Color(0xFFF5EFEB),
+                labelColor: const Color(0xFFF2F0EC),
                 unselectedLabelColor: const Color(0xFF9E9890),
-                indicatorColor: const Color(0xFFD96B43),
+                indicatorColor: const Color(0xFFC8FF1F),
                 tabs: const [
                   Tab(text: 'Seats'),
                   Tab(text: 'Collection'),
@@ -571,7 +571,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
       decoration: const BoxDecoration(
-        color: Color(0xFF1A1A1E),
+        color: Color(0xFF262C33),
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         border: Border(top: BorderSide(color: Color(0xFF2C2C32))),
       ),
@@ -685,7 +685,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
     return Container(
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1E),
+        color: const Color(0xFF262C33),
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: const Color(0xFF2C2C32)),
       ),
@@ -729,7 +729,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
             style: GoogleFonts.spaceMono(
               fontSize: 28,
               fontWeight: FontWeight.w700,
-              color: const Color(0xFFF5EFEB),
+              color: const Color(0xFFF2F0EC),
               height: 1.05,
               letterSpacing: -0.5,
             ),
@@ -775,7 +775,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
           style: GoogleFonts.spaceMono(
             fontSize: 16,
             fontWeight: FontWeight.w700,
-            color: const Color(0xFFF5EFEB),
+            color: const Color(0xFFF2F0EC),
           ),
         ),
       ],
@@ -818,7 +818,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1E),
+        color: const Color(0xFF262C33),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: const Color(0xFF2C2C32)),
       ),
@@ -849,7 +849,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
                       style: GoogleFonts.spaceMono(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w700,
-                        color: const Color(0xFFF5EFEB),
+                        color: const Color(0xFFF2F0EC),
                         letterSpacing: 0.3,
                       ),
                     ),
@@ -869,7 +869,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
                 style: GoogleFonts.spaceMono(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
-                  color: const Color(0xFFD96B43),
+                  color: const Color(0xFFC8FF1F),
                   letterSpacing: -0.3,
                 ),
               ),
@@ -937,7 +937,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 36),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1E),
+        color: const Color(0xFF262C33),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: const Color(0xFF2C2C32)),
       ),
@@ -951,7 +951,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
             style: GoogleFonts.syne(
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: const Color(0xFFF5EFEB),
+              color: const Color(0xFFF2F0EC),
             ),
           ),
           const SizedBox(height: 5),
@@ -1002,7 +1002,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
       case 'refunded':
         return const Color(0xFF9E9890);
       default:
-        return const Color(0xFFD96B43);
+        return const Color(0xFFC8FF1F);
     }
   }
 
@@ -1050,7 +1050,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
           Container(
             padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
             decoration: BoxDecoration(
-              color: const Color(0xFF1A1A1E),
+              color: const Color(0xFF262C33),
               borderRadius: BorderRadius.circular(22),
               border: Border.all(color: const Color(0xFF2C2C32)),
             ),
@@ -1105,7 +1105,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: const Color(0xFF1A1A1E),
+                color: const Color(0xFF262C33),
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(color: const Color(0xFF2C2C32)),
               ),
@@ -1162,7 +1162,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
                   style: GoogleFonts.spaceMono(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: const Color(0xFFF5EFEB),
+                    color: const Color(0xFFF2F0EC),
                   ),
                   decoration: _editInputDecoration('Movie title'),
                 ),
@@ -1254,7 +1254,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFF1A1A1E),
+            color: const Color(0xFF262C33),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: const Color(0xFF2C2C32)),
           ),
@@ -1393,9 +1393,9 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
               child: ElevatedButton(
                 onPressed: _savingShow || _deletingShow ? null : _saveShow,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFD96B43),
-                  foregroundColor: const Color(0xFFF5EFEB),
-                  disabledBackgroundColor: const Color(0xFF3A2A24),
+                  backgroundColor: const Color(0xFFC8FF1F),
+                  foregroundColor: const Color(0xFF171B1F),
+                  disabledBackgroundColor: const Color(0xFF2E353D),
                   disabledForegroundColor: const Color(0xFF9E9890),
                   elevation: 0,
                   shape: const StadiumBorder(),
@@ -1429,7 +1429,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFF1A1A1E),
+            color: const Color(0xFF262C33),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: const Color(0xFF3A2622)),
           ),
@@ -1442,7 +1442,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
                   fontSize: 8,
                   letterSpacing: 1.3,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFFD96B43),
+                  color: Color(0xFFC8FF1F),
                 ),
               ),
               const SizedBox(height: 7),
@@ -1473,9 +1473,9 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
                     ),
                   ),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFFD96B43),
-                    disabledForegroundColor: const Color(0xFF7A4A3A),
-                    side: const BorderSide(color: Color(0xFF5A3428)),
+                    foregroundColor: const Color(0xFFC8FF1F),
+                    disabledForegroundColor: const Color(0xFF3A4148),
+                    side: const BorderSide(color: Color(0xFF3A4148)),
                     shape: const StadiumBorder(),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
@@ -1492,7 +1492,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
     return Container(
       padding: const EdgeInsets.fromLTRB(15, 12, 15, 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1E),
+        color: const Color(0xFF262C33),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: const Color(0xFF2C2C32)),
       ),
@@ -1502,16 +1502,16 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
             width: 34,
             height: 34,
             decoration: BoxDecoration(
-              color: const Color(0xFFD96B43).withValues(alpha: 0.12),
+              color: const Color(0xFFC8FF1F).withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(999),
               border: Border.all(
-                color: const Color(0xFFD96B43).withValues(alpha: 0.3),
+                color: const Color(0xFFC8FF1F).withValues(alpha: 0.3),
               ),
             ),
             child: const Icon(
               TablerIcons.calendarEvent,
               size: 16,
-              color: Color(0xFFD96B43),
+              color: Color(0xFFC8FF1F),
             ),
           ),
           const SizedBox(width: 11),
@@ -1559,7 +1559,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1E),
+        color: const Color(0xFF262C33),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: const Color(0xFF2C2C32)),
       ),
@@ -1602,7 +1602,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
       disabledBorder: border,
       focusedBorder: const OutlineInputBorder(
         borderRadius: BorderRadius.all(Radius.circular(14)),
-        borderSide: BorderSide(color: Color(0xFFD96B43)),
+        borderSide: BorderSide(color: Color(0xFFC8FF1F)),
       ),
     );
   }
@@ -1644,7 +1644,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
           style: GoogleFonts.spaceMono(
             fontSize: 10,
             fontWeight: FontWeight.w600,
-            color: const Color(0xFFF5EFEB),
+            color: const Color(0xFFF2F0EC),
           ),
           items: items,
           onChanged: _savingShow || _deletingShow ? null : onChanged,
@@ -1800,9 +1800,9 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
                   ),
                 ),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFFD96B43),
-                  disabledForegroundColor: const Color(0xFF7A4A3A),
-                  side: const BorderSide(color: Color(0xFF5A3428)),
+                  foregroundColor: const Color(0xFFC8FF1F),
+                  disabledForegroundColor: const Color(0xFF3A4148),
+                  side: const BorderSide(color: Color(0xFF3A4148)),
                   shape: const StadiumBorder(),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
@@ -1850,7 +1850,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
                 style: const TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFFF5EFEB),
+                  color: Color(0xFFF2F0EC),
                 ),
               ),
               const SizedBox(height: 3),
@@ -1878,7 +1878,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
             style: GoogleFonts.spaceMono(
               fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: const Color(0xFFF5EFEB),
+              color: const Color(0xFFF2F0EC),
             ),
             decoration: _editInputDecoration('0', prefixText: 'â‚¹ '),
           ),
@@ -1949,7 +1949,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
         ),
         child: Row(
           children: [
-            Icon(icon, size: 13, color: const Color(0xFFD96B43)),
+            Icon(icon, size: 13, color: const Color(0xFFC8FF1F)),
             const SizedBox(width: 7),
             Expanded(
               child: Text(
@@ -1959,7 +1959,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
                 style: GoogleFonts.spaceMono(
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
-                  color: const Color(0xFFF5EFEB),
+                  color: const Color(0xFFF2F0EC),
                 ),
               ),
             ),
@@ -2012,7 +2012,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
           Container(
             padding: const EdgeInsets.fromLTRB(15, 12, 15, 12),
             decoration: BoxDecoration(
-              color: const Color(0xFF1A1A1E),
+              color: const Color(0xFF262C33),
               borderRadius: BorderRadius.circular(18),
               border: Border.all(color: const Color(0xFF2C2C32)),
             ),
@@ -2043,7 +2043,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFF1A1A1E),
+              color: const Color(0xFF262C33),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: const Color(0xFF2C2C32)),
             ),
@@ -2136,7 +2136,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFFF5EFEB),
+                color: Color(0xFFF2F0EC),
               ),
             ),
             const SizedBox(height: 5),
@@ -2153,7 +2153,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
             OutlinedButton(
               onPressed: _load,
               style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFFD96B43),
+                foregroundColor: const Color(0xFFC8FF1F),
                 side: const BorderSide(color: Color(0xFF2C2C32)),
                 shape: const StadiumBorder(),
               ),
@@ -2188,7 +2188,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
       case 'scheduled':
         return const Color(0xFFD8C7A5);
       default:
-        return const Color(0xFFD96B43);
+        return const Color(0xFFC8FF1F);
     }
   }
 
@@ -2357,15 +2357,15 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
           colorScheme: const ColorScheme.dark(
-            primary: Color(0xFFD96B43),
-            onPrimary: Color(0xFFF5EFEB),
-            surface: Color(0xFF1A1A1E),
-            onSurface: Color(0xFFF5EFEB),
+            primary: Color(0xFFC8FF1F),
+            onPrimary: Color(0xFFF2F0EC),
+            surface: Color(0xFF262C33),
+            onSurface: Color(0xFFF2F0EC),
           ),
           datePickerTheme: const DatePickerThemeData(
-            backgroundColor: Color(0xFF1A1A1E),
+            backgroundColor: Color(0xFF262C33),
             headerBackgroundColor: Color(0xFF222226),
-            headerForegroundColor: Color(0xFFF5EFEB),
+            headerForegroundColor: Color(0xFFF2F0EC),
           ),
         ),
         child: child!,
@@ -2388,13 +2388,13 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
           colorScheme: const ColorScheme.dark(
-            primary: Color(0xFFD96B43),
-            onPrimary: Color(0xFFF5EFEB),
-            surface: Color(0xFF1A1A1E),
-            onSurface: Color(0xFFF5EFEB),
+            primary: Color(0xFFC8FF1F),
+            onPrimary: Color(0xFFF2F0EC),
+            surface: Color(0xFF262C33),
+            onSurface: Color(0xFFF2F0EC),
           ),
           timePickerTheme: const TimePickerThemeData(
-            backgroundColor: Color(0xFF1A1A1E),
+            backgroundColor: Color(0xFF262C33),
             dialBackgroundColor: Color(0xFF222226),
             hourMinuteColor: Color(0xFF222226),
           ),
@@ -2622,8 +2622,8 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
   static const Map<String, Color> _seatTypeColors = {
     'standard': Color(0xFF8B8B93),
     'classic': Color(0xFF8B8B93),
-    'premium': Color(0xFFD96B43),
-    'prime': Color(0xFFD96B43),
+    'premium': Color(0xFFC8FF1F),
+    'prime': Color(0xFFC8FF1F),
     'recliner': Color(0xFF8B5CF6),
     'wheelchair': Color(0xFF3B82F6),
     'handicapped': Color(0xFF3B82F6),
@@ -2730,7 +2730,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
         .length;
     return Container(
       decoration: const BoxDecoration(
-        color: Color(0xFF1A1A1E),
+        color: Color(0xFF262C33),
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         border: Border(top: BorderSide(color: Color(0xFF2C2C32))),
       ),
@@ -2779,7 +2779,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               _Legend(color: Color(0xFF8B8B93), label: 'Available'),
-              _Legend(color: Color(0xFFD96B43), label: 'Selected'),
+              _Legend(color: Color(0xFFC8FF1F), label: 'Selected'),
               _Legend(color: Color(0xFF7A7570), label: 'Occupied'),
             ],
           ),
@@ -2827,7 +2827,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
                     style: GoogleFonts.syne(
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
-                      color: const Color(0xFFF5EFEB),
+                      color: const Color(0xFFF2F0EC),
                     ),
                   ),
                 ),
@@ -2839,7 +2839,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
                   style: GoogleFonts.spaceMono(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
-                    color: const Color(0xFFD96B43),
+                    color: const Color(0xFFC8FF1F),
                   ),
                 ),
             ],
@@ -2967,7 +2967,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
                 Color color = const Color(0xFF4a4a50);
                 Color border = Colors.transparent;
                 if (status == 'booked') {
-                  color = const Color(0xFF232326);
+                  color = const Color(0xFF262C33);
                   border = const Color(0xFF2e2e33);
                 }
                 if (status == 'held') color = Colors.orange;

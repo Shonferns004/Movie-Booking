@@ -92,11 +92,11 @@ class _EventsScreenState extends State<EventsScreen> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFF121214),
+      backgroundColor: const Color(0xFF1E2227),
       appBar: AppBar(
         title: const Text(
           'EVENTS',
-          style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFFF5EFEB)),
+          style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFFF2F0EC)),
         ),
         actions: [
           IconButton(
@@ -106,12 +106,12 @@ class _EventsScreenState extends State<EventsScreen> {
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFFD96B43)))
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFFC8FF1F)))
           : _error != null
               ? Center(
                   child: Padding(
                     padding: const EdgeInsets.all(24),
-                    child: Text(_error!, style: const TextStyle(color: Color(0xFFE07A52))),
+                    child: Text(_error!, style: const TextStyle(color: Color(0xFFF08A80))),
                   ),
                 )
               : groups.isEmpty
@@ -123,7 +123,7 @@ class _EventsScreenState extends State<EventsScreen> {
                       ),
                     )
                   : RefreshIndicator(
-                      color: const Color(0xFFD96B43),
+                      color: const Color(0xFFC8FF1F),
                       onRefresh: _load,
                       child: ListView(
                         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -151,7 +151,7 @@ class _EventsScreenState extends State<EventsScreen> {
                               return Container(
                                 margin: const EdgeInsets.only(bottom: 8),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF1A1A1E),
+                                  color: const Color(0xFF262C33),
                                   borderRadius: BorderRadius.circular(14),
                                   border: Border.all(color: const Color(0xFF2A2A2E)),
                                 ),
@@ -162,7 +162,7 @@ class _EventsScreenState extends State<EventsScreen> {
                                     style: const TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w600,
-                                      color: Color(0xFFF5EFEB),
+                                      color: Color(0xFFF2F0EC),
                                     ),
                                   ),
                                   subtitle: Text(

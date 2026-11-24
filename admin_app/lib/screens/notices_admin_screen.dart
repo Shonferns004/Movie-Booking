@@ -56,7 +56,7 @@ class _NoticesAdminScreenState extends State<NoticesAdminScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1E),
+        backgroundColor: const Color(0xFF262C33),
         title: const Text('New notice'),
         content: SingleChildScrollView(
           child: Column(
@@ -126,26 +126,26 @@ class _NoticesAdminScreenState extends State<NoticesAdminScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121214),
+      backgroundColor: const Color(0xFF1E2227),
       appBar: AppBar(
         title: Text('Notices · ${_notices.length}'),
-        backgroundColor: const Color(0xFF121214),
-        foregroundColor: const Color(0xFFF5EFEB),
+        backgroundColor: const Color(0xFF1E2227),
+        foregroundColor: const Color(0xFFF2F0EC),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _add,
-        backgroundColor: const Color(0xFFD96B43),
-        foregroundColor: Colors.white,
+        backgroundColor: const Color(0xFFC8FF1F),
+        foregroundColor: const Color(0xFF171B1F),
         icon: const Icon(TablerIcons.speakerphone, size: 18),
         label: const Text('New notice'),
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFFD96B43)))
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFFC8FF1F)))
           : _error != null
               ? Center(
                   child: Padding(
                     padding: const EdgeInsets.all(24),
-                    child: Text(_error!, style: const TextStyle(color: Color(0xFFE07A52))),
+                    child: Text(_error!, style: const TextStyle(color: Color(0xFFF08A80))),
                   ),
                 )
               : _notices.isEmpty
@@ -153,7 +153,7 @@ class _NoticesAdminScreenState extends State<NoticesAdminScreen> {
                       child: Text('No notices yet.', style: TextStyle(color: Color(0xFF9E9890))),
                     )
                   : RefreshIndicator(
-                      color: const Color(0xFFD96B43),
+                      color: const Color(0xFFC8FF1F),
                       onRefresh: _load,
                       child: ListView.separated(
                         padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
@@ -164,7 +164,7 @@ class _NoticesAdminScreenState extends State<NoticesAdminScreen> {
                           return Container(
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF1A1A1E),
+                              color: const Color(0xFF262C33),
                               borderRadius: BorderRadius.circular(14),
                               border: Border.all(color: const Color(0xFF2A2A2E)),
                             ),
@@ -180,7 +180,7 @@ class _NoticesAdminScreenState extends State<NoticesAdminScreen> {
                                         style: const TextStyle(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w600,
-                                          color: Color(0xFFF5EFEB),
+                                          color: Color(0xFFF2F0EC),
                                         ),
                                       ),
                                       if ((notice['body'] ?? '').toString().isNotEmpty) ...[

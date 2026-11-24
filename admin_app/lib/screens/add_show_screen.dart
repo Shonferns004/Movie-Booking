@@ -245,7 +245,7 @@ class _AddShowSheetState extends State<AddShowSheet> {
     const sumi400 = Color(0xFF52525a);
     const sumi300 = Color(0xFF8e8e96);
     const sand = Color(0xFFFAF6F0);
-    const terracotta = Color(0xFFC85A32);
+    const terracotta = Color(0xFFC8FF1F);
 
     return Container(
       decoration: const BoxDecoration(
@@ -684,7 +684,7 @@ class _AddShowSheetState extends State<AddShowSheet> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Color(0xFFC85A32)),
+          borderSide: const BorderSide(color: Color(0xFFC8FF1F)),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       ),
@@ -747,7 +747,7 @@ class _AddShowSheetState extends State<AddShowSheet> {
     Color border, {
     required IconData icon,
   }) {
-    const terracotta = Color(0xFFC85A32);
+    const terracotta = Color(0xFFC8FF1F);
     return Container(
       padding: const EdgeInsets.fromLTRB(9, 4, 8, 4),
       decoration: BoxDecoration(

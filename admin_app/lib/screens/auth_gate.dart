@@ -28,7 +28,7 @@ class _AuthGateState extends State<AuthGate> {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      backgroundColor: Color(0xFF121214),
+      backgroundColor: Color(0xFF1E2227),
       body: SafeArea(
         child: Center(
           child: Column(
@@ -39,7 +39,7 @@ class _AuthGateState extends State<AuthGate> {
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFFF5EFEB),
+                  color: Color(0xFFF2F0EC),
                   letterSpacing: -0.5,
                 ),
               ),

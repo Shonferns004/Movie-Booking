@@ -9,6 +9,10 @@ import 'package:path_provider/path_provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../services/sms_observer/format.dart';
+import '../services/sms_observer/gateway_bridge.dart';
+import '../services/sms_observer/observer_event.dart';
+import '../services/sms_observer/sms_observer_controller.dart';
 import '../services/youpi_admin_api.dart';
 import 'scanner_shell.dart' show KkSurface;
 import 'package:tabler_icons_plus/tabler_icons_plus.dart';
@@ -794,15 +798,19 @@ class _SmsTabState extends State<_SmsTab> {
   final _sender = TextEditingController(text: 'HDFCBK');
   final _sms = TextEditingController();
   String _testResult = '';
+  late final SmsObserverController _observer;
 
   @override
   void initState() {
     super.initState();
+    _observer = SmsObserverController();
+    _observer.start();
     _load();
   }
 
   @override
   void dispose() {
+    _observer.dispose();
     _sender.dispose();
     _sms.dispose();
     super.dispose();

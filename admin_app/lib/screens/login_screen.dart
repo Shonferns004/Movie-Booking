@@ -39,7 +39,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121214),
+      backgroundColor: const Color(0xFF1E2227),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -48,19 +48,19 @@ class _LoginScreenState extends State<LoginScreen> {
               constraints: const BoxConstraints(maxWidth: 420),
               child: Container(
                 padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(color: const Color(0xFF1A1A1E), borderRadius: BorderRadius.circular(24), border: Border.all(color: const Color(0xFF2F2F37))),
+                decoration: BoxDecoration(color: const Color(0xFF262C33), borderRadius: BorderRadius.circular(24), border: Border.all(color: const Color(0xFF2E353D))),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Konkani Samudai', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Color(0xFFF5EFEB), letterSpacing: -0.5)),
+                    const Text('Konkani Samudai', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Color(0xFFF2F0EC), letterSpacing: -0.5)),
                     const Text('Cinema Gazette & Curatorial Control', style: TextStyle(fontSize: 12, color: Color(0xFF9E9890), fontStyle: FontStyle.italic)),
                     const SizedBox(height: 24),
                     TextField(controller: _email, decoration: const InputDecoration(labelText: 'Username')),
                     const SizedBox(height: 12),
                     TextField(controller: _password, obscureText: true, decoration: const InputDecoration(labelText: 'Password')),
                     const SizedBox(height: 12),
-                    if (_error != null) const Text('Invalid credentials', style: TextStyle(color: Color(0xFFD96B43))),
+                    if (_error != null) const Text('Invalid credentials', style: TextStyle(color: Color(0xFFC8FF1F))),
                     const SizedBox(height: 12),
                     SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _loading ? null : _login, child: Text(_loading ? 'Logging in...' : 'ENTER'))),
                   ],

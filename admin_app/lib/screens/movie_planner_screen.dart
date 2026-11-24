@@ -378,7 +378,7 @@ class _MoviePlannerScreenState extends State<MoviePlannerScreen> {
       await showDialog<void>(
         context: context,
         builder: (ctx) => AlertDialog(
-          backgroundColor: const Color(0xFF1A1A1E),
+          backgroundColor: const Color(0xFF262C33),
           title: const Text('Some shows were not scheduled'),
           content: SingleChildScrollView(
             child: Column(
@@ -387,7 +387,7 @@ class _MoviePlannerScreenState extends State<MoviePlannerScreen> {
               children: failures
                   .map((f) => Padding(
                         padding: const EdgeInsets.only(bottom: 8),
-                        child: Text(f, style: const TextStyle(fontSize: 12, color: Color(0xFFE07A52))),
+                        child: Text(f, style: const TextStyle(fontSize: 12, color: Color(0xFFF08A80))),
                       ))
                   .toList(),
             ),
@@ -426,11 +426,11 @@ class _MoviePlannerScreenState extends State<MoviePlannerScreen> {
   @override
   Widget build(BuildContext context) {
     const bg = Color(0xFF131315);
-    const card = Color(0xFF1A1A1E);
+    const card = Color(0xFF262C33);
     const line = Color(0xFF2A2A2E);
     const muted = Color(0xFF8E8E96);
     const sand = Color(0xFFFAF6F0);
-    const accent = Color(0xFFC85A32);
+    const accent = Color(0xFFC8FF1F);
 
     return Scaffold(
       backgroundColor: bg,
@@ -445,7 +445,7 @@ class _MoviePlannerScreenState extends State<MoviePlannerScreen> {
               ? Center(
                   child: Padding(
                     padding: const EdgeInsets.all(24),
-                    child: Text(_error!, style: const TextStyle(color: Color(0xFFE07A52))),
+                    child: Text(_error!, style: const TextStyle(color: Color(0xFFF08A80))),
                   ),
                 )
               : ListView(
@@ -538,7 +538,7 @@ class _MoviePlannerScreenState extends State<MoviePlannerScreen> {
                     onPressed: _saving ? null : _save,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: accent,
-                      foregroundColor: Colors.white,
+                      foregroundColor: const Color(0xFF171B1F),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     child: Text(

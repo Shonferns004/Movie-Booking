@@ -228,8 +228,8 @@ class _SeatBuilderScreenState extends State<SeatBuilderScreen> {
                     if (mounted) _openTheaterModal(t);
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFD96B43),
-                    foregroundColor: Colors.white,
+                    backgroundColor: const Color(0xFFC8FF1F),
+                    foregroundColor: const Color(0xFF171B1F),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -751,7 +751,7 @@ class _SeatBuilderScreenState extends State<SeatBuilderScreen> {
         });
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFF121214),
+        backgroundColor: const Color(0xFF1E2227),
         body: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(12),
@@ -789,7 +789,7 @@ class _SeatBuilderScreenState extends State<SeatBuilderScreen> {
                   color: Color(0xFF71717A),
                 ),
                 filled: true,
-                fillColor: const Color(0xFF1A1A1E),
+                fillColor: const Color(0xFF262C33),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(color: Color(0xFF2C2C32)),
@@ -800,7 +800,7 @@ class _SeatBuilderScreenState extends State<SeatBuilderScreen> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFD96B43)),
+                  borderSide: const BorderSide(color: Color(0xFFC8FF1F)),
                 ),
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 12,
@@ -818,8 +818,8 @@ class _SeatBuilderScreenState extends State<SeatBuilderScreen> {
               style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFD96B43),
-              foregroundColor: Colors.white,
+              backgroundColor: const Color(0xFFC8FF1F),
+              foregroundColor: const Color(0xFF171B1F),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),

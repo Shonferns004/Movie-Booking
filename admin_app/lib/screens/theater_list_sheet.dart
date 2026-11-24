@@ -53,7 +53,7 @@ class _TheaterListSheetState extends State<TheaterListSheet> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1E),
+        backgroundColor: const Color(0xFF262C33),
         title: const Text(
           'Add Theater',
           style: TextStyle(color: Color(0xFFF4F4F5)),
@@ -135,7 +135,7 @@ class _TheaterListSheetState extends State<TheaterListSheet> {
     const sumi500 = Color(0xFF333338);
     const sumi300 = Color(0xFF8e8e96);
     const sand = Color(0xFFFAF6F0);
-    const terracotta = Color(0xFFC85A32);
+    const terracotta = Color(0xFFC8FF1F);
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.78,

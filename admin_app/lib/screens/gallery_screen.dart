@@ -120,7 +120,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
         ClipRRect(
           borderRadius: BorderRadius.circular(14),
           child: Container(
-            color: const Color(0xFF1A1A1E),
+            color: const Color(0xFF262C33),
             width: double.infinity,
             height: double.infinity,
             child: url.startsWith('http')
@@ -159,7 +159,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
       children: [
         Row(
           children: [
-            Icon(icon, size: 15, color: const Color(0xFFD96B43)),
+            Icon(icon, size: 15, color: const Color(0xFFC8FF1F)),
             const SizedBox(width: 8),
             Text(
               title,
@@ -167,7 +167,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
                 fontSize: 10,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 1.2,
-                color: Color(0xFFF5EFEB),
+                color: Color(0xFFF2F0EC),
               ),
             ),
             const SizedBox(width: 8),
@@ -192,7 +192,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 16),
             decoration: BoxDecoration(
-              color: const Color(0xFF1A1A1E),
+              color: const Color(0xFF262C33),
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: const Color(0xFF2A2A2E)),
             ),
@@ -233,11 +233,11 @@ class _GalleryScreenState extends State<GalleryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121214),
+      backgroundColor: const Color(0xFF1E2227),
       appBar: AppBar(
         title: Text('Gallery · ${_images.length}'),
-        backgroundColor: const Color(0xFF121214),
-        foregroundColor: const Color(0xFFF5EFEB),
+        backgroundColor: const Color(0xFF1E2227),
+        foregroundColor: const Color(0xFFF2F0EC),
       ),
       floatingActionButton: Column(
         mainAxisSize: MainAxisSize.min,
@@ -252,8 +252,8 @@ class _GalleryScreenState extends State<GalleryScreen> {
                       setState(() => _placementOpen = false);
                       _add(placement: 'hero');
                     },
-              backgroundColor: const Color(0xFFD96B43),
-              foregroundColor: Colors.white,
+              backgroundColor: const Color(0xFFC8FF1F),
+              foregroundColor: const Color(0xFF171B1F),
               icon: const Icon(TablerIcons.sparkles, size: 18),
               label: const Text('Hero section'),
             ),
@@ -266,8 +266,8 @@ class _GalleryScreenState extends State<GalleryScreen> {
                       setState(() => _placementOpen = false);
                       _add(placement: 'library');
                     },
-              backgroundColor: const Color(0xFF1A1A1E),
-              foregroundColor: const Color(0xFFF5EFEB),
+              backgroundColor: const Color(0xFF262C33),
+              foregroundColor: const Color(0xFFF2F0EC),
               icon: const Icon(TablerIcons.photo, size: 18),
               label: const Text('Photo library'),
             ),
@@ -280,8 +280,8 @@ class _GalleryScreenState extends State<GalleryScreen> {
               onPressed: _busy
                   ? null
                   : () => setState(() => _placementOpen = !_placementOpen),
-              backgroundColor: const Color(0xFFD96B43),
-              foregroundColor: Colors.white,
+              backgroundColor: const Color(0xFFC8FF1F),
+              foregroundColor: const Color(0xFF171B1F),
               icon: Icon(
                 _placementOpen ? TablerIcons.x : TablerIcons.photoPlus,
                 size: 18,
@@ -292,16 +292,16 @@ class _GalleryScreenState extends State<GalleryScreen> {
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFFD96B43)))
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFFC8FF1F)))
           : _error != null
               ? Center(
                   child: Padding(
                     padding: const EdgeInsets.all(24),
-                    child: Text(_error!, style: const TextStyle(color: Color(0xFFE07A52))),
+                    child: Text(_error!, style: const TextStyle(color: Color(0xFFF08A80))),
                   ),
                 )
               : RefreshIndicator(
-                  color: const Color(0xFFD96B43),
+                  color: const Color(0xFFC8FF1F),
                   onRefresh: _load,
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(16, 14, 16, 140),

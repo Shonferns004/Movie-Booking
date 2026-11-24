@@ -71,7 +71,7 @@ class _NewsScreenState extends State<NewsScreen> {
         return const Color(0xFFD8B45A);
       case 'cancelled':
       case 'failed':
-        return const Color(0xFFD96B43);
+        return const Color(0xFFC8FF1F);
       default:
         return const Color(0xFF8E8E96);
     }
@@ -80,11 +80,11 @@ class _NewsScreenState extends State<NewsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121214),
+      backgroundColor: const Color(0xFF1E2227),
       appBar: AppBar(
         title: const Text(
           'NEWS',
-          style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFFF5EFEB)),
+          style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFFF2F0EC)),
         ),
         actions: [
           IconButton(
@@ -110,7 +110,7 @@ class _NewsScreenState extends State<NewsScreen> {
               ? Center(
                   child: Padding(
                     padding: const EdgeInsets.all(24),
-                    child: Text(_error!, style: const TextStyle(color: Color(0xFFE07A52))),
+                    child: Text(_error!, style: const TextStyle(color: Color(0xFFF08A80))),
                   ),
                 )
               : _items.isEmpty
@@ -122,7 +122,7 @@ class _NewsScreenState extends State<NewsScreen> {
                       ),
                     )
                   : RefreshIndicator(
-                      color: const Color(0xFFD96B43),
+                      color: const Color(0xFFC8FF1F),
                       onRefresh: _load,
                       child: ListView.builder(
                         padding: const EdgeInsets.all(16),
@@ -138,7 +138,7 @@ class _NewsScreenState extends State<NewsScreen> {
                             margin: const EdgeInsets.only(bottom: 10),
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF1A1A1E),
+                              color: const Color(0xFF262C33),
                               borderRadius: BorderRadius.circular(14),
                               border: Border.all(color: const Color(0xFF2A2A2E)),
                             ),
@@ -159,7 +159,7 @@ class _NewsScreenState extends State<NewsScreen> {
                                         style: const TextStyle(
                                           fontSize: 13,
                                           fontWeight: FontWeight.w600,
-                                          color: Color(0xFFF5EFEB),
+                                          color: Color(0xFFF2F0EC),
                                         ),
                                       ),
                                       const SizedBox(height: 3),

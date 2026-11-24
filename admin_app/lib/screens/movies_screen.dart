@@ -76,11 +76,11 @@ class _MoviesScreenState extends State<MoviesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121214),
+      backgroundColor: const Color(0xFF1E2227),
       appBar: AppBar(
         title: const Text(
           'MOVIES',
-          style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFFF5EFEB)),
+          style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFFF2F0EC)),
         ),
         actions: [
           IconButton(
@@ -90,12 +90,12 @@ class _MoviesScreenState extends State<MoviesScreen> {
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFFD96B43)))
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFFC8FF1F)))
           : _error != null
               ? Center(
                   child: Padding(
                     padding: const EdgeInsets.all(24),
-                    child: Text(_error!, style: const TextStyle(color: Color(0xFFE07A52))),
+                    child: Text(_error!, style: const TextStyle(color: Color(0xFFF08A80))),
                   ),
                 )
               : _movies.isEmpty
@@ -106,7 +106,7 @@ class _MoviesScreenState extends State<MoviesScreen> {
                       ),
                     )
                   : RefreshIndicator(
-                      color: const Color(0xFFD96B43),
+                      color: const Color(0xFFC8FF1F),
                       onRefresh: _load,
                       child: ListView.builder(
                         padding: const EdgeInsets.all(16),
@@ -129,7 +129,7 @@ class _MoviesScreenState extends State<MoviesScreen> {
                           return Container(
                             margin: const EdgeInsets.only(bottom: 12),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF1A1A1E),
+                              color: const Color(0xFF262C33),
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(color: const Color(0xFF2A2A2E)),
                             ),
@@ -184,7 +184,7 @@ class _MoviesScreenState extends State<MoviesScreen> {
                                                 style: const TextStyle(
                                                   fontSize: 14,
                                                   fontWeight: FontWeight.w700,
-                                                  color: Color(0xFFF5EFEB),
+                                                  color: Color(0xFFF2F0EC),
                                                 ),
                                               ),
                                               const SizedBox(height: 4),
@@ -250,7 +250,7 @@ class _MoviesScreenState extends State<MoviesScreen> {
                                                     venue.isEmpty ? 'Show' : venue,
                                                     style: const TextStyle(
                                                       fontSize: 12,
-                                                      color: Color(0xFFF5EFEB),
+                                                      color: Color(0xFFF2F0EC),
                                                     ),
                                                   ),
                                                   subtitle: Text(

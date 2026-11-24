@@ -619,7 +619,7 @@ class _ScanButtonState extends State<_ScanButton> {
               gradient: const LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [Color(0xFFE07148), Color(0xFFD96B43)],
+                colors: [Color(0xFFC8FF1F), Color(0xFFC8FF1F)],
               ),
               border: Border.all(
                 color: KkSurface.accentBorder.withValues(alpha: 0.45),
@@ -637,7 +637,7 @@ class _ScanButtonState extends State<_ScanButton> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Icon(TablerIcons.qrcode,
-                    size: 38, color: Color(0xFF14100E)),
+                    size: 38, color: Color(0xFF14181B)),
                 const SizedBox(height: 8),
                 Text(
                   'START',
@@ -645,7 +645,7 @@ class _ScanButtonState extends State<_ScanButton> {
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 1.4,
-                    color: const Color(0xFF14100E),
+                    color: const Color(0xFF14181B),
                   ),
                 ),
                 Text(
@@ -654,7 +654,7 @@ class _ScanButtonState extends State<_ScanButton> {
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 1.4,
-                    color: const Color(0xFF14100E),
+                    color: const Color(0xFF14181B),
                   ),
                 ),
               ],

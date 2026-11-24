@@ -40,8 +40,8 @@ class _ScannerScreenState extends State<ScannerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121214),
-      appBar: AppBar(title: const Text('SCAN TICKET', style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFFF5EFEB)))),
+      backgroundColor: const Color(0xFF1E2227),
+      appBar: AppBar(title: const Text('SCAN TICKET', style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFFF2F0EC)))),
       body: Column(
         children: [
           Expanded(
@@ -76,7 +76,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
           ),
           Container(
             padding: const EdgeInsets.all(16),
-            color: const Color(0xFF1A1412),
+            color: const Color(0xFF1E2227),
             width: double.infinity,
             child: Text(_result ?? 'Point the camera at a ticket QR', style: GoogleFonts.spaceMono(color: Colors.white, fontSize: 14), textAlign: TextAlign.center),
           ),

@@ -48,13 +48,13 @@ class _CollectionScreenState extends State<CollectionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121214),
+      backgroundColor: const Color(0xFF1E2227),
       appBar: AppBar(
         title: const Text(
           'BOX OFFICE',
           style: TextStyle(
             fontWeight: FontWeight.w800,
-            color: Color(0xFFF5EFEB),
+            color: Color(0xFFF2F0EC),
           ),
         ),
       ),
@@ -65,7 +65,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
-                  color: const Color(0xFF1A1A1E),
+                  color: const Color(0xFF262C33),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -84,7 +84,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
                         style: const TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.w800,
-                          color: Color(0xFFF5EFEB),
+                          color: Color(0xFFF2F0EC),
                         ),
                       ),
                     ],
@@ -100,9 +100,9 @@ class _CollectionScreenState extends State<CollectionScreen> {
                         margin: const EdgeInsets.only(bottom: 8),
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF1A1A1E),
+                          color: const Color(0xFF262C33),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFF2F2F37)),
+                          border: Border.all(color: const Color(0xFF2E353D)),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -113,7 +113,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
                                 fontFamily: 'monospace',
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
-                                color: Color(0xFFF5EFEB),
+                                color: Color(0xFFF2F0EC),
                               ),
                             ),
                             Text(
@@ -121,7 +121,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
                               style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
-                                color: Color(0xFFD96B43),
+                                color: Color(0xFFC8FF1F),
                               ),
                             ),
                           ],
@@ -142,7 +142,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(20),
-            color: const Color(0xFF1A1A1E),
+            color: const Color(0xFF262C33),
             child: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
