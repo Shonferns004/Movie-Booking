@@ -2,12 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../services/sms_observer/format.dart';
-import '../services/sms_observer/observer_event.dart';
 import '../services/sms_observer/sms_observer_controller.dart';
 import '../services/youpi_admin_api.dart';
 import 'scanner_shell.dart' show KkSurface;
@@ -776,7 +773,9 @@ class _AccountsTabState extends State<_AccountsTab> {
 }
 
 class _ThisPhonePanel extends StatefulWidget {
-  const _ThisPhonePanel();
+  const _ThisPhonePanel({required this.observer});
+
+  final SmsObserverController observer;
 
   @override
   State<_ThisPhonePanel> createState() => _ThisPhonePanelState();
@@ -784,20 +783,8 @@ class _ThisPhonePanel extends StatefulWidget {
 
 class _ThisPhonePanelState extends State<_ThisPhonePanel> {
   String? _pairError;
-  late final SmsObserverController _observer;
 
-  @override
-  void initState() {
-    super.initState();
-    _observer = SmsObserverController();
-    _observer.start();
-  }
-
-  @override
-  void dispose() {
-    _observer.dispose();
-    super.dispose();
-  }
+  SmsObserverController get _observer => widget.observer;
 
   String _normalizeGatewayUrl(String raw) {
     var value = raw.trim();
@@ -1084,31 +1071,43 @@ class _ThisPhonePanelState extends State<_ThisPhonePanel> {
                     onGrant: _observer.requestNotificationPermission,
                   ),
               ] else ...[
-                _KeyValue(
-                  'Device',
-                  config.shortDeviceId.isEmpty
-                      ? 'Paired'
-                      : config.shortDeviceId,
-                ),
-                _KeyValue(
-                  'Merchant',
-                  config.shortMerchantId.isEmpty
-                      ? '-'
-                      : config.shortMerchantId,
-                ),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text('SMS verification', style: _body(bold: true)),
-                  subtitle: Text(
-                    running
-                        ? 'Active - forwarding bank SMS.'
-                        : 'Standby - turn on to start verifying payments.',
-                    style: _muted(),
-                  ),
-                  value: running,
-                  onChanged: _observer.busy
-                      ? null
-                      : _toggleObserver,
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'SMS verification',
+                            style: _body(bold: true),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            running
+                                ? 'Active - forwarding bank SMS.'
+                                : 'Standby - turn on to start verifying payments.',
+                            style: _muted(),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton.outlined(
+                      onPressed: _observer.openAppSettings,
+                      tooltip: 'System settings',
+                      icon: const Icon(TablerIcons.settings, size: 18),
+                    ),
+                    const SizedBox(width: 6),
+                    IconButton.outlined(
+                      onPressed: _observer.busy ? null : _unpairThisPhone,
+                      tooltip: 'Unpair this phone',
+                      icon: const Icon(TablerIcons.linkOff, size: 18),
+                    ),
+                    const SizedBox(width: 4),
+                    Switch(
+                      value: running,
+                      onChanged: _observer.busy ? null : _toggleObserver,
+                    ),
+                  ],
                 ),
                 if (!smsGranted)
                   _ObserverPermissionRow(
@@ -1124,23 +1123,6 @@ class _ThisPhonePanelState extends State<_ThisPhonePanel> {
                     subtitle: 'Android 13+ keeps the listener running',
                     onGrant: _observer.requestNotificationPermission,
                   ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    OutlinedButton.icon(
-                      onPressed: _observer.openAppSettings,
-                      icon: const Icon(TablerIcons.settings, size: 16),
-                      label: const Text('System settings'),
-                    ),
-                    OutlinedButton.icon(
-                      onPressed: _observer.busy ? null : _unpairThisPhone,
-                      icon: const Icon(TablerIcons.linkOff, size: 16),
-                      label: const Text('Unpair'),
-                    ),
-                  ],
-                ),
                 const SizedBox(height: 12),
                 Row(
                   children: [
@@ -1167,12 +1149,6 @@ class _ThisPhonePanelState extends State<_ThisPhonePanel> {
                     ),
                   ],
                 ),
-                if (state != null && state.events.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  const _SectionTitle('Recent SMS'),
-                  const SizedBox(height: 4),
-                  ...state.events.take(3).map(_observerEventRow),
-                ],
               ],
               if (_pairError != null) ...[
                 const SizedBox(height: 8),
@@ -1198,56 +1174,6 @@ class _ThisPhonePanelState extends State<_ThisPhonePanel> {
           ),
         );
       },
-    );
-  }
-
-  Widget _observerEventRow(ObserverEvent event) {
-    final color = switch (event.status) {
-      EventStatus.sent =>
-        event.isRejected ? KkSurface.secondary : KkSurface.accent,
-      EventStatus.failed => KkSurface.error,
-      EventStatus.pending => KkSurface.secondary,
-      EventStatus.ignored => KkSurface.outline,
-    };
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  event.sender,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: _body(bold: true),
-                ),
-                Text(
-                  event.body,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: _muted(),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                renderAmount(event.amount, event.amountPaise),
-                style: _body(bold: true),
-              ),
-              Text(
-                event.status.label,
-                style: _muted(size: 10).copyWith(color: color),
-              ),
-            ],
-          ),
-        ],
-      ),
     );
   }
 
@@ -1342,16 +1268,32 @@ class _GatewayTab extends StatefulWidget {
 
 class _GatewayTabState extends State<_GatewayTab> {
   Map<String, dynamic>? _settings;
-  Map<String, dynamic>? _observers;
   Map<String, dynamic>? _whatsapp;
   String _activeVpa = '';
   String? _error;
   bool _loading = true;
+  late final SmsObserverController _observer;
 
   @override
   void initState() {
     super.initState();
+    _observer = SmsObserverController();
+    _observer.addListener(_onObserverChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _observer.start();
+    });
     _load();
+  }
+
+  void _onObserverChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _observer.removeListener(_onObserverChanged);
+    _observer.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -1362,7 +1304,6 @@ class _GatewayTabState extends State<_GatewayTab> {
     try {
       final results = await Future.wait([
         YoupiAdminApi.get('/admin/merchant-settings'),
-        YoupiAdminApi.get('/admin/observers'),
         YoupiAdminApi.get('/admin/upi-accounts'),
       ]);
       // WhatsApp is optional: a disconnected/broken session must not blank the
@@ -1378,7 +1319,7 @@ class _GatewayTabState extends State<_GatewayTab> {
       }
       if (!mounted) return;
       final accounts =
-          (results[2]['accounts'] as List?)?.cast<Map<String, dynamic>>() ??
+          (results[1]['accounts'] as List?)?.cast<Map<String, dynamic>>() ??
               const <Map<String, dynamic>>[];
       Map<String, dynamic>? activeAccount;
       for (final account in accounts) {
@@ -1389,7 +1330,6 @@ class _GatewayTabState extends State<_GatewayTab> {
       }
       setState(() {
         _settings = results[0];
-        _observers = results[1];
         _whatsapp = whatsapp;
         _activeVpa = '${activeAccount?['upiId'] ?? results[0]['upiId'] ?? ''}';
         _loading = false;
@@ -1443,14 +1383,15 @@ class _GatewayTabState extends State<_GatewayTab> {
     if (_loading) return const Center(child: CircularProgressIndicator());
     if (_error != null) return _ErrorView(message: _error!, onRetry: _load);
     final settings = _settings ?? const {};
-    final observers = _observers ?? const {};
     final whatsapp = _whatsapp ?? const {};
-    final gmail = observers['gmail'] as Map<String, dynamic>?;
-    final android = observers['android'] as Map<String, dynamic>?;
-    final androidDevices = (android?['devices'] as List?) ?? const [];
-    final androidConnected = androidDevices.any(
-      (device) => device is Map && device['status'] == 'CONNECTED',
-    );
+    final localConfig = _observer.config;
+    final thisPhoneRunning = localConfig.paired && localConfig.enabled;
+    final smsStatus = thisPhoneRunning
+        ? 'Phone connected'
+        : (localConfig.paired ? 'Standby' : 'Not paired');
+    final smsPill = thisPhoneRunning
+        ? 'CONNECTED'
+        : (localConfig.paired ? 'STANDBY' : 'NOT PAIRED');
     final waStatus = '${whatsapp['status'] ?? 'DISCONNECTED'}';
     final waQr = whatsapp['qrCode']?.toString();
 
@@ -1461,58 +1402,24 @@ class _GatewayTabState extends State<_GatewayTab> {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
         children: [
-          const _ThisPhonePanel(),
+          _ThisPhonePanel(observer: _observer),
           const SizedBox(height: 12),
           _Panel(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const _SectionTitle('Webhook'),
+                const _SectionTitle('SMS gateway'),
                 const SizedBox(height: 8),
-                if ('${settings['webhookUrl'] ?? ''}'.isNotEmpty)
-                  _CopyRow(
-                    label: 'Destination URL',
-                    value: '${settings['webhookUrl']}',
-                  )
-                else
-                  Text('No webhook URL configured.', style: _body()),
-                const SizedBox(height: 8),
-                if ('${settings['webhookSecret'] ?? ''}'.isNotEmpty)
-                  _CopyRow(
-                    label: 'HMAC secret',
-                    value: '${settings['webhookSecret']}',
-                    obscure: true,
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          _Panel(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const _SectionTitle('Verification observers'),
-                const SizedBox(height: 8),
-                _KeyValue(
-                  'Gmail',
-                  '${gmail?['status'] ?? 'STANDBY'}',
-                  trailing: _Pill(
-                    gmail?['isRunning'] == true ? 'ACTIVE' : 'IDLE',
-                    color: gmail?['isRunning'] == true
-                        ? KkSurface.accent
-                        : KkSurface.outline,
-                  ),
-                ),
                 _KeyValue(
                   'SMS verification',
-                  androidConnected
-                      ? 'Phone connected'
-                      : 'Waiting for phone',
+                  smsStatus,
                   trailing: _Pill(
-                    androidConnected ? 'CONNECTED' : 'STANDBY',
-                    color: androidConnected
+                    smsPill,
+                    color: thisPhoneRunning
                         ? KkSurface.accent
-                        : KkSurface.outline,
+                        : (localConfig.paired
+                            ? KkSurface.secondary
+                            : KkSurface.outline),
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -1784,48 +1691,6 @@ class _Pill extends StatelessWidget {
           color: textColor ?? KkSurface.onSurface,
         ),
       ),
-    );
-  }
-}
-
-class _CopyRow extends StatelessWidget {
-  const _CopyRow({
-    required this.label,
-    required this.value,
-    this.obscure = false,
-  });
-
-  final String label;
-  final String value;
-  final bool obscure;
-
-  @override
-  Widget build(BuildContext context) {
-    final shown = obscure
-        ? '•' * value.length.clamp(0, 28).toInt()
-        : value;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 110,
-          child: Text(label, style: _muted()),
-        ),
-        Expanded(
-          child: Text(
-            shown,
-            style: _body(),
-          ),
-        ),
-        IconButton(
-          tooltip: 'Copy',
-          onPressed: () {
-            Clipboard.setData(ClipboardData(text: value));
-            _snack(context, 'Copied $label');
-          },
-          icon: const Icon(TablerIcons.copy, size: 16),
-        ),
-      ],
     );
   }
 }
