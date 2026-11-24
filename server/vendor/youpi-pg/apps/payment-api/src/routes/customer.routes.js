@@ -774,4 +774,49 @@ export function registerCustomerRoutes(server, ctx) {
       HttpServer.json(res, 500, { success: false, error: error.message });
     }
   });
+
+  // POST /api/v1/internal/whatsapp/message
+  // Internal: plain-text WhatsApp notifications (membership renewals, etc.).
+  server.post('/api/v1/internal/whatsapp/message', async (req, res) => {
+    const expected = process.env.INTERNAL_CRON_SECRET || process.env.INTERNAL_SERVICE_TOKEN || '';
+    const presented = req.headers['x-internal-token']
+      || String(req.headers['authorization'] || '').replace(/^Bearer\s+/i, '');
+    if (!expected || !safeEqual(String(presented || ''), expected)) {
+      HttpServer.json(res, 401, { error: 'Unauthorized' });
+      return;
+    }
+
+    const body = await HttpServer.parseBody(req).catch(() => ({}));
+    const to = String(body.to || body.mobile || '').trim();
+    const message = String(body.message || body.text || '').trim();
+    if (!to || !message) {
+      HttpServer.json(res, 400, { error: 'to and message are required' });
+      return;
+    }
+
+    const sender = ctx.whatsappBerryService;
+    if (!sender || typeof sender.sendMessage !== 'function') {
+      HttpServer.json(res, 501, { error: 'WhatsApp text sending is not available' });
+      return;
+    }
+
+    try {
+      const result = await sender.sendMessage(to, message);
+      if (!result || result.delivered === false || result.success === false) {
+        HttpServer.json(res, 502, {
+          success: false,
+          error: result?.message || 'WhatsApp delivery failed',
+        });
+        return;
+      }
+      HttpServer.json(res, 200, {
+        success: true,
+        id: result.id || null,
+        status: result.status || 'CONNECTED',
+      });
+    } catch (error) {
+      console.error('[whatsapp-message] failed:', error);
+      HttpServer.json(res, 500, { success: false, error: error.message });
+    }
+  });
 }

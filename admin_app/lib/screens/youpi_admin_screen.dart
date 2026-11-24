@@ -275,89 +275,91 @@ class _LiveTabState extends State<_LiveTab> {
             ],
           ),
           const SizedBox(height: 14),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _Panel(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (slot != null && slot['status'] == 'ACTIVE') ...[
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                '#${slot['orderId'] ?? '-'}',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: _body(bold: true),
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: _Panel(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (slot != null && slot['status'] == 'ACTIVE') ...[
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  '#${slot['orderId'] ?? '-'}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: _body(bold: true),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              _Pill(
+                                'ACTIVE',
+                                color: KkSurface.accent,
+                                textColor: KkSurface.onPrimary,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            _money(slot['amountPaise']),
+                            style: _body(bold: true),
+                          ),
+                        ] else
+                          Text('No active slot', style: _muted()),
+                        if (activeAccount != null) ...[
+                          const SizedBox(height: 6),
+                          Text(
+                            '${activeAccount['upiId'] ?? '-'}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: _muted(),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _Panel(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (waiting.isEmpty)
+                          Text('No queue', style: _muted())
+                        else
+                          ...waiting.take(4).map(
+                            (item) => Padding(
+                              padding: const EdgeInsets.only(bottom: 6),
+                              child: Row(
+                                children: [
+                                  Text(
+                                    '#${item['queuePosition']}',
+                                    style: _muted(),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(
+                                      _money(item['amountPaise']),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: _body(bold: true),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                            const SizedBox(width: 6),
-                            _Pill(
-                              'ACTIVE',
-                              color: KkSurface.accent,
-                              textColor: KkSurface.onPrimary,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          _money(slot['amountPaise']),
-                          style: _body(bold: true),
-                        ),
-                      ] else
-                        Text('No active slot', style: _muted()),
-                      if (activeAccount != null) ...[
-                        const SizedBox(height: 6),
-                        Text(
-                          '${activeAccount['upiId'] ?? '-'}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: _muted(),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _Panel(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (waiting.isEmpty)
-                        Text('No queue', style: _muted())
-                      else
-                        ...waiting.take(4).map(
-                          (item) => Padding(
-                            padding: const EdgeInsets.only(bottom: 6),
-                            child: Row(
-                              children: [
-                                Text(
-                                  '#${item['queuePosition']}',
-                                  style: _muted(),
-                                ),
-                                const SizedBox(width: 6),
-                                Expanded(
-                                  child: Text(
-                                    _money(item['amountPaise']),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: _body(bold: true),
-                                  ),
-                                ),
-                              ],
-                            ),
                           ),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           const SizedBox(height: 12),
           _Panel(
@@ -678,14 +680,21 @@ class _MembershipEditorSheetState extends State<_MembershipEditorSheet> {
                 ),
                 decoration: const InputDecoration(
                   labelText: 'Amount per year (₹)',
-                  border: OutlineInputBorder(),
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  filled: true,
+                  fillColor: KkSurface.containerLow,
                 ),
               ),
               const SizedBox(height: 14),
-              FilledButton.icon(
-                onPressed: _saving ? null : _save,
-                icon: const Icon(TablerIcons.check, size: 17),
-                label: Text(_saving ? 'Saving...' : 'Save'),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: _saving ? null : _save,
+                  icon: const Icon(TablerIcons.check, size: 17),
+                  label: Text(_saving ? 'Saving...' : 'Save'),
+                ),
               ),
             ],
           ),
@@ -760,12 +769,24 @@ class _VpaManagerSheetState extends State<_VpaManagerSheet> {
               decoration: const InputDecoration(
                 labelText: 'UPI ID / VPA',
                 hintText: 'name@bank',
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                filled: true,
+                fillColor: KkSurface.containerLow,
               ),
             ),
             const SizedBox(height: 10),
             TextField(
               controller: payee,
-              decoration: const InputDecoration(labelText: 'Payee name'),
+              decoration: const InputDecoration(
+                labelText: 'Payee name',
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                filled: true,
+                fillColor: KkSurface.containerLow,
+              ),
             ),
           ],
         ),
@@ -1342,14 +1363,21 @@ class _WhatsAppMessageEditorSheetState
                   helperText: widget.helper,
                   helperMaxLines: 3,
                   alignLabelWithHint: true,
-                  border: const OutlineInputBorder(),
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  filled: true,
+                  fillColor: KkSurface.containerLow,
                 ),
               ),
               const SizedBox(height: 14),
-              FilledButton.icon(
-                onPressed: _saving ? null : _save,
-                icon: const Icon(TablerIcons.check, size: 17),
-                label: Text(_saving ? 'Saving...' : 'Save'),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: _saving ? null : _save,
+                  icon: const Icon(TablerIcons.check, size: 17),
+                  label: Text(_saving ? 'Saving...' : 'Save'),
+                ),
               ),
             ],
           ),
