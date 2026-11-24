@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../widgets/kk_pull_to_refresh.dart';
 
 import '../services/api.dart';
 import '../widgets/skeleton.dart';
@@ -91,8 +92,10 @@ class _CollectionScreenState extends State<CollectionScreen> {
                   ),
                 ),
                 Expanded(
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
+                  child: KkPullToRefresh(
+                    onRefresh: _load,
+                    child: ListView.builder(
+                      padding: const EdgeInsets.all(16),
                     itemCount: _bookings.length,
                     itemBuilder: (ctx, i) {
                       final b = _bookings[i];
@@ -128,6 +131,7 @@ class _CollectionScreenState extends State<CollectionScreen> {
                         ),
                       );
                     },
+                    ),
                   ),
                 ),
               ],
