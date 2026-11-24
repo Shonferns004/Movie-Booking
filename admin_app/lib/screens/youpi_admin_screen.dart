@@ -971,131 +971,235 @@ const _whatsAppTemplates = <_WhatsAppTemplate>[
   ),
 ];
 
-class _WhatsAppMessagesSheet extends StatelessWidget {
-  const _WhatsAppMessagesSheet({
-    required this.initialBranding,
-    required this.waStatus,
-    required this.phoneNumber,
-  });
+class _WhatsAppMessagesPage extends StatefulWidget {
+  const _WhatsAppMessagesPage();
 
-  final Map<String, dynamic> initialBranding;
-  final String waStatus;
-  final String phoneNumber;
+  @override
+  State<_WhatsAppMessagesPage> createState() => _WhatsAppMessagesPageState();
+}
 
-  String _text(String key) => '${initialBranding[key] ?? ''}'.trim();
+class _WhatsAppMessagesPageState extends State<_WhatsAppMessagesPage> {
+  Map<String, dynamic> _branding = const <String, dynamic>{};
+  String _waStatus = 'DISCONNECTED';
+  String _phoneNumber = '';
+  String? _error;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load({bool quiet = false}) async {
+    if (!quiet) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
+    try {
+      final results = await Future.wait([
+        YoupiAdminApi.get('/admin/merchant-settings'),
+        YoupiAdminApi.get('/admin/whatsapp/status'),
+      ]);
+      if (!mounted) return;
+      final whatsapp = results[1];
+      setState(() {
+        _branding =
+            (results[0]['branding'] as Map?)?.cast<String, dynamic>() ??
+                const <String, dynamic>{};
+        _waStatus = '${whatsapp['status'] ?? 'DISCONNECTED'}';
+        _phoneNumber = '${whatsapp['phoneNumber'] ?? ''}'.trim();
+        _error = null;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      if (quiet) {
+        _snack(context, '$e');
+        return;
+      }
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+    }
+  }
+
+  String _text(String key) => '${_branding[key] ?? ''}'.trim();
+
+  Future<void> _edit(_WhatsAppTemplate template) async {
+    final saved = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: KkSurface.container,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
+        ),
+        child: _WhatsAppMessageEditorSheet(
+          brandingKey: template.key,
+          title: template.title,
+          hint: template.hint,
+          helper: template.helper,
+          initialText: _text(template.key),
+        ),
+      ),
+    );
+    if (saved == null || !mounted) return;
+    setState(() => _branding = {..._branding, template.key: saved});
+    _snack(context, '${template.title} saved.');
+    await _load(quiet: true);
+  }
+
+  Future<void> _connect() async {
+    try {
+      await YoupiAdminApi.post('/admin/whatsapp/reconnect');
+      await _load(quiet: true);
+    } catch (e) {
+      _snack(context, '$e');
+    }
+  }
+
+  Future<void> _disconnect() async {
+    final ok = await _confirm(
+      context,
+      'Disconnect WhatsApp?',
+      'The OTP and ticket sending session will be wiped.',
+    );
+    if (!ok) return;
+    try {
+      await YoupiAdminApi.post('/admin/whatsapp/disconnect');
+      await _load(quiet: true);
+    } catch (e) {
+      _snack(context, '$e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.8,
-        ),
-        child: SingleChildScrollView(
-          physics: const ClampingScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 42,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: KkSurface.outline,
-                    borderRadius: BorderRadius.circular(99),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 14),
-              const _SectionTitle('WhatsApp messages'),
-              const SizedBox(height: 4),
-              Text(
-                'Tap a message to edit it. Leave it blank to use the '
-                'built-in text.',
-                style: _muted(),
-              ),
-              const SizedBox(height: 14),
-              if (waStatus == 'CONNECTED') ...[
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        phoneNumber.isEmpty ? 'Connected' : phoneNumber,
-                        style: _body(bold: true),
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () =>
-                          Navigator.of(context).pop('__reconnect__'),
-                      tooltip: 'Re-pair WhatsApp',
-                      icon: const Icon(TablerIcons.refresh, size: 18),
-                    ),
-                    IconButton(
-                      onPressed: () =>
-                          Navigator.of(context).pop('__disconnect__'),
-                      tooltip: 'Disconnect WhatsApp',
-                      icon: const Icon(TablerIcons.linkOff, size: 18),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-              ] else ...[
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: FilledButton.icon(
-                    onPressed: () => Navigator.of(context).pop('__connect__'),
-                    icon: const Icon(TablerIcons.link, size: 16),
-                    label: const Text('Connect WhatsApp'),
-                  ),
-                ),
-                const SizedBox(height: 8),
-              ],
-              ..._whatsAppTemplates.map(
-                (template) => Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: Material(
-                    color: KkSurface.containerHigh,
-                    borderRadius: BorderRadius.circular(12),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(12),
-                      onTap: () => Navigator.of(context).pop(template.key),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 14,
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(template.icon, size: 18),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                template.title,
-                                textAlign: TextAlign.start,
-                              ),
-                            ),
-                            _Pill(
-                              _text(template.key).isEmpty ? 'NOT SET' : 'SET',
-                              color: _text(template.key).isEmpty
-                                  ? KkSurface.outline
-                                  : KkSurface.accent,
-                              textColor: _text(template.key).isEmpty
-                                  ? KkSurface.onSurface
-                                  : KkSurface.onPrimary,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+    return Scaffold(
+      backgroundColor: KkSurface.bg,
+      appBar: AppBar(
+        backgroundColor: KkSurface.bg,
+        surfaceTintColor: Colors.transparent,
+        title: Text(
+          'WhatsApp messages',
+          style: GoogleFonts.publicSans(
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+            color: KkSurface.onSurface,
           ),
         ),
       ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? _ErrorView(message: _error!, onRetry: _load)
+              : RefreshIndicator(
+                  color: KkSurface.accent,
+                  onRefresh: () => _load(quiet: true),
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
+                    children: [
+                      if (_waStatus == 'CONNECTED') ...[
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                _phoneNumber.isEmpty
+                                    ? 'Connected'
+                                    : _phoneNumber,
+                                style: _body(bold: true),
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: _connect,
+                              tooltip: 'Re-pair WhatsApp',
+                              icon: const Icon(TablerIcons.refresh, size: 18),
+                            ),
+                            IconButton(
+                              onPressed: _disconnect,
+                              tooltip: 'Disconnect WhatsApp',
+                              icon: const Icon(TablerIcons.linkOff, size: 18),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                      ] else ...[
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'WhatsApp is not connected.',
+                                style: _body(),
+                              ),
+                            ),
+                            FilledButton.icon(
+                              onPressed: _connect,
+                              icon: const Icon(TablerIcons.link, size: 16),
+                              label: const Text('Connect'),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                      ],
+                      Text(
+                        'Tap a message to edit it. Leave it blank to use the '
+                        'built-in text.',
+                        style: _muted(),
+                      ),
+                      const SizedBox(height: 14),
+                      ..._whatsAppTemplates.map(
+                        (template) => Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: Material(
+                            color: KkSurface.containerHigh,
+                            borderRadius: BorderRadius.circular(12),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(12),
+                              onTap: () => _edit(template),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 14,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(template.icon, size: 18),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        template.title,
+                                        textAlign: TextAlign.start,
+                                      ),
+                                    ),
+                                    _Pill(
+                                      _text(template.key).isEmpty
+                                          ? 'NOT SET'
+                                          : 'SET',
+                                      color: _text(template.key).isEmpty
+                                          ? KkSurface.outline
+                                          : KkSurface.accent,
+                                      textColor: _text(template.key).isEmpty
+                                          ? KkSurface.onSurface
+                                          : KkSurface.onPrimary,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
     );
   }
 }
@@ -1697,7 +1801,6 @@ class _GatewayTab extends StatefulWidget {
 }
 
 class _GatewayTabState extends State<_GatewayTab> {
-  Map<String, dynamic>? _settings;
   Map<String, dynamic>? _whatsapp;
   List<Map<String, dynamic>> _vpaAccounts = const [];
   String _activeVpa = '';
@@ -1762,7 +1865,6 @@ class _GatewayTabState extends State<_GatewayTab> {
         }
       }
       setState(() {
-        _settings = results[0];
         _whatsapp = whatsapp;
         _vpaAccounts = accounts;
         _activeVpa = '${activeAccount?['upiId'] ?? results[0]['upiId'] ?? ''}';
@@ -1804,20 +1906,6 @@ class _GatewayTabState extends State<_GatewayTab> {
     if (mounted) await _load(quiet: true);
   }
 
-  Future<void> _disconnectWhatsApp() async {
-    final ok = await _confirm(context, 
-      'Disconnect WhatsApp?',
-      'The OTP and ticket sending session will be wiped.',
-    );
-    if (!ok) return;
-    try {
-      await YoupiAdminApi.post('/admin/whatsapp/disconnect');
-      await _load(quiet: true);
-    } catch (e) {
-      _snack(context, '$e');
-    }
-  }
-
   Future<void> _openVpaManager() async {
     await showModalBottomSheet<void>(
       context: context,
@@ -1832,70 +1920,9 @@ class _GatewayTabState extends State<_GatewayTab> {
   }
 
   Future<void> _openWhatsAppMessages() async {
-    var keepOpen = true;
-    while (keepOpen && mounted) {
-      final branding =
-          (_settings?['branding'] as Map?)?.cast<String, dynamic>() ??
-              const <String, dynamic>{};
-      final selected = await showModalBottomSheet<String>(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: KkSurface.container,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        builder: (_) => _WhatsAppMessagesSheet(
-          initialBranding: branding,
-          waStatus: '${_whatsapp?['status'] ?? 'DISCONNECTED'}',
-          phoneNumber: '${_whatsapp?['phoneNumber'] ?? ''}',
-        ),
-      );
-      if (!mounted) return;
-
-      if (selected == null) {
-        keepOpen = false;
-        break;
-      }
-
-      if (selected == '__connect__' || selected == '__reconnect__') {
-        await _connectWhatsApp();
-        keepOpen = false;
-        break;
-      }
-      if (selected == '__disconnect__') {
-        await _disconnectWhatsApp();
-        keepOpen = false;
-        break;
-      }
-
-      final template = _whatsAppTemplates.firstWhere((t) => t.key == selected);
-      final saved = await showModalBottomSheet<String>(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: KkSurface.container,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        builder: (sheetContext) => Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
-          ),
-          child: _WhatsAppMessageEditorSheet(
-            brandingKey: template.key,
-            title: template.title,
-            hint: template.hint,
-            helper: template.helper,
-            initialText: '${branding[template.key] ?? ''}',
-          ),
-        ),
-      );
-      if (!mounted) return;
-      if (saved != null) {
-        await _load(quiet: true);
-        if (mounted) _snack(context, '${template.title} saved.');
-      }
-      // Save or back: reopen the WhatsApp messages list with fresh SET state.
-    }
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const _WhatsAppMessagesPage()),
+    );
     if (mounted) await _load(quiet: true);
   }
 
