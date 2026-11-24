@@ -539,9 +539,7 @@ class _PaymentsTabState extends State<_PaymentsTab> {
 }
 
 class _VpaManagerSheet extends StatefulWidget {
-  const _VpaManagerSheet({required this.scrollController});
-
-  final ScrollController scrollController;
+  const _VpaManagerSheet();
 
   @override
   State<_VpaManagerSheet> createState() => _VpaManagerSheetState();
@@ -675,8 +673,7 @@ class _VpaManagerSheetState extends State<_VpaManagerSheet> {
     if (_loading) return const Center(child: CircularProgressIndicator());
     if (_error != null) return _ErrorView(message: _error!, onRetry: _load);
 
-    final active = _accounts.where((a) => a['isActive'] == true).toList();
-    final history = _accounts.where((a) => a['isActive'] != true).toList();
+    final accounts = _accounts;
 
     Widget card(Map<String, dynamic> account) {
       return Padding(
@@ -744,92 +741,333 @@ class _VpaManagerSheetState extends State<_VpaManagerSheet> {
       );
     }
 
-    return ListView(
-      controller: widget.scrollController,
-      physics: const ClampingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
-      children: [
-          Center(
-            child: Container(
-              width: 42,
-              height: 4,
-              decoration: BoxDecoration(
-                color: KkSurface.outline,
-                borderRadius: BorderRadius.circular(99),
-              ),
-            ),
-          ),
-          const SizedBox(height: 14),
-          Row(
+    return SafeArea(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.8,
+        ),
+        child: SingleChildScrollView(
+          physics: const ClampingScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Expanded(child: _SectionTitle('Payment VPAs')),
-              FilledButton.icon(
-                onPressed: _addAccount,
-                icon: const Icon(TablerIcons.plus, size: 17),
-                label: const Text('Add VPA'),
+              Center(
+                child: Container(
+                  width: 42,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: KkSurface.outline,
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                ),
               ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  const Expanded(child: _SectionTitle('Payment VPAs')),
+                  FilledButton.icon(
+                    onPressed: _addAccount,
+                    icon: const Icon(TablerIcons.plus, size: 17),
+                    label: const Text('Add VPA'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Only one VPA can be active at a time.',
+                style: _muted(),
+              ),
+              const SizedBox(height: 14),
+              if (accounts.isEmpty)
+                _Panel(child: Text('No UPI accounts saved.', style: _body()))
+              else
+                ...accounts.map(card),
             ],
           ),
-          const SizedBox(height: 4),
-          Text('Only one VPA can be active at a time.', style: _muted()),
-          const SizedBox(height: 14),
-          if (_accounts.isEmpty)
-            _Panel(child: Text('No UPI accounts saved.', style: _body()))
-          else ...[
-            if (active.isNotEmpty) ...[
-              const _SectionTitle('Active'),
-              const SizedBox(height: 8),
-              ...active.map(card),
-            ],
-            const SizedBox(height: 8),
-            const _SectionTitle('History'),
-            const SizedBox(height: 8),
-            if (history.isEmpty)
-              Text('No previous VPAs yet.', style: _muted())
-            else
-              ...history.map(card),
-          ],
-        ],
-      );
+        ),
+      ),
+    );
   }
 }
 
-class _WhatsAppMessagesSheet extends StatefulWidget {
-  const _WhatsAppMessagesSheet({
-    required this.scrollController,
-    required this.initialBranding,
+class _WhatsAppTemplate {
+  const _WhatsAppTemplate({
+    required this.key,
+    required this.title,
+    required this.icon,
+    required this.hint,
+    required this.helper,
   });
 
-  final ScrollController scrollController;
+  final String key;
+  final String title;
+  final IconData icon;
+  final String hint;
+  final String helper;
+}
+
+const _whatsAppTemplates = <_WhatsAppTemplate>[
+  _WhatsAppTemplate(
+    key: 'otpMessage',
+    title: 'Login message',
+    icon: TablerIcons.key,
+    hint:
+        'Hello {name}! Your one-time login OTP is: *{otp}*\n\n'
+        'Valid for 5 minutes.',
+    helper: 'Placeholders: {otp} · {name} · {appName}',
+  ),
+  _WhatsAppTemplate(
+    key: 'paymentMessage',
+    title: 'Payment message',
+    icon: TablerIcons.creditCard,
+    hint:
+        'Hi {name}, we received ₹{amount} for order {orderId}. Thank you!',
+    helper: 'Placeholders: {name} · {amount} · {orderId} · {appName}',
+  ),
+  _WhatsAppTemplate(
+    key: 'memberMessage',
+    title: 'Membership message',
+    icon: TablerIcons.usersGroup,
+    hint:
+        'Welcome {name}! Your {appName} membership is active. '
+        'Amount paid: ₹{amount}.',
+    helper: 'Placeholders: {name} · {amount} · {appName}',
+  ),
+  _WhatsAppTemplate(
+    key: 'ticketMessage',
+    title: 'Ticket message',
+    icon: TablerIcons.ticket,
+    hint:
+        'Your {appName} tickets for {movie} are attached. '
+        'Seats {seats}. Booking {reference}.',
+    helper:
+        'Placeholders: {name}/{customer_name} · {movie} · {theatre} · '
+        '{seats} · {reference}/{booking_id} · {appName}',
+  ),
+];
+
+class _WhatsAppMessagesSheet extends StatefulWidget {
+  const _WhatsAppMessagesSheet({
+    required this.initialBranding,
+    required this.waStatus,
+    required this.phoneNumber,
+    required this.onSaved,
+    required this.onReconnect,
+    required this.onDisconnect,
+    required this.onConnect,
+  });
+
   final Map<String, dynamic> initialBranding;
+  final String waStatus;
+  final String phoneNumber;
+  final Future<void> Function() onSaved;
+  final Future<void> Function() onReconnect;
+  final Future<void> Function() onDisconnect;
+  final Future<void> Function() onConnect;
 
   @override
   State<_WhatsAppMessagesSheet> createState() => _WhatsAppMessagesSheetState();
 }
 
 class _WhatsAppMessagesSheetState extends State<_WhatsAppMessagesSheet> {
-  late final TextEditingController _otp;
-  late final TextEditingController _payment;
-  late final TextEditingController _member;
-  late final TextEditingController _ticket;
+  late final Map<String, dynamic> _branding;
+
+  @override
+  void initState() {
+    super.initState();
+    _branding = Map<String, dynamic>.from(widget.initialBranding);
+  }
+
+  String _text(String key) => '${_branding[key] ?? ''}'.trim();
+
+  Future<void> _edit(_WhatsAppTemplate template) async {
+    final saved = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: KkSurface.container,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: _WhatsAppMessageEditorSheet(
+          brandingKey: template.key,
+          title: template.title,
+          hint: template.hint,
+          helper: template.helper,
+          initialText: _text(template.key),
+        ),
+      ),
+    );
+    if (saved == null || !mounted) return;
+    setState(() => _branding[template.key] = saved);
+    _snack(context, '${template.title} saved.');
+    await widget.onSaved();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.8,
+        ),
+        child: SingleChildScrollView(
+          physics: const ClampingScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 42,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: KkSurface.outline,
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              const _SectionTitle('WhatsApp messages'),
+              const SizedBox(height: 4),
+              Text(
+                'Tap a message to edit it. Leave it blank to use the '
+                'built-in text.',
+                style: _muted(),
+              ),
+              const SizedBox(height: 14),
+              if (widget.waStatus == 'CONNECTED') ...[
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        widget.phoneNumber.isEmpty
+                            ? 'Connected'
+                            : widget.phoneNumber,
+                        style: _body(bold: true),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        widget.onReconnect();
+                      },
+                      tooltip: 'Re-pair WhatsApp',
+                      icon: const Icon(TablerIcons.refresh, size: 18),
+                    ),
+                    IconButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        widget.onDisconnect();
+                      },
+                      tooltip: 'Disconnect WhatsApp',
+                      icon: const Icon(TablerIcons.linkOff, size: 18),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+              ] else ...[
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: FilledButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      widget.onConnect();
+                    },
+                    icon: const Icon(TablerIcons.link, size: 16),
+                    label: const Text('Connect WhatsApp'),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+              ..._whatsAppTemplates.map(
+                (template) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Material(
+                    color: KkSurface.containerHigh,
+                    borderRadius: BorderRadius.circular(12),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () => _edit(template),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 14,
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(template.icon, size: 18),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                template.title,
+                                textAlign: TextAlign.start,
+                              ),
+                            ),
+                            _Pill(
+                              _text(template.key).isEmpty ? 'NOT SET' : 'SET',
+                              color: _text(template.key).isEmpty
+                                  ? KkSurface.outline
+                                  : KkSurface.accent,
+                              textColor: _text(template.key).isEmpty
+                                  ? KkSurface.onSurface
+                                  : KkSurface.onPrimary,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _WhatsAppMessageEditorSheet extends StatefulWidget {
+  const _WhatsAppMessageEditorSheet({
+    required this.brandingKey,
+    required this.title,
+    required this.hint,
+    required this.helper,
+    required this.initialText,
+  });
+
+  final String brandingKey;
+  final String title;
+  final String hint;
+  final String helper;
+  final String initialText;
+
+  @override
+  State<_WhatsAppMessageEditorSheet> createState() =>
+      _WhatsAppMessageEditorSheetState();
+}
+
+class _WhatsAppMessageEditorSheetState
+    extends State<_WhatsAppMessageEditorSheet> {
+  late final TextEditingController _controller;
   bool _saving = false;
 
   @override
   void initState() {
     super.initState();
-    String read(String key) => '${widget.initialBranding[key] ?? ''}';
-    _otp = TextEditingController(text: read('otpMessage'));
-    _payment = TextEditingController(text: read('paymentMessage'));
-    _member = TextEditingController(text: read('memberMessage'));
-    _ticket = TextEditingController(text: read('ticketMessage'));
+    _controller = TextEditingController(text: widget.initialText);
   }
 
   @override
   void dispose() {
-    _otp.dispose();
-    _payment.dispose();
-    _member.dispose();
-    _ticket.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
@@ -838,14 +1076,11 @@ class _WhatsAppMessagesSheetState extends State<_WhatsAppMessagesSheet> {
     try {
       await YoupiAdminApi.post('/admin/merchant-settings', {
         'branding': {
-          'otpMessage': _otp.text.trim(),
-          'paymentMessage': _payment.text.trim(),
-          'memberMessage': _member.text.trim(),
-          'ticketMessage': _ticket.text.trim(),
+          widget.brandingKey: _controller.text.trim(),
         },
       });
       if (!mounted) return;
-      Navigator.of(context).pop(true);
+      Navigator.of(context).pop(_controller.text.trim());
     } catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
@@ -853,99 +1088,62 @@ class _WhatsAppMessagesSheetState extends State<_WhatsAppMessagesSheet> {
     }
   }
 
-  Widget _messageField({
-    required TextEditingController controller,
-    required String label,
-    required String hint,
-    required String helper,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: TextField(
-        controller: controller,
-        minLines: 3,
-        maxLines: 7,
-        style: const TextStyle(fontSize: 13, height: 1.35),
-        decoration: InputDecoration(
-          labelText: label,
-          hintText: hint,
-          helperText: helper,
-          helperMaxLines: 3,
-          alignLabelWithHint: true,
-          border: const OutlineInputBorder(),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      controller: widget.scrollController,
-      physics: const ClampingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
-      children: [
-        Center(
-          child: Container(
-            width: 42,
-            height: 4,
-            decoration: BoxDecoration(
-              color: KkSurface.outline,
-              borderRadius: BorderRadius.circular(99),
-            ),
+    return SafeArea(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.7,
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 42,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: KkSurface.outline,
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              _SectionTitle(widget.title),
+              const SizedBox(height: 4),
+              Text(
+                'Leave blank to use the built-in message. '
+                'Changes apply to the next message sent.',
+                style: _muted(),
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: _controller,
+                minLines: 6,
+                maxLines: 12,
+                autofocus: true,
+                style: const TextStyle(fontSize: 13, height: 1.35),
+                decoration: InputDecoration(
+                  hintText: widget.hint,
+                  helperText: widget.helper,
+                  helperMaxLines: 3,
+                  alignLabelWithHint: true,
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 14),
+              FilledButton.icon(
+                onPressed: _saving ? null : _save,
+                icon: const Icon(TablerIcons.check, size: 17),
+                label: Text(_saving ? 'Saving...' : 'Save'),
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 14),
-        const _SectionTitle('WhatsApp messages'),
-        const SizedBox(height: 4),
-        Text(
-          'Leave a field blank to use the built-in message. '
-          'Changes apply to the next message sent.',
-          style: _muted(),
-        ),
-        const SizedBox(height: 14),
-        _messageField(
-          controller: _otp,
-          label: 'Login message (OTP)',
-          hint:
-              '🔐 *{appName} Verification Code*\n\nHello {name}! Your one-time '
-              'login OTP is: *{otp}*\n\nValid for 5 minutes. Do not share this '
-              'code with anyone.',
-          helper: 'Placeholders: {otp} · {name} · {appName}',
-        ),
-        _messageField(
-          controller: _payment,
-          label: 'Payment message',
-          hint:
-              '✅ Payment received\n\nHi {name}, we received ₹{amount} for '
-              'order {orderId}. Thank you!',
-          helper: 'Placeholders: {name} · {amount} · {orderId} · {appName}',
-        ),
-        _messageField(
-          controller: _member,
-          label: 'Membership message',
-          hint:
-              '🎉 Welcome {name}!\n\nYour {appName} membership is active. '
-              'Amount paid: ₹{amount}.',
-          helper: 'Placeholders: {name} · {amount} · {appName}',
-        ),
-        _messageField(
-          controller: _ticket,
-          label: 'Ticket message',
-          hint:
-              '🎟️ Your {appName} tickets for {movie} are attached. '
-              'Seats {seats}. Booking {reference}.',
-          helper:
-              'Placeholders: {name}/{customer_name} · {movie} · {theatre} · '
-              '{seats} · {reference}/{booking_id} · {appName}',
-        ),
-        const SizedBox(height: 2),
-        FilledButton.icon(
-          onPressed: _saving ? null : _save,
-          icon: const Icon(TablerIcons.check, size: 17),
-          label: Text(_saving ? 'Saving...' : 'Save messages'),
-        ),
-      ],
+      ),
     );
   }
 }
@@ -1552,52 +1750,42 @@ class _GatewayTabState extends State<_GatewayTab> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.82,
-        minChildSize: 0.35,
-        maxChildSize: 0.95,
-        builder: (context, scrollController) =>
-            _VpaManagerSheet(scrollController: scrollController),
-      ),
+      builder: (_) => const _VpaManagerSheet(),
     );
     if (mounted) await _load();
   }
 
   Future<void> _openWhatsAppMessages() async {
-    final saved = await showModalBottomSheet<bool>(
+    final branding =
+        (_settings?['branding'] as Map?)?.cast<String, dynamic>() ??
+            const <String, dynamic>{};
+    await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: KkSurface.container,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.88,
-        minChildSize: 0.4,
-        maxChildSize: 0.95,
-        builder: (context, scrollController) => _WhatsAppMessagesSheet(
-          scrollController: scrollController,
-          initialBranding:
-              (_settings?['branding'] as Map?)?.cast<String, dynamic>() ??
-                  const <String, dynamic>{},
-        ),
+      builder: (_) => _WhatsAppMessagesSheet(
+        initialBranding: branding,
+        waStatus: '${_whatsapp?['status'] ?? 'DISCONNECTED'}',
+        phoneNumber: '${_whatsapp?['phoneNumber'] ?? ''}',
+        onSaved: _load,
+        onReconnect: _connectWhatsApp,
+        onDisconnect: _disconnectWhatsApp,
+        onConnect: _connectWhatsApp,
       ),
     );
     if (mounted) await _load();
-    if (saved == true && mounted) {
-      _snack(context, 'WhatsApp messages saved.');
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     if (_loading) return const Center(child: CircularProgressIndicator());
     if (_error != null) return _ErrorView(message: _error!, onRetry: _load);
-    final settings = _settings ?? const {};
     final whatsapp = _whatsapp ?? const {};
     final waStatus = '${whatsapp['status'] ?? 'DISCONNECTED'}';
+    final waPhone = '${whatsapp['phoneNumber'] ?? ''}'.trim();
     final waQr = whatsapp['qrCode']?.toString();
 
     return RefreshIndicator(
@@ -1619,15 +1807,22 @@ class _GatewayTabState extends State<_GatewayTab> {
                   child: Row(
                     children: [
                       const Expanded(child: _SectionTitle('WhatsApp')),
-                      _Pill(
-                        waStatus,
-                        color: waStatus == 'CONNECTED'
-                            ? KkSurface.accent
-                            : KkSurface.outline,
-                        textColor: waStatus == 'CONNECTED'
-                            ? KkSurface.onPrimary
-                            : KkSurface.onSurface,
-                      ),
+                      if (waStatus == 'CONNECTED' && waPhone.isNotEmpty)
+                        _Pill(
+                          waPhone,
+                          color: KkSurface.accent,
+                          textColor: KkSurface.onPrimary,
+                        )
+                      else
+                        _Pill(
+                          waStatus,
+                          color: waStatus == 'CONNECTED'
+                              ? KkSurface.accent
+                              : KkSurface.outline,
+                          textColor: waStatus == 'CONNECTED'
+                              ? KkSurface.onPrimary
+                              : KkSurface.onSurface,
+                        ),
                       const SizedBox(width: 4),
                       const Icon(
                         TablerIcons.chevronRight,
@@ -1638,28 +1833,7 @@ class _GatewayTabState extends State<_GatewayTab> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                if (waStatus == 'CONNECTED')
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Linked phone: ${whatsapp['phoneNumber'] ?? 'Linked device'}',
-                          style: _body(),
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: _connectWhatsApp,
-                        tooltip: 'Re-pair WhatsApp',
-                        icon: const Icon(TablerIcons.refresh, size: 18),
-                      ),
-                      IconButton(
-                        onPressed: _disconnectWhatsApp,
-                        tooltip: 'Disconnect WhatsApp',
-                        icon: const Icon(TablerIcons.linkOff, size: 18),
-                      ),
-                    ],
-                  )
-                else
+                if (waStatus != 'CONNECTED')
                   Text(
                     'Pair WhatsApp to send login OTPs and ticket PDFs.',
                     style: _body(),
@@ -1689,24 +1863,28 @@ class _GatewayTabState extends State<_GatewayTab> {
           GestureDetector(
             onTap: _openVpaManager,
             child: _Panel(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
                 children: [
-                  Row(
-                    children: [
-                      const Expanded(child: _SectionTitle('Store')),
-                      const Icon(
-                        TablerIcons.chevronRight,
-                        size: 18,
-                        color: KkSurface.onSurfaceVariant,
+                  const _SectionTitle('Store'),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      _activeVpa.trim().isEmpty ? '-' : _activeVpa,
+                      textAlign: TextAlign.right,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        fontFamily: 'monospace',
+                        color: KkSurface.onSurface,
                       ),
-                    ],
+                    ),
                   ),
-                  const SizedBox(height: 8),
-                  _KeyValue('Business', '${settings['businessName'] ?? '-'}'),
-                  _KeyValue(
-                    'Active VPA',
-                    _activeVpa.trim().isEmpty ? '-' : _activeVpa,
+                  const SizedBox(width: 4),
+                  const Icon(
+                    TablerIcons.chevronRight,
+                    size: 18,
+                    color: KkSurface.onSurfaceVariant,
                   ),
                 ],
               ),
