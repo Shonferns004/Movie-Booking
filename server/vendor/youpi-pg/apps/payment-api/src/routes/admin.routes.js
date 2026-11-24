@@ -872,6 +872,9 @@ export function registerAdminRoutes(server, ctx) {
     }
 
     const branding = merchant.branding || {};
+    const activeReceivingAccount = ctx.accountRepo?.findActiveForMerchant
+      ? ctx.accountRepo.findActiveForMerchant(merchant.id)
+      : null;
     const modeResult = resolveSellingModeAndMethods({}, branding);
     const sellingMode = modeResult.sellingMode;
     const enabledPaymentMethods = modeResult.enabledPaymentMethods;
@@ -903,6 +906,10 @@ export function registerAdminRoutes(server, ctx) {
     HttpServer.json(res, 200, {
       merchantId: merchant.id,
       businessName: merchant.businessName,
+      // The active receiving VPA is stored on the receiving account, not the
+      // merchant row. Surface it here so the Store settings card can show it.
+      upiId: activeReceivingAccount?.upiId || '',
+      upiPayeeName: activeReceivingAccount?.payeeName || '',
       contactEmail: merchant.contactEmail,
       contactPhone: merchant.contactPhone,
       webhookUrl: merchant.webhookUrl,

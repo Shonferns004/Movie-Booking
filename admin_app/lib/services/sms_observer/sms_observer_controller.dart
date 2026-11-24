@@ -202,6 +202,25 @@ class SmsObserverController extends ChangeNotifier
     await refresh(quiet: true);
   }
 
+  /// Backfills recent bank credits from the SMS inbox so a credit received while
+  /// the observer was off (or before pairing) is still forwarded.
+  Future<int> sweepInbox() async {
+    try {
+      final found = await _bridge.sweepInbox();
+      await Future<void>.delayed(const Duration(milliseconds: 600));
+      await refresh(quiet: true);
+      return found;
+    } on PlatformException catch (error) {
+      _platformError = error.message ?? error.code;
+      notifyListeners();
+      return 0;
+    } on MissingPluginException {
+      _platformError = 'The SMS observer is only available on Android.';
+      notifyListeners();
+      return 0;
+    }
+  }
+
   Future<TestSendResult> sendTest({
     required String text,
     required String sender,

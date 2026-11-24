@@ -863,6 +863,17 @@ class _ThisPhonePanelState extends State<_ThisPhonePanel> {
     await _observer.requestNotificationPermission();
     if (!mounted) return;
 
+    // If the SMS permission was refused, there is nothing to pair: an observer
+    // without RECEIVE_SMS/READ_SMS can never see a credit.
+    if (!smsGranted) {
+      const message =
+          'SMS access is required. Allow it in the system prompt or enable '
+          '"SMS" for this app in System settings, then try again.';
+      setState(() => _pairError = message);
+      _snack(context, message);
+      return;
+    }
+
     Map<String, String> pairing;
     try {
       pairing = await _fetchPairing();
@@ -919,7 +930,11 @@ class _ThisPhonePanelState extends State<_ThisPhonePanel> {
       return;
     }
 
-    if (smsGranted) await _observer.setEnabled(true);
+    if (smsGranted) {
+      await _observer.setEnabled(true);
+      // Forward a credit that arrived before the observer was switched on.
+      await _observer.sweepInbox();
+    }
     if (!mounted) return;
     _snack(
       context,
@@ -927,6 +942,37 @@ class _ThisPhonePanelState extends State<_ThisPhonePanel> {
           ? 'This phone is paired and the observer is running.'
           : 'Paired. Grant SMS access below to start observing.',
     );
+  }
+
+  /// One switch drives the whole flow: grant access, pair if needed, then
+  /// enable. This is what makes the merged admin app behave like the old
+  /// gateway app, which was always paired and always listening.
+  Future<void> _toggleObserver(bool value) async {
+    if (!Platform.isAndroid) return;
+    if (!value) {
+      await _observer.setEnabled(false);
+      return;
+    }
+
+    final smsGranted = await _observer.requestSmsPermission();
+    if (!smsGranted) {
+      if (mounted) {
+        _snack(
+          context,
+          'SMS access is required. Allow it in the system prompt, then turn '
+          'the switch on again.',
+        );
+      }
+      return;
+    }
+
+    if (!_observer.config.paired) {
+      await _pairThisPhone();
+      return;
+    }
+
+    await _observer.setEnabled(true);
+    await _observer.sweepInbox();
   }
 
   Future<void> _unpairThisPhone() async {
@@ -1012,11 +1058,15 @@ class _ThisPhonePanelState extends State<_ThisPhonePanel> {
                   contentPadding: EdgeInsets.zero,
                   title: Text('SMS verification', style: _body(bold: true)),
                   subtitle: Text(
-                    'Pair this phone to turn verification on.',
+                    _observer.busy
+                        ? 'Pairing this phone...'
+                        : 'Turn on to pair this phone and start verifying payments.',
                     style: _muted(),
                   ),
                   value: false,
-                  onChanged: null,
+                  onChanged: _observer.busy ? null : (value) {
+                    if (value) _pairThisPhone();
+                  },
                 ),
                 const SizedBox(height: 4),
                 if (!smsGranted)
@@ -1056,9 +1106,9 @@ class _ThisPhonePanelState extends State<_ThisPhonePanel> {
                     style: _muted(),
                   ),
                   value: running,
-                  onChanged: smsGranted
-                      ? (value) => _observer.setEnabled(value)
-                      : null,
+                  onChanged: _observer.busy
+                      ? null
+                      : _toggleObserver,
                 ),
                 if (!smsGranted)
                   _ObserverPermissionRow(
@@ -1294,6 +1344,7 @@ class _GatewayTabState extends State<_GatewayTab> {
   Map<String, dynamic>? _settings;
   Map<String, dynamic>? _observers;
   Map<String, dynamic>? _whatsapp;
+  String _activeVpa = '';
   String? _error;
   bool _loading = true;
 
@@ -1312,6 +1363,7 @@ class _GatewayTabState extends State<_GatewayTab> {
       final results = await Future.wait([
         YoupiAdminApi.get('/admin/merchant-settings'),
         YoupiAdminApi.get('/admin/observers'),
+        YoupiAdminApi.get('/admin/upi-accounts'),
       ]);
       // WhatsApp is optional: a disconnected/broken session must not blank the
       // whole gateway screen.
@@ -1325,10 +1377,21 @@ class _GatewayTabState extends State<_GatewayTab> {
         };
       }
       if (!mounted) return;
+      final accounts =
+          (results[2]['accounts'] as List?)?.cast<Map<String, dynamic>>() ??
+              const <Map<String, dynamic>>[];
+      Map<String, dynamic>? activeAccount;
+      for (final account in accounts) {
+        if (account['isActive'] == true) {
+          activeAccount = account;
+          break;
+        }
+      }
       setState(() {
         _settings = results[0];
         _observers = results[1];
         _whatsapp = whatsapp;
+        _activeVpa = '${activeAccount?['upiId'] ?? results[0]['upiId'] ?? ''}';
         _loading = false;
       });
     } catch (e) {
@@ -1530,7 +1593,10 @@ class _GatewayTabState extends State<_GatewayTab> {
                 const _SectionTitle('Store'),
                 const SizedBox(height: 8),
                 _KeyValue('Business', '${settings['businessName'] ?? '-'}'),
-                _KeyValue('Active VPA', '${settings['upiId'] ?? '-'}'),
+                _KeyValue(
+                  'Active VPA',
+                  _activeVpa.trim().isEmpty ? '-' : _activeVpa,
+                ),
                 _KeyValue(
                   'Selling mode',
                   '${settings['sellingMode'] ?? '-'}',

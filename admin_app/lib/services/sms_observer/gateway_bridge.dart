@@ -185,4 +185,12 @@ class GatewayBridge {
 
   /// Asks WorkManager to drain the pending queue now.
   Future<void> flushQueue() => _invoke('flushQueue');
+
+  /// Backfills recent bank credits from the SMS inbox and returns how many were
+  /// queued. Used after pairing/installing so an already-received credit is not
+  /// lost while the observer was off.
+  Future<int> sweepInbox() async {
+    final result = await _channel.invokeMethod<Object?>('sweepInbox');
+    return (result as num?)?.toInt() ?? 0;
+  }
 }

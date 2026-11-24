@@ -27,10 +27,18 @@ class GatewayBridge(
 
     fun attach() {
         channel.setMethodCallHandler(this)
-        // Best-effort liveness ping so a freshly paired phone shows up as online.
         val config = store.config()
-        if (config.isPaired) {
-            Thread { GatewayClient.heartbeat(config.baseUrl, config.deviceId) }.start()
+        if (!config.isPaired) return
+        // Best-effort liveness ping so a freshly paired phone shows up as online.
+        Thread { GatewayClient.heartbeat(config.baseUrl, config.deviceId) }.start()
+        if (config.enabled) {
+            // Pick up any credit that arrived while the app was closed or before
+            // the observer was switched on, then drain the queue immediately.
+            Thread {
+                SmsInboxSweeper.sweep(activity)
+                SmsIngestWorker.enqueue(activity)
+            }.start()
+            SmsSweepWorker.schedule(activity)
         }
     }
 
@@ -55,7 +63,15 @@ class GatewayBridge(
                 }
                 val config = store.config()
                 store.saveConfig(config.copy(enabled = enabled))
-                if (enabled) SmsIngestWorker.enqueue(activity)
+                if (enabled) {
+                    SmsSweepWorker.schedule(activity)
+                    Thread {
+                        SmsInboxSweeper.sweep(activity)
+                        SmsIngestWorker.enqueue(activity)
+                    }.start()
+                } else {
+                    SmsSweepWorker.cancel(activity)
+                }
                 result.success(buildState())
             }
 
@@ -67,6 +83,14 @@ class GatewayBridge(
             "flushQueue" -> {
                 SmsIngestWorker.enqueue(activity)
                 result.success(buildState())
+            }
+
+            "sweepInbox" -> {
+                Thread {
+                    val found = SmsInboxSweeper.sweep(activity)
+                    SmsIngestWorker.enqueue(activity)
+                    activity.runOnUiThread { result.success(found) }
+                }.start()
             }
 
             "requestSmsPermission" -> requestPermissions(

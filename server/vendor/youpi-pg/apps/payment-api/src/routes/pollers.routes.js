@@ -317,13 +317,22 @@ export function registerPollerRoutes(server, ctx) {
       }
     }
 
-    // Resolve Receiving Account for this merchant
-    let receivingAccountId = body.receivingAccountId;
+    // Resolve the Receiving Account from the paired device's merchant.
+    //
+    // A paired phone caches the account it was configured with. When the
+    // merchant switches the active VPA (for example @oksbi -> @okhdfcbank) the
+    // phone keeps sending the previous id, and scoping verification by that
+    // stale account makes every credit look like it belongs to no checkout.
+    // The device is authenticated by its HMAC and belongs to exactly one
+    // merchant, so the server is the authority here - never the cached id.
+    const activeAccount = ctx.accountRepo?.findActiveForMerchant
+      ? ctx.accountRepo.findActiveForMerchant(device.merchant_id)
+      : ctx.db.queryOne('SELECT id FROM payment_receiving_accounts WHERE merchant_id = ? AND is_active = TRUE LIMIT 1', [device.merchant_id]);
+    let receivingAccountId = activeAccount?.id;
     if (!receivingAccountId) {
-      const activeAccount = ctx.accountRepo
-        ? ctx.accountRepo.findActiveForMerchant(device.merchant_id)
-        : ctx.db.queryOne('SELECT id FROM payment_receiving_accounts WHERE merchant_id = ? AND is_active = TRUE LIMIT 1', [device.merchant_id]);
-      receivingAccountId = activeAccount?.id || '00000000-0000-0000-0000-000000000002';
+      // Only fall back to the device-supplied id when the merchant truly has no
+      // active account configured.
+      receivingAccountId = body.receivingAccountId || '00000000-0000-0000-0000-000000000002';
     }
 
     // Extract amount and details: either pre-parsed or from raw bank SMS

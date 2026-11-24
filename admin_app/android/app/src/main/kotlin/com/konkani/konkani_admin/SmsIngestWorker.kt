@@ -156,12 +156,15 @@ class SmsIngestWorker(
                         .setRequiredNetworkType(NetworkType.CONNECTED)
                         .build(),
                 )
-                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)
+                .setBackoffCriteria(BackoffPolicy.LINEAR, 15, TimeUnit.SECONDS)
                 .build()
 
+            // REPLACE (not APPEND) so a fresh credit is never stuck behind an
+            // earlier work item that is waiting out a long backoff. The worker
+            // always re-reads the whole pending queue, so replacing loses nothing.
             WorkManager.getInstance(context).enqueueUniqueWork(
                 UNIQUE_WORK,
-                ExistingWorkPolicy.APPEND_OR_REPLACE,
+                ExistingWorkPolicy.REPLACE,
                 request,
             )
         }
