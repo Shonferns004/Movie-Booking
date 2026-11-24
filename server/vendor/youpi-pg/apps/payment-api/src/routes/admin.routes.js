@@ -774,6 +774,8 @@ export function registerAdminRoutes(server, ctx) {
     if (inputBranding.hideAppName !== undefined) mergedBranding.hideAppName = Boolean(inputBranding.hideAppName);
     if (inputBranding.otpMessage !== undefined) mergedBranding.otpMessage = inputBranding.otpMessage ? inputBranding.otpMessage.trim() : null;
     if (inputBranding.ticketMessage !== undefined) mergedBranding.ticketMessage = inputBranding.ticketMessage ? inputBranding.ticketMessage.trim() : null;
+    if (inputBranding.paymentMessage !== undefined) mergedBranding.paymentMessage = inputBranding.paymentMessage ? inputBranding.paymentMessage.trim() : null;
+    if (inputBranding.memberMessage !== undefined) mergedBranding.memberMessage = inputBranding.memberMessage ? inputBranding.memberMessage.trim() : null;
     if (inputBranding.hideSubbanner !== undefined) mergedBranding.hideSubbanner = Boolean(inputBranding.hideSubbanner);
     if (inputBranding.hidePoweredBy !== undefined) mergedBranding.hidePoweredBy = Boolean(inputBranding.hidePoweredBy);
     if (inputBranding.hideTimeSavingBanner !== undefined) mergedBranding.hideTimeSavingBanner = Boolean(inputBranding.hideTimeSavingBanner);
@@ -1010,6 +1012,8 @@ export function registerAdminRoutes(server, ctx) {
       if (inputBranding.hideAppName !== undefined) mergedBranding.hideAppName = Boolean(inputBranding.hideAppName);
       if (inputBranding.otpMessage !== undefined) mergedBranding.otpMessage = inputBranding.otpMessage ? inputBranding.otpMessage.trim() : null;
     if (inputBranding.ticketMessage !== undefined) mergedBranding.ticketMessage = inputBranding.ticketMessage ? inputBranding.ticketMessage.trim() : null;
+      if (inputBranding.paymentMessage !== undefined) mergedBranding.paymentMessage = inputBranding.paymentMessage ? inputBranding.paymentMessage.trim() : null;
+      if (inputBranding.memberMessage !== undefined) mergedBranding.memberMessage = inputBranding.memberMessage ? inputBranding.memberMessage.trim() : null;
       if (inputBranding.hideSubbanner !== undefined) mergedBranding.hideSubbanner = Boolean(inputBranding.hideSubbanner);
       if (inputBranding.hidePoweredBy !== undefined) mergedBranding.hidePoweredBy = Boolean(inputBranding.hidePoweredBy);
       if (inputBranding.hideTimeSavingBanner !== undefined) mergedBranding.hideTimeSavingBanner = Boolean(inputBranding.hideTimeSavingBanner);

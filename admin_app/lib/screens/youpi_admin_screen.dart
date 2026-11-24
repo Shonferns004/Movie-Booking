@@ -14,8 +14,7 @@ import 'package:tabler_icons_plus/tabler_icons_plus.dart';
 class YoupiAdminScreen extends StatefulWidget {
   const YoupiAdminScreen({super.key, this.initialTab = 0});
 
-  /// Which internal tab to show first (0 Live, 1 Payments, 2 Accounts,
-  /// 3 Settings).
+  /// Which internal tab to show first (0 Live, 1 Payments, 2 Settings).
   final int initialTab;
 
   @override
@@ -98,8 +97,8 @@ class _YoupiAdminScreenState extends State<YoupiAdminScreen> {
     }
 
     return DefaultTabController(
-      length: 4,
-      initialIndex: widget.initialTab.clamp(0, 3).toInt(),
+      length: 3,
+      initialIndex: widget.initialTab.clamp(0, 2).toInt(),
       child: Scaffold(
         backgroundColor: KkSurface.bg,
         appBar: AppBar(
@@ -132,7 +131,6 @@ class _YoupiAdminScreenState extends State<YoupiAdminScreen> {
             tabs: const [
               Tab(text: 'Live'),
               Tab(text: 'Payments'),
-              Tab(text: 'Accounts'),
               Tab(text: 'Settings'),
             ],
           ),
@@ -142,7 +140,6 @@ class _YoupiAdminScreenState extends State<YoupiAdminScreen> {
           children: const [
             _LiveTab(),
             _PaymentsTab(),
-            _AccountsTab(),
             _GatewayTab(),
           ],
         ),
@@ -541,14 +538,16 @@ class _PaymentsTabState extends State<_PaymentsTab> {
   }
 }
 
-class _AccountsTab extends StatefulWidget {
-  const _AccountsTab();
+class _VpaManagerSheet extends StatefulWidget {
+  const _VpaManagerSheet({required this.scrollController});
+
+  final ScrollController scrollController;
 
   @override
-  State<_AccountsTab> createState() => _AccountsTabState();
+  State<_VpaManagerSheet> createState() => _VpaManagerSheetState();
 }
 
-class _AccountsTabState extends State<_AccountsTab> {
+class _VpaManagerSheetState extends State<_VpaManagerSheet> {
   List<Map<String, dynamic>> _accounts = const [];
   String? _error;
   bool _loading = true;
@@ -675,21 +674,95 @@ class _AccountsTabState extends State<_AccountsTab> {
   Widget build(BuildContext context) {
     if (_loading) return const Center(child: CircularProgressIndicator());
     if (_error != null) return _ErrorView(message: _error!, onRetry: _load);
-    return RefreshIndicator(
-      color: KkSurface.accent,
-      onRefresh: _load,
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, KkSurface.navClearance),
-        children: [
+
+    final active = _accounts.where((a) => a['isActive'] == true).toList();
+    final history = _accounts.where((a) => a['isActive'] != true).toList();
+
+    Widget card(Map<String, dynamic> account) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: _Panel(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '${account['upiId']}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: KkSurface.onSurface,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                  ),
+                  _Pill(
+                    account['isActive'] == true ? 'ACTIVE' : 'DISABLED',
+                    color: account['isActive'] == true
+                        ? KkSurface.accent
+                        : KkSurface.outline,
+                    textColor: account['isActive'] == true
+                        ? KkSurface.onPrimary
+                        : KkSurface.onSurface,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text('${account['payeeName'] ?? '-'}', style: _body()),
+              if (account['isSlotBusy'] == true) ...[
+                const SizedBox(height: 4),
+                Text('Slot busy', style: _muted()),
+              ],
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                children: [
+                  if (account['isActive'] != true)
+                    TextButton(
+                      onPressed: () => _activate(account),
+                      child: const Text('Activate'),
+                    )
+                  else
+                    TextButton(
+                      onPressed: () => _toggle(account),
+                      child: const Text('Deactivate'),
+                    ),
+                  TextButton(
+                    onPressed: () => _delete(account),
+                    child: const Text(
+                      'Delete',
+                      style: TextStyle(color: KkSurface.error),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return ListView(
+      controller: widget.scrollController,
+      physics: const ClampingScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
+      children: [
+          Center(
+            child: Container(
+              width: 42,
+              height: 4,
+              decoration: BoxDecoration(
+                color: KkSurface.outline,
+                borderRadius: BorderRadius.circular(99),
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
           Row(
             children: [
-              Expanded(
-                child: Text(
-                  'Only one VPA can be active at a time.',
-                  style: _muted(),
-                ),
-              ),
+              const Expanded(child: _SectionTitle('Payment VPAs')),
               FilledButton.icon(
                 onPressed: _addAccount,
                 icon: const Icon(TablerIcons.plus, size: 17),
@@ -697,77 +770,183 @@ class _AccountsTabState extends State<_AccountsTab> {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 4),
+          Text('Only one VPA can be active at a time.', style: _muted()),
+          const SizedBox(height: 14),
           if (_accounts.isEmpty)
             _Panel(child: Text('No UPI accounts saved.', style: _body()))
-          else
-            ..._accounts.map(
-              (account) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: _Panel(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              '${account['upiId']}',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                color: KkSurface.onSurface,
-                                fontFamily: 'monospace',
-                              ),
-                            ),
-                          ),
-                          _Pill(
-                            account['isActive'] == true ? 'ACTIVE' : 'DISABLED',
-                            color: account['isActive'] == true
-                                ? KkSurface.accent
-                                : KkSurface.outline,
-                            textColor: account['isActive'] == true
-                                ? KkSurface.onPrimary
-                                : KkSurface.onSurface,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text('${account['payeeName'] ?? '-'}', style: _body()),
-                      if (account['isSlotBusy'] == true) ...[
-                        const SizedBox(height: 4),
-                        Text('Slot busy', style: _muted()),
-                      ],
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        children: [
-                          if (account['isActive'] != true)
-                            TextButton(
-                              onPressed: () => _activate(account),
-                              child: const Text('Activate'),
-                            )
-                          else
-                            TextButton(
-                              onPressed: () => _toggle(account),
-                              child: const Text('Deactivate'),
-                            ),
-                          TextButton(
-                            onPressed: () => _delete(account),
-                            child: const Text(
-                              'Delete',
-                              style: TextStyle(color: KkSurface.error),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+          else ...[
+            if (active.isNotEmpty) ...[
+              const _SectionTitle('Active'),
+              const SizedBox(height: 8),
+              ...active.map(card),
+            ],
+            const SizedBox(height: 8),
+            const _SectionTitle('History'),
+            const SizedBox(height: 8),
+            if (history.isEmpty)
+              Text('No previous VPAs yet.', style: _muted())
+            else
+              ...history.map(card),
+          ],
         ],
+      );
+  }
+}
+
+class _WhatsAppMessagesSheet extends StatefulWidget {
+  const _WhatsAppMessagesSheet({
+    required this.scrollController,
+    required this.initialBranding,
+  });
+
+  final ScrollController scrollController;
+  final Map<String, dynamic> initialBranding;
+
+  @override
+  State<_WhatsAppMessagesSheet> createState() => _WhatsAppMessagesSheetState();
+}
+
+class _WhatsAppMessagesSheetState extends State<_WhatsAppMessagesSheet> {
+  late final TextEditingController _otp;
+  late final TextEditingController _payment;
+  late final TextEditingController _member;
+  late final TextEditingController _ticket;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    String read(String key) => '${widget.initialBranding[key] ?? ''}';
+    _otp = TextEditingController(text: read('otpMessage'));
+    _payment = TextEditingController(text: read('paymentMessage'));
+    _member = TextEditingController(text: read('memberMessage'));
+    _ticket = TextEditingController(text: read('ticketMessage'));
+  }
+
+  @override
+  void dispose() {
+    _otp.dispose();
+    _payment.dispose();
+    _member.dispose();
+    _ticket.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    setState(() => _saving = true);
+    try {
+      await YoupiAdminApi.post('/admin/merchant-settings', {
+        'branding': {
+          'otpMessage': _otp.text.trim(),
+          'paymentMessage': _payment.text.trim(),
+          'memberMessage': _member.text.trim(),
+          'ticketMessage': _ticket.text.trim(),
+        },
+      });
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      _snack(context, 'WhatsApp messages saved.');
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      _snack(context, '$e');
+    }
+  }
+
+  Widget _messageField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required String helper,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: TextField(
+        controller: controller,
+        minLines: 3,
+        maxLines: 7,
+        style: const TextStyle(fontSize: 13, height: 1.35),
+        decoration: InputDecoration(
+          labelText: label,
+          hintText: hint,
+          helperText: helper,
+          helperMaxLines: 3,
+          alignLabelWithHint: true,
+          border: const OutlineInputBorder(),
+        ),
       ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      controller: widget.scrollController,
+      physics: const ClampingScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
+      children: [
+        Center(
+          child: Container(
+            width: 42,
+            height: 4,
+            decoration: BoxDecoration(
+              color: KkSurface.outline,
+              borderRadius: BorderRadius.circular(99),
+            ),
+          ),
+        ),
+        const SizedBox(height: 14),
+        const _SectionTitle('WhatsApp messages'),
+        const SizedBox(height: 4),
+        Text(
+          'Leave a field blank to use the built-in message. '
+          'Changes apply to the next message sent.',
+          style: _muted(),
+        ),
+        const SizedBox(height: 14),
+        _messageField(
+          controller: _otp,
+          label: 'Login message (OTP)',
+          hint:
+              '🔐 *{appName} Verification Code*\n\nHello {name}! Your one-time '
+              'login OTP is: *{otp}*\n\nValid for 5 minutes. Do not share this '
+              'code with anyone.',
+          helper: 'Placeholders: {otp} · {name} · {appName}',
+        ),
+        _messageField(
+          controller: _payment,
+          label: 'Payment message',
+          hint:
+              '✅ Payment received\n\nHi {name}, we received ₹{amount} for '
+              'order {orderId}. Thank you!',
+          helper: 'Placeholders: {name} · {amount} · {orderId} · {appName}',
+        ),
+        _messageField(
+          controller: _member,
+          label: 'Membership message',
+          hint:
+              '🎉 Welcome {name}!\n\nYour {appName} membership is active. '
+              'Amount paid: ₹{amount}.',
+          helper: 'Placeholders: {name} · {amount} · {appName}',
+        ),
+        _messageField(
+          controller: _ticket,
+          label: 'Ticket message',
+          hint:
+              '🎟️ Your {appName} tickets for {movie} are attached. '
+              'Seats {seats}. Booking {reference}.',
+          helper:
+              'Placeholders: {name} · {movie} · {theatre} · {seats} · '
+              '{reference} · {appName}',
+        ),
+        const SizedBox(height: 2),
+        FilledButton.icon(
+          onPressed: _saving ? null : _save,
+          icon: const Icon(TablerIcons.check, size: 17),
+          label: Text(_saving ? 'Saving...' : 'Save messages'),
+        ),
+      ],
     );
   }
 }
@@ -1092,12 +1271,6 @@ class _ThisPhonePanelState extends State<_ThisPhonePanel> {
                       ),
                     ),
                     IconButton.outlined(
-                      onPressed: _observer.openAppSettings,
-                      tooltip: 'System settings',
-                      icon: const Icon(TablerIcons.settings, size: 18),
-                    ),
-                    const SizedBox(width: 6),
-                    IconButton.outlined(
                       onPressed: _observer.busy ? null : _unpairThisPhone,
                       tooltip: 'Unpair this phone',
                       icon: const Icon(TablerIcons.linkOff, size: 18),
@@ -1164,12 +1337,6 @@ class _ThisPhonePanelState extends State<_ThisPhonePanel> {
                   style: _muted().copyWith(color: KkSurface.error),
                 ),
               ],
-              const SizedBox(height: 8),
-              Text(
-                'If the old SMS Gateway app is still installed on this phone, '
-                'disable it so both apps do not forward the same SMS.',
-                style: _muted(),
-              ),
             ],
           ),
         );
@@ -1378,20 +1545,56 @@ class _GatewayTabState extends State<_GatewayTab> {
     }
   }
 
+  Future<void> _openVpaManager() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: KkSurface.container,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.82,
+        minChildSize: 0.35,
+        maxChildSize: 0.95,
+        builder: (context, scrollController) =>
+            _VpaManagerSheet(scrollController: scrollController),
+      ),
+    );
+    if (mounted) await _load();
+  }
+
+  Future<void> _openWhatsAppMessages() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: KkSurface.container,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.88,
+        minChildSize: 0.4,
+        maxChildSize: 0.95,
+        builder: (context, scrollController) => _WhatsAppMessagesSheet(
+          scrollController: scrollController,
+          initialBranding:
+              (_settings?['branding'] as Map?)?.cast<String, dynamic>() ??
+                  const <String, dynamic>{},
+        ),
+      ),
+    );
+    if (mounted) await _load();
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) return const Center(child: CircularProgressIndicator());
     if (_error != null) return _ErrorView(message: _error!, onRetry: _load);
     final settings = _settings ?? const {};
     final whatsapp = _whatsapp ?? const {};
-    final localConfig = _observer.config;
-    final thisPhoneRunning = localConfig.paired && localConfig.enabled;
-    final smsStatus = thisPhoneRunning
-        ? 'Phone connected'
-        : (localConfig.paired ? 'Standby' : 'Not paired');
-    final smsPill = thisPhoneRunning
-        ? 'CONNECTED'
-        : (localConfig.paired ? 'STANDBY' : 'NOT PAIRED');
     final waStatus = '${whatsapp['status'] ?? 'DISCONNECTED'}';
     final waQr = whatsapp['qrCode']?.toString();
 
@@ -1408,53 +1611,51 @@ class _GatewayTabState extends State<_GatewayTab> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const _SectionTitle('SMS gateway'),
-                const SizedBox(height: 8),
-                _KeyValue(
-                  'SMS verification',
-                  smsStatus,
-                  trailing: _Pill(
-                    smsPill,
-                    color: thisPhoneRunning
-                        ? KkSurface.accent
-                        : (localConfig.paired
-                            ? KkSurface.secondary
-                            : KkSurface.outline),
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: _openWhatsAppMessages,
+                  child: Row(
+                    children: [
+                      const Expanded(child: _SectionTitle('WhatsApp')),
+                      _Pill(
+                        waStatus,
+                        color: waStatus == 'CONNECTED'
+                            ? KkSurface.accent
+                            : KkSurface.outline,
+                        textColor: waStatus == 'CONNECTED'
+                            ? KkSurface.onPrimary
+                            : KkSurface.onSurface,
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(
+                        TablerIcons.chevronRight,
+                        size: 18,
+                        color: KkSurface.onSurfaceVariant,
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Start or stop phone forwarding with the SMS verification '
-                  'toggle in "This phone" above.',
-                  style: _muted(),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          _Panel(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Expanded(child: _SectionTitle('WhatsApp')),
-                    _Pill(
-                      waStatus,
-                      color: waStatus == 'CONNECTED'
-                          ? KkSurface.accent
-                          : KkSurface.outline,
-                      textColor: waStatus == 'CONNECTED'
-                          ? KkSurface.onPrimary
-                          : KkSurface.onSurface,
-                    ),
-                  ],
                 ),
                 const SizedBox(height: 8),
                 if (waStatus == 'CONNECTED')
-                  Text(
-                    'Linked phone: ${whatsapp['phoneNumber'] ?? 'Linked device'}',
-                    style: _body(),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Linked phone: ${whatsapp['phoneNumber'] ?? 'Linked device'}',
+                          style: _body(),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: _connectWhatsApp,
+                        tooltip: 'Re-pair WhatsApp',
+                        icon: const Icon(TablerIcons.refresh, size: 18),
+                      ),
+                      IconButton(
+                        onPressed: _disconnectWhatsApp,
+                        tooltip: 'Disconnect WhatsApp',
+                        icon: const Icon(TablerIcons.linkOff, size: 18),
+                      ),
+                    ],
                   )
                 else
                   Text(
@@ -1472,47 +1673,41 @@ class _GatewayTabState extends State<_GatewayTab> {
                   const SizedBox(height: 12),
                   Center(child: _qrView(waQr)),
                 ],
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  children: [
-                    FilledButton(
-                      onPressed: _connectWhatsApp,
-                      child: Text(
-                        waStatus == 'CONNECTED' ? 'Re-pair' : 'Connect WhatsApp',
-                      ),
-                    ),
-                    if (waStatus == 'CONNECTED')
-                      OutlinedButton(
-                        onPressed: _disconnectWhatsApp,
-                        child: const Text('Disconnect'),
-                      ),
-                  ],
-                ),
+                if (waStatus != 'CONNECTED') ...[
+                  const SizedBox(height: 10),
+                  FilledButton(
+                    onPressed: _connectWhatsApp,
+                    child: const Text('Connect WhatsApp'),
+                  ),
+                ],
               ],
             ),
           ),
           const SizedBox(height: 12),
-          _Panel(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const _SectionTitle('Store'),
-                const SizedBox(height: 8),
-                _KeyValue('Business', '${settings['businessName'] ?? '-'}'),
-                _KeyValue(
-                  'Active VPA',
-                  _activeVpa.trim().isEmpty ? '-' : _activeVpa,
-                ),
-                _KeyValue(
-                  'Selling mode',
-                  '${settings['sellingMode'] ?? '-'}',
-                ),
-                _KeyValue(
-                  'Methods',
-                  '${(settings['enabledPaymentMethods'] as List?)?.join(' · ') ?? '-'}',
-                ),
-              ],
+          GestureDetector(
+            onTap: _openVpaManager,
+            child: _Panel(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Expanded(child: _SectionTitle('Store')),
+                      const Icon(
+                        TablerIcons.chevronRight,
+                        size: 18,
+                        color: KkSurface.onSurfaceVariant,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  _KeyValue('Business', '${settings['businessName'] ?? '-'}'),
+                  _KeyValue(
+                    'Active VPA',
+                    _activeVpa.trim().isEmpty ? '-' : _activeVpa,
+                  ),
+                ],
+              ),
             ),
           ),
         ],
