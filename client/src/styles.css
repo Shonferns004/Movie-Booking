@@ -614,3 +614,26 @@ body:has(.auth-page)::after { display: none; }
 /* Desynchronise the glints so they do not sweep at the same moment */
 .kk-shine-late::after { animation-delay: 2.6s; animation-duration: 7.2s; }
 .kk-shine-slow::after { animation-delay: 1.4s; animation-duration: 8s; }
+
+
+/* ---------------------------------------------------------------- motion */
+@keyframes kk-spring-in {
+  0% { opacity: 0; transform: translateY(16px) scale(0.94); }
+  62% { opacity: 1; transform: translateY(-3px) scale(1.015); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes kk-ease-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Every modal gets the same springy entrance. */
+[role="dialog"] {
+  animation: kk-spring-in 0.46s cubic-bezier(0.22, 0.9, 0.3, 1.18) both;
+}
+.kk-spring-in { animation: kk-spring-in 0.46s cubic-bezier(0.22, 0.9, 0.3, 1.18) both; }
+.kk-ease-in { animation: kk-ease-in 0.5s cubic-bezier(0.22, 0.61, 0.36, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  [role="dialog"], .kk-spring-in, .kk-ease-in { animation: none !important; }
+}

@@ -207,6 +207,15 @@ class KonkaniAdminApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFF1E2227),
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFC8FF1F), brightness: Brightness.dark).copyWith(surface: const Color(0xFF262C33), primary: const Color(0xFFC8FF1F), onPrimary: const Color(0xFF171B1F), onSurface: const Color(0xFFF2F0EC), secondary: const Color(0xFFB5AFA6), error: const Color(0xFFF08A80)),
         fontFamily: GoogleFonts.publicSans().fontFamily,
+    pageTransitionsTheme: const PageTransitionsTheme(
+      builders: {
+        TargetPlatform.android: _KkPageTransitionsBuilder(),
+        TargetPlatform.iOS: _KkPageTransitionsBuilder(),
+        TargetPlatform.windows: _KkPageTransitionsBuilder(),
+        TargetPlatform.macOS: _KkPageTransitionsBuilder(),
+        TargetPlatform.linux: _KkPageTransitionsBuilder(),
+      },
+    ),
         splashFactory: NoSplash.splashFactory,
         highlightColor: Colors.transparent,
         appBarTheme: const AppBarTheme(backgroundColor: Color(0xFF1E2227), foregroundColor: Color(0xFFF2F0EC), elevation: 0, centerTitle: false),
@@ -223,6 +232,33 @@ class KonkaniAdminApp extends StatelessWidget {
         // navigation (auth gate, login, sign-out) keeps working.
         '/home': (_) => const MainShell(),
       },
+    );
+  }
+}
+
+
+/// Ease-in page transition used for every routed screen.
+class _KkPageTransitionsBuilder extends PageTransitionsBuilder {
+  const _KkPageTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    final curved = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
+    return FadeTransition(
+      opacity: curved,
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0, 0.025),
+          end: Offset.zero,
+        ).animate(curved),
+        child: child,
+      ),
     );
   }
 }

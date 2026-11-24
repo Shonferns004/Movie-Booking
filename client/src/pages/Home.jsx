@@ -389,7 +389,7 @@ export default function Home() {
                   />
                   <div
                     aria-hidden="true"
-                    className="absolute inset-0 bg-gradient-to-t from-[#171B1F] via-[#171B1F]/35 to-transparent"
+                    className="absolute inset-0 bg-gradient-to-t from-[#14181B] via-[#14181B]/55 to-[#14181B]/10"
                   />
 
                   <div className="absolute left-4 top-4 flex items-center gap-2 sm:left-6 sm:top-6">
@@ -419,7 +419,7 @@ export default function Home() {
                   </div>
 
                   <div className="absolute inset-x-0 bottom-0 p-5 sm:p-8">
-                    <h1 className="kk-display text-3xl font-black leading-[0.95] tracking-[-0.03em] drop-shadow-[0_6px_24px_rgba(0,0,0,0.55)] sm:text-5xl lg:text-6xl">
+                    <h1 className="kk-display text-3xl font-black leading-[0.95] tracking-[-0.03em] text-[#F7F5F1] drop-shadow-[0_8px_28px_rgba(0,0,0,0.85)] sm:text-5xl lg:text-6xl">
                       <Words text={featured.title} />
                     </h1>
                     <div className="mt-3 flex flex-wrap gap-2">

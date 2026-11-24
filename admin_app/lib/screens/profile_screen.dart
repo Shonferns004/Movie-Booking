@@ -99,9 +99,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final body = _buildContent(context);
 
     if (widget.embedded) {
-      return SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-        child: body,
+      return RefreshIndicator(
+        color: KkSurface.primary,
+        backgroundColor: KkSurface.container,
+        onRefresh: _load,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          child: body,
+        ),
       );
     }
 
@@ -109,9 +115,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: KkSurface.bg,
       // No AppBar, so the content must be kept clear of the status bar / notch.
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-          child: body,
+        child: RefreshIndicator(
+          color: KkSurface.primary,
+          backgroundColor: KkSurface.container,
+          onRefresh: _load,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            child: body,
+          ),
         ),
       ),
     );

@@ -279,9 +279,15 @@ class _ScannerShellState extends State<ScannerShell> {
   }
 
   Widget _buildScrollable(Widget child) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-      child: child,
+    return RefreshIndicator(
+      color: KkSurface.primary,
+      backgroundColor: KkSurface.container,
+      onRefresh: _loadActivity,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        child: child,
+      ),
     );
   }
 
