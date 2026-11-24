@@ -747,12 +747,15 @@ export function registerCustomerRoutes(server, ctx) {
       const caption = (ticketTemplate
         || 'Your {appName} tickets for {movie} are attached. Booking {reference}.')
         .replaceAll('{name}', booking.customer_name || 'there')
+        .replaceAll('{customer_name}', booking.customer_name || 'there')
         .replaceAll('{appName}', appName)
         .replaceAll('{movie}', booking.movie_title || 'the show')
         .replaceAll('{theatre}', booking.theatre_name || '')
         .replaceAll('{seats}', seats.map((seat) => seat.seat_label).filter(Boolean).join(', '))
         .replaceAll('{reference}', booking.booking_reference)
-        .replaceAll('{bookingReference}', booking.booking_reference);
+        .replaceAll('{bookingReference}', booking.booking_reference)
+        .replaceAll('{booking_id}', booking.booking_reference)
+        .replaceAll('{bookingId}', booking.booking_reference);
 
       const result = await sender.sendDocument(
         mobile,

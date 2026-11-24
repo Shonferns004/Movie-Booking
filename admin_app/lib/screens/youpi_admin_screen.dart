@@ -936,8 +936,8 @@ class _WhatsAppMessagesSheetState extends State<_WhatsAppMessagesSheet> {
               '🎟️ Your {appName} tickets for {movie} are attached. '
               'Seats {seats}. Booking {reference}.',
           helper:
-              'Placeholders: {name} · {movie} · {theatre} · {seats} · '
-              '{reference} · {appName}',
+              'Placeholders: {name}/{customer_name} · {movie} · {theatre} · '
+              '{seats} · {reference}/{booking_id} · {appName}',
         ),
         const SizedBox(height: 2),
         FilledButton.icon(
