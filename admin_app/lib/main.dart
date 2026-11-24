@@ -206,7 +206,6 @@ class KonkaniAdminApp extends StatelessWidget {
         useMaterial3: true,
         scaffoldBackgroundColor: const Color(0xFF1E2227),
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFC8FF1F), brightness: Brightness.dark).copyWith(surface: const Color(0xFF262C33), primary: const Color(0xFFC8FF1F), onPrimary: const Color(0xFF171B1F), onSurface: const Color(0xFFF2F0EC), secondary: const Color(0xFFB5AFA6), error: const Color(0xFFF08A80)),
-        fontFamily: TextStyle().fontFamily,
     pageTransitionsTheme: const PageTransitionsTheme(
       builders: {
         TargetPlatform.android: _KkPageTransitionsBuilder(),
