@@ -573,7 +573,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       backgroundColor: const Color(0xFF1E2227),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, KkSurface.navClearance),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -762,7 +762,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       body: SafeArea(
         child: SingleChildScrollView(
           physics: const NeverScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, KkSurface.navClearance),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

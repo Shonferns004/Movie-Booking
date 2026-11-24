@@ -28,6 +28,9 @@ class KkSurface {
   static const outline = Color(0xFF8C877F);
   static const outlineVariant = Color(0xFF4A5158);
   static const onPrimary = Color(0xFF171B1F);
+
+  /// Extra scroll padding so the last card can clear the floating tab bar.
+  static const double navClearance = 108;
 }
 
 /// Scanner shell with a bottom tab bar (Home / Profile).

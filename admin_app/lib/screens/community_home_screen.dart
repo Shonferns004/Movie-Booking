@@ -91,7 +91,7 @@ class _CommunityHomeScreenState extends State<CommunityHomeScreen> {
                 onRefresh: _load,
                 child: ListView(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(18, 14, 18, 28),
+                  padding: const EdgeInsets.fromLTRB(18, 14, 18, KkSurface.navClearance),
                   children: [
                     _header(),
                     const SizedBox(height: 18),

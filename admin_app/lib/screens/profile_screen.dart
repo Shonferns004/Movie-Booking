@@ -105,7 +105,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         onRefresh: _load,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, KkSurface.navClearance),
           child: body,
         ),
       );
@@ -121,7 +121,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           onRefresh: _load,
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, KkSurface.navClearance),
             child: body,
           ),
         ),
