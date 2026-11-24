@@ -1024,20 +1024,20 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
         ? amount.toStringAsFixed(0)
         : amount.toStringAsFixed(2);
     final code = (currency ?? 'INR').toUpperCase();
-    final symbol = code.isEmpty || code == 'INR' ? 'â‚¹' : '$code ';
+    final symbol = code.isEmpty || code == 'INR' ? '₹' : '$code ';
     return '$symbol$text';
   }
 
   String _formatDateTime(dynamic value) {
     final raw = value?.toString();
-    if (raw == null || raw.isEmpty) return 'â€”';
+    if (raw == null || raw.isEmpty) return '—';
     final date = DateTime.tryParse(raw)?.toLocal();
     if (date == null) return raw;
     final hour = date.hour % 12 == 0 ? 12 : date.hour % 12;
     final minute = date.minute.toString().padLeft(2, '0');
     final suffix = date.hour >= 12 ? 'PM' : 'AM';
     return '${date.day.toString().padLeft(2, '0')}-'
-        '${date.month.toString().padLeft(2, '0')}-${date.year} Â· '
+        '${date.month.toString().padLeft(2, '0')}-${date.year} · '
         '$hour:$minute $suffix';
   }
 
@@ -1880,7 +1880,7 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
               fontWeight: FontWeight.w600,
               color: const Color(0xFFF2F0EC),
             ),
-            decoration: _editInputDecoration('0', prefixText: 'â‚¹ '),
+            decoration: _editInputDecoration('0', prefixText: '₹ '),
           ),
         ),
       ],
@@ -2713,11 +2713,11 @@ class _ShowDetailScreenState extends State<ShowDetailScreen>
         previous = current;
         continue;
       }
-      result.add(start == previous ? start : '$startâ€“$previous');
+      result.add(start == previous ? start : '$start–$previous');
       start = current;
       previous = current;
     }
-    result.add(start == previous ? start : '$startâ€“$previous');
+    result.add(start == previous ? start : '$start–$previous');
     return result;
   }
 
@@ -3024,14 +3024,14 @@ class _SeatTypeSummary {
     this.currency,
   });
 
-  String get rowsLabel => rows.join(' Â· ');
+  String get rowsLabel => rows.join(' · ');
 
   String get priceLabel {
     final min = minPriceMinor;
     if (min == null) return '';
     final code = (currency ?? 'INR').toUpperCase();
     final symbol = code == 'INR'
-        ? 'â‚¹'
+        ? '₹'
         : (currency?.isNotEmpty == true ? '${currency!} ' : '');
     String amount(int minor) {
       final value = minor / 100;
@@ -3042,7 +3042,7 @@ class _SeatTypeSummary {
 
     final max = maxPriceMinor;
     if (max == null || max == min) return '$symbol${amount(min)}';
-    return '$symbol${amount(min)}â€“${amount(max)}';
+    return '$symbol${amount(min)}–${amount(max)}';
   }
 }
 

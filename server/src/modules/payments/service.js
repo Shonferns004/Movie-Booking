@@ -226,7 +226,7 @@ function toRupees(amountMinor) {
 }
 
 /**
- * Every open YOUPI checkout gets a unique paise value (â‚¹0.01â€“â‚¹0.99) added to the
+ * Every open YOUPI checkout gets a unique paise value (₹0.01–₹0.99) added to the
  * booking total. The SMS observer only sees the amount, so this is what lets the
  * gateway route a credit to the exact booking even when two users pay in the same
  * second or one payment arrives before its queued session becomes active.
@@ -342,7 +342,7 @@ export async function createYoupiOrder({ bookingReference, customer, publicBase 
     // HttpError = the gateway answered and rejected it; anything else is transport.
     if (e && e.status) throw e;
     console.error('[youpi] gateway unreachable:', env.YOUPI_API_URL, e?.message || e);
-    throw serviceUnavailable('payment gateway is unreachable â€” check YOUPI_API_URL');
+    throw serviceUnavailable('payment gateway is unreachable — check YOUPI_API_URL');
   }
 
   if (session.paymentId) {
@@ -520,7 +520,7 @@ export async function createYoupiSession({
     });
   } catch (e) {
     console.error('[youpi] gateway unreachable:', gateway, e?.message || e);
-    throw serviceUnavailable('payment gateway is unreachable â€” check YOUPI_API_URL');
+    throw serviceUnavailable('payment gateway is unreachable — check YOUPI_API_URL');
   }
 
   const body = await res.json().catch(() => ({}));
@@ -568,7 +568,7 @@ export async function createYoupiSession({
   } catch (e) {
     if (e && e.status) throw e;
     console.error('[youpi] gateway unreachable:', gatewayBase, e?.message || e);
-    throw serviceUnavailable('payment gateway is unreachable â€” check YOUPI_API_URL');
+    throw serviceUnavailable('payment gateway is unreachable — check YOUPI_API_URL');
   }
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw notFound('youpi payment not found');

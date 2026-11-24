@@ -52,43 +52,6 @@ class _YoupiAdminScreenState extends State<YoupiAdminScreen> {
     });
   }
 
-  Future<void> _changeToken() async {
-    final controller = TextEditingController(text: _token);
-    final saved = await showDialog<String>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: KkSurface.container,
-        title: const Text('Gateway admin token'),
-        content: TextField(
-          controller: controller,
-          obscureText: true,
-          autocorrect: false,
-          enableSuggestions: false,
-          style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
-          decoration: const InputDecoration(
-            hintText: 'Paste the ADMIN_TOKEN from Render',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () =>
-                Navigator.pop(dialogContext, controller.text.trim()),
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-    controller.dispose();
-    if (saved == null) return;
-    await YoupiAdminApi.saveToken(saved);
-    if (!mounted) return;
-    setState(() => _token = YoupiAdminApi.token);
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -101,10 +64,22 @@ class _YoupiAdminScreenState extends State<YoupiAdminScreen> {
     }
 
     if (_token.isEmpty) {
-      return _TokenGate(
-        onSaved: (value) {
-          setState(() => _token = value);
-        },
+      return Scaffold(
+        backgroundColor: KkSurface.bg,
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text(
+              'Admin gateway token is missing from this build. '
+              'Install the official admin APK.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.publicSans(
+                fontSize: 14,
+                color: KkSurface.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ),
       );
     }
 
@@ -157,119 +132,14 @@ class _YoupiAdminScreenState extends State<YoupiAdminScreen> {
       backgroundColor: KkSurface.bg,
       surfaceTintColor: Colors.transparent,
       title: Text(
-        widget.settingsOnly ? 'Settings' : 'YouPI Admin',
+        widget.settingsOnly ? 'Settings' : 'Konkani Samudai Payments',
         style: GoogleFonts.publicSans(
           fontSize: 17,
           fontWeight: FontWeight.w700,
           color: KkSurface.onSurface,
         ),
       ),
-      actions: [
-        IconButton(
-          tooltip: 'Gateway token',
-          onPressed: _changeToken,
-          icon: const Icon(
-            TablerIcons.key,
-            size: 20,
-            color: KkSurface.accent,
-          ),
-        ),
-      ],
       bottom: bottom,
-    );
-  }
-}
-
-class _TokenGate extends StatefulWidget {
-  const _TokenGate({required this.onSaved});
-
-  final ValueChanged<String> onSaved;
-
-  @override
-  State<_TokenGate> createState() => _TokenGateState();
-}
-
-class _TokenGateState extends State<_TokenGate> {
-  final _controller = TextEditingController();
-  bool _saving = false;
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  Future<void> _save() async {
-    final value = _controller.text.trim();
-    if (value.isEmpty) return;
-    setState(() => _saving = true);
-    await YoupiAdminApi.saveToken(value);
-    if (!mounted) return;
-    setState(() => _saving = false);
-    widget.onSaved(value);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: KkSurface.bg,
-      appBar: AppBar(
-        backgroundColor: KkSurface.bg,
-        title: const Text('YouPI Admin'),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: _Panel(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Icon(
-                  TablerIcons.shieldCheck,
-                  size: 42,
-                  color: KkSurface.accent,
-                ),
-                const SizedBox(height: 14),
-                Text(
-                  'Connect the gateway',
-                  style: GoogleFonts.publicSans(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: KkSurface.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Paste the ADMIN_TOKEN configured on the Render gateway. '
-                  'It stays on this phone and is never bundled in the app.',
-                  style: GoogleFonts.publicSans(
-                    fontSize: 12.5,
-                    height: 1.5,
-                    color: KkSurface.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 18),
-                TextField(
-                  controller: _controller,
-                  obscureText: true,
-                  autocorrect: false,
-                  enableSuggestions: false,
-                  style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
-                  decoration: const InputDecoration(
-                    hintText: 'ADMIN_TOKEN',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                FilledButton(
-                  onPressed: _saving ? null : _save,
-                  child: Text(_saving ? 'Connecting…' : 'Connect gateway'),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 }
@@ -1412,8 +1282,8 @@ class _ThisPhonePanelState extends State<_ThisPhonePanel> {
       pairing = await _fetchPairing();
     } catch (e) {
       const hint =
-          'Could not load the pairing token. Check the YouPI admin token '
-          '(key icon above) and the network connection.';
+          'Could not load the pairing token. Check the admin app build '
+          'and the network connection.';
       setState(() => _pairError = '$hint $e');
       _snack(context, hint);
       return;
@@ -1423,8 +1293,8 @@ class _ThisPhonePanelState extends State<_ThisPhonePanel> {
     var gateway = pairing['gateway'] ?? '';
     if (token.isEmpty || gateway.isEmpty) {
       const message =
-          'Pairing token is unavailable. Set the YouPI admin token (key icon '
-          'above), then try again.';
+          'Pairing token is unavailable. Make sure this is the official '
+          'admin build, then try again.';
       setState(() => _pairError = message);
       _snack(context, message);
       return;

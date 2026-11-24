@@ -11,11 +11,20 @@ class YoupiAdminApi {
   static const String base =
       'https://movie-booking-2-3owk.onrender.com/youpi/api/v1';
   static const String tokenKey = 'youpi_admin_token';
+
+  /// Gateway admin token baked into the private admin APK at build time:
+  /// `flutter build apk --dart-define=YOUPI_ADMIN_TOKEN=...`
+  /// Keeping it out of the source means it never lands in the repository.
+  static const String _embeddedToken =
+      String.fromEnvironment('YOUPI_ADMIN_TOKEN');
   static String token = '';
 
   static Future<void> loadToken() async {
     final prefs = await SharedPreferences.getInstance();
-    token = prefs.getString(tokenKey) ?? '';
+    final stored = prefs.getString(tokenKey) ?? '';
+    // The APK's baked token is authoritative; a stale manually pasted token
+    // on an older install must never override it.
+    token = _embeddedToken.isNotEmpty ? _embeddedToken : stored;
   }
 
   static Future<void> saveToken(String value) async {

@@ -593,9 +593,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   const Text(
                     'SCREENINGS',
                     style: TextStyle(
-                      fontSize: 9,
+                      fontSize: 10.5,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF9E9890),
+                      color: Color(0xFFC9C3BA),
                       letterSpacing: 1.4,
                     ),
                   ),
@@ -611,9 +611,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   const Text(
                     'SHOWS',
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF9E9890),
+                      color: Color(0xFFC9C3BA),
                       letterSpacing: 1.4,
                     ),
                   ),
@@ -661,7 +661,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           'Cinema Gazette and Curatorial Control',
           style: TextStyle(
             fontSize: 11,
-            color: Color(0xFF9E9890),
+            color: Color(0xFFC9C3BA),
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -735,19 +735,23 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           children: [
             Text(
               title,
-              style: const TextStyle(
-                fontSize: 11,
+              style: TextStyle(
+                fontSize: 12.5,
                 fontWeight: FontWeight.w800,
-                color: Color(0xFFF2F0EC),
+                color: primary
+                    ? const Color(0xFF171B1F)
+                    : const Color(0xFFF2F0EC),
               ),
             ),
             const SizedBox(height: 2),
             Text(
               subtitle,
-              style: const TextStyle(
-                fontSize: 9,
+              style: TextStyle(
+                fontSize: 10.5,
                 fontStyle: FontStyle.italic,
-                color: Color(0xFF9E9890),
+                color: primary
+                    ? const Color(0xFF3D421F)
+                    : const Color(0xFFC9C3BA),
               ),
             ),
           ],
@@ -787,7 +791,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         style: TextStyle(
                           fontSize: 9,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF9E9890),
+                          color: Color(0xFFC9C3BA),
                           letterSpacing: 1.4,
                         ),
                       ),
@@ -842,7 +846,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF9E9890),
+                      color: Color(0xFFC9C3BA),
                       letterSpacing: 1.4,
                     ),
                   ),
@@ -925,7 +929,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           'No shows scheduled',
           style: TextStyle(
             fontSize: 13,
-            color: Color(0xFF9E9890),
+            color: Color(0xFFC9C3BA),
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -1028,7 +1032,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         height: 6,
                         child: DecoratedBox(
                           decoration: BoxDecoration(
-                            color: Color(0xFFFAF7F2),
+                            color: Color(0xFF171B1F),
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -1039,7 +1043,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFFFAF7F2),
+                          color: Color(0xFF171B1F),
                           letterSpacing: 1.2,
                         ),
                       ),
@@ -1092,7 +1096,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               capacityText,
                               style: const TextStyle(
                                 fontFamily: 'monospace',
-                                fontSize: 9,
+                                fontSize: 10.5,
                                 color: Color(0xFFF2F0EC),
                               ),
                             ),
@@ -1115,7 +1119,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                   priceText,
                                   style: const TextStyle(
                                     fontFamily: 'monospace',
-                                    fontSize: 9,
+                                    fontSize: 10.5,
                                     color: Color(0xFFD8C7A5),
                                   ),
                                 ),
@@ -1219,7 +1223,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           child: Icon(
             icon,
             size: 15,
-            color: active ? Colors.white : const Color(0xFF9E9890),
+            color: active ? const Color(0xFF171B1F) : const Color(0xFFC9C3BA),
           ),
         ),
       );
@@ -1253,10 +1257,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           child: Text(
             '$label $count',
             style: TextStyle(
-              fontSize: 10,
+              fontSize: 11,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.3,
-              color: active ? Colors.white : const Color(0xFF9E9890),
+              color: active ? const Color(0xFF171B1F) : const Color(0xFFC9C3BA),
             ),
           ),
         ),
@@ -1281,7 +1285,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         padding: const EdgeInsets.symmetric(vertical: 20),
         child: Text(
           _emptyMessageForFilter,
-          style: const TextStyle(color: Color(0xFF9E9890)),
+          style: const TextStyle(color: Color(0xFFC9C3BA)),
         ),
       );
     }
@@ -1356,10 +1360,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         fit: BoxFit.cover,
                         errorBuilder: (_, _, _) => const Icon(
                           TablerIcons.movie,
-                          color: Color(0xFF9E9890),
+                          color: Color(0xFFC9C3BA),
                         ),
                       )
-                    : const Icon(TablerIcons.movie, color: Color(0xFF9E9890)),
+                    : const Icon(TablerIcons.movie, color: Color(0xFFC9C3BA)),
               ),
             ),
             Padding(
@@ -1372,7 +1376,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontSize: 13,
+                      fontSize: 14,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFFF2F0EC),
                     ),
@@ -1384,9 +1388,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontSize: 10,
+                        fontSize: 11,
                         fontStyle: FontStyle.italic,
-                        color: Color(0xFF9E9890),
+                        color: Color(0xFFC9C3BA),
                       ),
                     ),
                   const SizedBox(height: 4),
@@ -1399,8 +1403,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             fontFamily: 'monospace',
-                            fontSize: 9,
-                            color: Color(0xFF9E9890),
+                            fontSize: 10.5,
+                            color: Color(0xFFC9C3BA),
                           ),
                         ),
                       ),
@@ -1409,7 +1413,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           statusLabel,
                           style: TextStyle(
                             fontFamily: 'monospace',
-                            fontSize: 8,
+                            fontSize: 9,
                             fontWeight: FontWeight.bold,
                             color: badgeColor,
                           ),
@@ -1432,7 +1436,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           padding: const EdgeInsets.symmetric(vertical: 20),
           child: Text(
             _emptyMessageForFilter,
-            style: const TextStyle(color: Color(0xFF9E9890)),
+            style: const TextStyle(color: Color(0xFFC9C3BA)),
           ),
         ),
       ];
@@ -1529,7 +1533,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           style: const TextStyle(
                             fontFamily: 'monospace',
                             fontSize: 10,
-                            color: Color(0xFF9E9890),
+                            color: Color(0xFFC9C3BA),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -1592,10 +1596,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) => const Icon(
                               TablerIcons.movie,
-                              color: Color(0xFF9E9890),
+                              color: Color(0xFFC9C3BA),
                             ),
                           )
-                        : const Icon(TablerIcons.movie, color: Color(0xFF9E9890)),
+                        : const Icon(TablerIcons.movie, color: Color(0xFFC9C3BA)),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -1633,7 +1637,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               fontFamily: 'serif',
                               fontSize: 11,
                               fontStyle: FontStyle.italic,
-                              color: Color(0xFF9E9890),
+                              color: Color(0xFFC9C3BA),
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -1667,7 +1671,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                 style: const TextStyle(
                                   fontFamily: 'monospace',
                                   fontSize: 9,
-                                  color: Color(0xFF9E9890),
+                                  color: Color(0xFFC9C3BA),
                                 ),
                               ),
                             ],
