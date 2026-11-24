@@ -36,6 +36,20 @@ function adminOnly(req, res, next) {
 
 router.use(adminOnly);
 
+// The private admin APK uses this to obtain the YouPI gateway admin token
+// without hard-coding it or asking the operator to paste it. Only an
+// authenticated admin session can read it.
+router.get('/youpi-token', (req, res) => {
+  const token = String(process.env.ADMIN_API_TOKEN || '').trim();
+  if (!token) {
+    res.status(503).json({
+      error: 'Gateway admin token is not configured on the server.',
+    });
+    return;
+  }
+  res.json({ token });
+});
+
 // ---------------------------------------------------------------- theatres
 
 router.get('/theatres', async (req, res, next) => {

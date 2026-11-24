@@ -3,10 +3,14 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'api_config.dart';
+import 'auth_service.dart';
+
 /// Thin client for the YouPI merchant-admin API.
 ///
-/// The admin panel uses a separate bearer token (`ADMIN_TOKEN` on Render); the
-/// movie admin JWT is not accepted by these routes.
+/// The gateway uses its own bearer token (`ADMIN_API_TOKEN`). The movie admin
+/// JWT is not accepted by the gateway, so the app either embeds the token at
+/// build time or fetches it from the movie API after admin login.
 class YoupiAdminApi {
   static const String base =
       'https://movie-booking-2-3owk.onrender.com/youpi/api/v1';
@@ -25,6 +29,26 @@ class YoupiAdminApi {
     // The APK's baked token is authoritative; a stale manually pasted token
     // on an older install must never override it.
     token = _embeddedToken.isNotEmpty ? _embeddedToken : stored;
+    if (token.isNotEmpty) return;
+
+    // Self-built/older APKs have no embedded token. Ask the movie API for the
+    // gateway token using the signed-in admin session, then cache it locally.
+    try {
+      final session = await AuthService.validAccessToken('');
+      if (session.isEmpty) return;
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/admin/youpi-token'),
+        headers: {'Authorization': 'Bearer $session'},
+      );
+      if (response.statusCode != 200) return;
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final fetched = '${data['token'] ?? ''}'.trim();
+      if (fetched.isEmpty) return;
+      token = fetched;
+      await prefs.setString(tokenKey, fetched);
+    } catch (_) {
+      // Leave token empty; the screen will show the missing-token notice.
+    }
   }
 
   static Future<void> saveToken(String value) async {

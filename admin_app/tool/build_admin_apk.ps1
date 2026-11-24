@@ -14,9 +14,9 @@ if (-not (Test-Path $envFile)) {
     throw "Missing $envFile"
 }
 
-$token = ((Get-Content $envFile | Where-Object { $_ -match '^ADMIN_TOKEN=' }) -replace '^ADMIN_TOKEN=', '').Trim()
+$token = ((Get-Content $envFile | Where-Object { $_ -match '^ADMIN_API_TOKEN=' }) -replace '^ADMIN_API_TOKEN=', '').Trim()
 if ([string]::IsNullOrWhiteSpace($token)) {
-    throw 'ADMIN_TOKEN is not configured in server/.env'
+    throw 'ADMIN_API_TOKEN is not configured in server/.env'
 }
 
 Push-Location (Join-Path $root 'admin_app')
