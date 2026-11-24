@@ -2086,6 +2086,14 @@
         }
         if (queuePollTimer) { clearInterval(queuePollTimer); queuePollTimer = null; }
         if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+
+        // A merchant-authenticated checkout (the movie app already signed the
+        // customer in) must not leave them stuck behind an abandoned session
+        // from another tab or device. Retire that session once, automatically.
+        if (data.skipCustomerAuth && !window.__conflictAutoResolved) {
+          window.__conflictAutoResolved = true;
+          executeRetryNewPayment();
+        }
         return;
       } else {
         if (conflictModal) conflictModal.hidden = true;

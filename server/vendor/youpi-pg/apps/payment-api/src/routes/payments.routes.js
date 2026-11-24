@@ -275,20 +275,60 @@ export function registerPaymentRoutes(server, ctx) {
     if (customerId && ctx.sessionRepo) {
       const activeForCust = ctx.sessionRepo.findActiveForCustomer ? ctx.sessionRepo.findActiveForCustomer(customerId) : null;
       if (activeForCust) {
-        if (activeForCust.deviceId && (!deviceId || deviceId !== activeForCust.deviceId)) {
-          HttpServer.json(res, 409, {
-            error: 'DUPLICATE_SESSION_DETECTED',
-            code: 'DEVICE_SESSION_MISMATCH',
-            session_id: activeForCust.id,
-            activeSession: {
-              paymentId: activeForCust.id,
-              orderId: activeForCust.orderId,
-              amount: toRupeesString(activeForCust.amountPaise)
-            },
-            action: 'END_SESSION_AND_CREATE_NEW',
-            message: 'This customer already has an active payment session on another device. For security reasons, this session cannot be continued from this device.'
-          });
-          return;
+        const crossDevice = activeForCust.deviceId && (!deviceId || deviceId !== activeForCust.deviceId);
+        if (crossDevice) {
+          // Never interrupt a credit that the bank is already verifying.
+          if (activeForCust.status === PaymentStatus.PROCESSING) {
+            HttpServer.json(res, 409, {
+              error: 'SESSION_PROCESSING',
+              code: 'DEVICE_SESSION_MISMATCH',
+              session_id: activeForCust.id,
+              message: 'The previous payment is still being verified by the bank. Try again in a moment.'
+            });
+            return;
+          }
+
+          if (!merchantRequestVerified) {
+            // A browser that is not the authenticated merchant must not be able
+            // to cancel another device's checkout; keep the explicit conflict.
+            HttpServer.json(res, 409, {
+              error: 'DUPLICATE_SESSION_DETECTED',
+              code: 'DEVICE_SESSION_MISMATCH',
+              session_id: activeForCust.id,
+              activeSession: {
+                paymentId: activeForCust.id,
+                orderId: activeForCust.orderId,
+                amount: toRupeesString(activeForCust.amountPaise)
+              },
+              action: 'END_SESSION_AND_CREATE_NEW',
+              message: 'This customer already has an active payment session on another device. For security reasons, this session cannot be continued from this device.'
+            });
+            return;
+          }
+
+          // The merchant backend already authenticated this checkout. A return
+          // visit (for example, an abandoned membership tab, then a movie
+          // booking) must not deadlock the customer behind the old session:
+          // retire it here and let this request take the freed UPI slot.
+          try {
+            if (ctx.timingEngine) {
+              ctx.timingEngine.cancelActiveTimer?.(activeForCust.id);
+              ctx.timingEngine.clearTimers?.(activeForCust.id);
+            }
+            ctx.sessionRepo.transitionToTerminal(activeForCust.id, PaymentStatus.CANCELLED, {
+              reason: 'REPLACED_BY_NEW_CHECKOUT'
+            });
+            server.broadcastSse(activeForCust.id, 'status_change', {
+              status: PaymentStatus.CANCELLED,
+              reason: 'REPLACED_BY_NEW_CHECKOUT'
+            });
+            if (ctx.queueEngine && activeForCust.receivingAccountId) {
+              ctx.queueEngine.promoteNext(activeForCust.receivingAccountId);
+            }
+          } catch {
+            // The stale session may have expired between the read and the write;
+            // that also frees the slot, so continue with the new checkout.
+          }
         }
       }
     }

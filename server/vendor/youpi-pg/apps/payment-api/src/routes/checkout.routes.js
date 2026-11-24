@@ -659,7 +659,33 @@ export function registerCheckoutRoutes(server, ctx) {
       : null;
 
     if (conflictingActive && conflictingActive.id !== session.id && [PaymentStatus.INITIATED, PaymentStatus.ACTIVE, PaymentStatus.QUEUED].includes(session.status)) {
-      if (conflictingActive.deviceId && (!requestingDeviceId || requestingDeviceId !== conflictingActive.deviceId)) {
+      // The movie app authenticates the customer before checkout, so a stale
+      // session left in another tab/device must not block this one. Retire it
+      // here instead of showing the "Active Session Detected" modal. A credit
+      // that is already being verified is never interrupted.
+      const merchantAuthenticatedCheckout = Boolean(session.metadata?.skipCustomerAuth);
+      if (merchantAuthenticatedCheckout && conflictingActive.status !== PaymentStatus.PROCESSING) {
+        try {
+          if (ctx.timingEngine) {
+            ctx.timingEngine.cancelActiveTimer?.(conflictingActive.id);
+            ctx.timingEngine.clearTimers?.(conflictingActive.id);
+          }
+          ctx.sessionRepo.transitionToTerminal(conflictingActive.id, PaymentStatus.CANCELLED, {
+            reason: 'REPLACED_BY_ACTIVE_CHECKOUT'
+          });
+          server.broadcastSse(conflictingActive.id, 'status_change', {
+            status: PaymentStatus.CANCELLED,
+            reason: 'REPLACED_BY_ACTIVE_CHECKOUT'
+          });
+          const accountId = conflictingActive.receivingAccountId || session.receivingAccountId;
+          if (ctx.queueEngine && accountId) {
+            ctx.queueEngine.promoteNext(accountId);
+          }
+        } catch {
+          // It may have expired between the read and the write; either way the
+          // slot is free for this checkout.
+        }
+      } else if (conflictingActive.deviceId && (!requestingDeviceId || requestingDeviceId !== conflictingActive.deviceId)) {
         // CASE 3: Active session on another device -> DUPLICATE_SESSION_DETECTED
         HttpServer.json(res, 409, {
           error: 'DUPLICATE_SESSION_DETECTED',
@@ -672,17 +698,43 @@ export function registerCheckoutRoutes(server, ctx) {
         });
         return;
       }
+      else {
+        // CASE 2: Active session on same device -> CONTINUE ACTIVE SESSION or END & START NEW
+        hasActiveSessionConflict = true;
+        conflictingSession = {
+          id: conflictingActive.id,
+          paymentId: conflictingActive.id,
+          orderId: conflictingActive.orderId,
+          amount: toRupeesString(conflictingActive.amountPaise),
+          status: conflictingActive.status,
+          checkoutUrl: `/checkout/${conflictingActive.id}`
+        };
+      }
+    }
 
-      // CASE 2: Active session on same device -> CONTINUE ACTIVE SESSION or END & START NEW
-      hasActiveSessionConflict = true;
-      conflictingSession = {
-        id: conflictingActive.id,
-        paymentId: conflictingActive.id,
-        orderId: conflictingActive.orderId,
-        amount: toRupeesString(conflictingActive.amountPaise),
-        status: conflictingActive.status,
-        checkoutUrl: `/checkout/${conflictingActive.id}`
-      };
+    // A merchant-authenticated checkout (skipCustomerAuth) has no bind-customer
+    // step, so the state poll itself must acquire the UPI slot. Without this a
+    // retried session could sit in INITIATED forever.
+    if (session.status === PaymentStatus.INITIATED && session.metadata?.skipCustomerAuth) {
+      const accountId = session.receivingAccountId ||
+        ctx.accountRepo?.findActiveForMerchant(session.merchantId)?.id ||
+        session.metadata?.receivingAccountSnapshot?.id;
+      if (accountId && ctx.queueEngine) {
+        try {
+          const queued = ctx.queueEngine.enqueueOrActivate(session.id, accountId);
+          if (queued.expiresAt && ctx.timingEngine) {
+            ctx.timingEngine.startActiveTimer(session.id, queued.expiresAt);
+          }
+          Object.assign(session, ctx.sessionRepo.findById(session.id) || {});
+          server.broadcastSse(session.id, 'status_change', {
+            status: session.status,
+            queuePosition: session.queuePosition || 0,
+            expiresAt: session.expiresAt
+          });
+        } catch {
+          // Leave it INITIATED; the next poll or the payment-status endpoint retries.
+        }
+      }
     }
 
     // Build URI and compute remaining time ONLY if session is already active (e.g. after customer bound or counter active)
@@ -972,15 +1024,32 @@ export function registerCheckoutRoutes(server, ctx) {
     const customerId = session.customerId;
     const requestingDeviceId = req.headers['x-device-id'] || session.deviceId || null;
 
+    // Build the "same customer or same device" predicate from the identifiers we
+    // actually have. Writing `(? IS NOT NULL AND customer_id = ?)` looks tidy but
+    // PostgreSQL cannot infer a type for a null parameter that only appears in
+    // `IS NOT NULL`, so the whole route failed with a 500 when either id was empty.
+    const ownershipFilters = [];
+    const ownershipParams = [];
+    if (customerId) {
+      ownershipFilters.push('customer_id = ?');
+      ownershipParams.push(customerId);
+    }
+    if (requestingDeviceId) {
+      ownershipFilters.push('device_id = ?');
+      ownershipParams.push(requestingDeviceId);
+    }
+    const ownershipClause = ownershipFilters.length
+      ? `AND (${ownershipFilters.join(' OR ')})`
+      : '';
+
     // Never cancel a session that is in PROCESSING (in-flight bank verification).
-    const processingConflict = ctx.db.query(`
-      SELECT id FROM payment_sessions
-      WHERE id != ? AND status = 'PROCESSING'
-        AND (
-          (? IS NOT NULL AND customer_id = ?)
-          OR (? IS NOT NULL AND device_id = ?)
-        )
-    `, [session.id, customerId, customerId, requestingDeviceId, requestingDeviceId]);
+    const processingConflict = ownershipFilters.length
+      ? ctx.db.query(`
+          SELECT id FROM payment_sessions
+          WHERE id != ? AND status = 'PROCESSING'
+          ${ownershipClause}
+        `, [session.id, ...ownershipParams])
+      : [];
     if (processingConflict.length > 0) {
       HttpServer.json(res, 409, {
         error: 'SESSION_PROCESSING',
@@ -990,14 +1059,13 @@ export function registerCheckoutRoutes(server, ctx) {
     }
 
     // Find all conflicting active/queued sessions for this customer OR device
-    const conflicting = ctx.db.query(`
-      SELECT id, receiving_account_id, status FROM payment_sessions
-      WHERE id != ? AND status IN ('ACTIVE', 'QUEUED')
-        AND (
-          (? IS NOT NULL AND customer_id = ?)
-          OR (? IS NOT NULL AND device_id = ?)
-        )
-    `, [session.id, customerId, customerId, requestingDeviceId, requestingDeviceId]);
+    const conflicting = ownershipFilters.length
+      ? ctx.db.query(`
+          SELECT id, receiving_account_id, status FROM payment_sessions
+          WHERE id != ? AND status IN ('ACTIVE', 'QUEUED')
+          ${ownershipClause}
+        `, [session.id, ...ownershipParams])
+      : [];
 
     for (const c of conflicting) {
       ctx.sessionRepo.transitionToTerminal(c.id, PaymentStatus.CANCELLED, {
