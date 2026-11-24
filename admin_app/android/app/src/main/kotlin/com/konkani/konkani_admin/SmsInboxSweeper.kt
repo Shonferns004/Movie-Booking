@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.provider.Telephony
+import androidx.core.content.ContextCompat
 import java.util.UUID
 import kotlin.math.abs
 
@@ -26,8 +27,10 @@ object SmsInboxSweeper {
 
     @Synchronized
     fun sweep(context: Context): Int {
-        if (context.checkSelfPermission(Manifest.permission.READ_SMS) !=
-            PackageManager.PERMISSION_GRANTED
+        if (ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.READ_SMS,
+            ) != PackageManager.PERMISSION_GRANTED
         ) {
             return 0
         }

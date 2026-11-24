@@ -291,6 +291,10 @@
           currency: state.currency || 'INR',
           method: state.method && state.method !== 'COD' ? state.method : 'UPI',
           returnUrl: state.returnUrl || undefined,
+          // A retry opens a brand-new session. Without this it is created as
+          // INITIATED and, because the merchant already authenticated the
+          // customer, nothing ever binds it - the page then waits forever.
+          autoActivate: true,
         };
         if (state.metadata && Object.keys(state.metadata).length) payload.metadata = state.metadata;
         if (state.customer && state.customer.id) payload.customerId = state.customer.id;

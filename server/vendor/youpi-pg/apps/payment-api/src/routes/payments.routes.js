@@ -358,10 +358,33 @@ export function registerPaymentRoutes(server, ctx) {
 
   // GET /api/v1/payments/:id
   server.get('/api/v1/payments/:id', async (req, res, params) => {
-    const session = ctx.sessionRepo.findById(params.id);
+    let session = ctx.sessionRepo.findById(params.id);
     if (!session) {
       HttpServer.json(res, 404, { error: `Payment session not found: ${params.id}` });
       return;
+    }
+
+    // Recovery for sessions created before retries sent `autoActivate`, and for
+    // any client that opens a merchant-authenticated checkout directly. The
+    // merchant has already identified the customer (skipCustomerAuth), so there
+    // is no bind-customer step that would otherwise start the UPI slot. Activate
+    // on the first status poll so the page can show a payable QR.
+    if (
+      session.status === PaymentStatus.INITIATED &&
+      session.metadata?.skipCustomerAuth &&
+      session.receivingAccountId &&
+      ctx.queueEngine
+    ) {
+      try {
+        const queued = ctx.queueEngine.enqueueOrActivate(session.id, session.receivingAccountId);
+        if (queued.expiresAt && ctx.timingEngine) {
+          ctx.timingEngine.startActiveTimer(session.id, queued.expiresAt);
+        }
+        session = ctx.sessionRepo.findById(session.id) || session;
+      } catch {
+        // A status read must never fail because activation was skipped; the next
+        // poll or the normal bind-customer flow will try again.
+      }
     }
 
     const publicStatus = isTerminalStatus(session.status)
