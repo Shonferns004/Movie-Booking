@@ -5,12 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:qr_flutter/qr_flutter.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../services/sms_observer/format.dart';
-import '../services/sms_observer/gateway_bridge.dart';
 import '../services/sms_observer/observer_event.dart';
 import '../services/sms_observer/sms_observer_controller.dart';
 import '../services/youpi_admin_api.dart';
@@ -22,7 +18,7 @@ class YoupiAdminScreen extends StatefulWidget {
   const YoupiAdminScreen({super.key, this.initialTab = 0});
 
   /// Which internal tab to show first (0 Live, 1 Payments, 2 Accounts,
-  /// 3 SMS Hub, 4 Gateway).
+  /// 3 Settings).
   final int initialTab;
 
   @override
@@ -105,8 +101,8 @@ class _YoupiAdminScreenState extends State<YoupiAdminScreen> {
     }
 
     return DefaultTabController(
-      length: 5,
-      initialIndex: widget.initialTab.clamp(0, 4).toInt(),
+      length: 4,
+      initialIndex: widget.initialTab.clamp(0, 3).toInt(),
       child: Scaffold(
         backgroundColor: KkSurface.bg,
         appBar: AppBar(
@@ -140,8 +136,7 @@ class _YoupiAdminScreenState extends State<YoupiAdminScreen> {
               Tab(text: 'Live'),
               Tab(text: 'Payments'),
               Tab(text: 'Accounts'),
-              Tab(text: 'SMS Hub'),
-              Tab(text: 'Gateway'),
+              Tab(text: 'Settings'),
             ],
           ),
         ),
@@ -151,7 +146,6 @@ class _YoupiAdminScreenState extends State<YoupiAdminScreen> {
             _LiveTab(),
             _PaymentsTab(),
             _AccountsTab(),
-            _SmsTab(),
             _GatewayTab(),
           ],
         ),
@@ -781,23 +775,15 @@ class _AccountsTabState extends State<_AccountsTab> {
   }
 }
 
-class _SmsTab extends StatefulWidget {
-  const _SmsTab();
+class _ThisPhonePanel extends StatefulWidget {
+  const _ThisPhonePanel();
 
   @override
-  State<_SmsTab> createState() => _SmsTabState();
+  State<_ThisPhonePanel> createState() => _ThisPhonePanelState();
 }
 
-class _SmsTabState extends State<_SmsTab> {
-  String _payload = '';
-  String _token = '';
-  String _gatewayUrl = '';
-  List<Map<String, dynamic>> _devices = const [];
-  String? _error;
-  bool _loading = true;
-  final _sender = TextEditingController(text: 'HDFCBK');
-  final _sms = TextEditingController();
-  String _testResult = '';
+class _ThisPhonePanelState extends State<_ThisPhonePanel> {
+  String? _pairError;
   late final SmsObserverController _observer;
 
   @override
@@ -805,255 +791,494 @@ class _SmsTabState extends State<_SmsTab> {
     super.initState();
     _observer = SmsObserverController();
     _observer.start();
-    _load();
   }
 
   @override
   void dispose() {
     _observer.dispose();
-    _sender.dispose();
-    _sms.dispose();
     super.dispose();
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final results = await Future.wait([
-        YoupiAdminApi.get('/admin/sms-gateway/pair-qr'),
-        YoupiAdminApi.get('/admin/sms-gateway/devices'),
-      ]);
-      if (!mounted) return;
-      setState(() {
-        final qr = results[0];
-        _payload = '${qr['pairingPayload'] ?? ''}';
-        _token = '${qr['enrollmentToken'] ?? qr['token'] ?? ''}';
-        _gatewayUrl = '${qr['gatewayUrl'] ?? qr['serverUrl'] ?? ''}';
-        _devices =
-            (results[1]['devices'] as List?)?.cast<Map<String, dynamic>>() ??
-                const [];
-        _loading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
+  String _normalizeGatewayUrl(String raw) {
+    var value = raw.trim();
+    while (value.endsWith('/')) {
+      value = value.substring(0, value.length - 1);
     }
+    // The native observer appends /api/v1/... itself.
+    if (value.endsWith('/api/v1')) {
+      value = value.substring(0, value.length - 7);
+    }
+    return value;
   }
 
-  Future<void> _unpair(Map<String, dynamic> device) async {
-    final ok = await _confirm(context, 
-      'Unpair ${device['deviceName'] ?? device['device_name'] ?? 'device'}?',
-      'The phone will stop forwarding bank SMS.',
-    );
-    if (!ok) return;
-    try {
-      await YoupiAdminApi.delete(
-        '/admin/sms-gateway/devices/${device['id'] ?? device['deviceId']}',
-      );
-      await _load();
-    } catch (e) {
-      _snack(context, '$e');
-    }
+  Future<Map<String, String>> _fetchPairing() async {
+    final qr = await YoupiAdminApi.get('/admin/sms-gateway/pair-qr');
+    return {
+      'token': '${qr['enrollmentToken'] ?? qr['token'] ?? ''}'.trim(),
+      'gateway': _normalizeGatewayUrl(
+        '${qr['gatewayUrl'] ?? qr['serverUrl'] ?? ''}',
+      ),
+    };
   }
 
-  Future<void> _downloadQr() async {
-    if (_payload.isEmpty) return;
-    try {
-      final painter = QrPainter(
-        data: _payload,
-        version: QrVersions.auto,
-        gapless: true,
-        color: const Color(0xFF0F172A),
-        emptyColor: Colors.white,
-      );
-      final image = await painter.toImageData(700);
-      if (image == null) throw Exception('Could not render the QR');
-      final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/konkani-sms-gateway-pairing.png');
-      await file.writeAsBytes(image.buffer.asUint8List(), flush: true);
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        text: 'Scan this QR with the Konkani SMS Gateway app to pair the phone.',
-      );
-    } catch (e) {
-      if (mounted) _snack(context, 'Could not share QR: $e');
-    }
-  }
-
-  Future<void> _sendTest() async {
-    if (_sms.text.trim().isEmpty) return;
-    setState(() => _testResult = 'Dispatching…');
-    try {
-      final data = await YoupiAdminApi.sendTestSms(
-        sender: _sender.text.trim(),
-        body: _sms.text.trim(),
-      );
-      if (!mounted) return;
-      final event = data['event'] as Map<String, dynamic>?;
-      final amount = event?['amountPaise'];
-      setState(() {
-        _testResult = event == null
-            ? 'Parsed, but no credit event was returned.'
-            : 'Parsed ₹${((int.tryParse('$amount') ?? 0) / 100).toStringAsFixed(2)} · ${event['refId'] ?? '-'}';
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _testResult = '$e');
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_loading) return const Center(child: CircularProgressIndicator());
-    if (_error != null) return _ErrorView(message: _error!, onRetry: _load);
-    return RefreshIndicator(
-      color: KkSurface.accent,
-      onRefresh: _load,
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
-        children: [
-          _Panel(
-            child: Column(
-              children: [
-                const _SectionTitle('Scan to pair phone'),
-                const SizedBox(height: 12),
-                if (_payload.isEmpty)
-                  Text('Pairing QR is unavailable. Refresh and try again.',
-                      style: _body())
-                else
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: QrImageView(
-                      data: _payload,
-                      size: 230,
-                      backgroundColor: Colors.white,
-                      eyeStyle: const QrEyeStyle(
-                        eyeShape: QrEyeShape.square,
-                        color: Color(0xFF0F172A),
-                      ),
-                      dataModuleStyle: const QrDataModuleStyle(
-                        dataModuleShape: QrDataModuleShape.square,
-                        color: Color(0xFF0F172A),
-                      ),
-                    ),
-                  ),
-                const SizedBox(height: 12),
-                Text(
-                  'Open the Konkani SMS Gateway app → Scan Pairing QR.',
-                  textAlign: TextAlign.center,
-                  style: _body(),
-                ),
-                if (_gatewayUrl.isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  _CopyRow(label: 'Gateway URL', value: _gatewayUrl),
-                ],
-                if (_token.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  _CopyRow(label: 'Enrollment token', value: _token),
-                ],
-                const SizedBox(height: 10),
-                OutlinedButton.icon(
-                  onPressed: _load,
-                  icon: const Icon(TablerIcons.refresh, size: 16),
-                  label: const Text('Refresh QR'),
-                ),
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  onPressed: _downloadQr,
-                  icon: const Icon(TablerIcons.download, size: 16),
-                  label: const Text('Download / share QR'),
-                ),
-              ],
-            ),
+  Future<bool> _showSmsConsent() async {
+    final accepted = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: KkSurface.container,
+        title: const Text('Enable SMS observation?'),
+        content: const SingleChildScrollView(
+          child: Text(
+            'This phone will read bank credit SMS to verify UPI payments for your '
+            'theater. Only the amount, UPI reference, sender and raw message are '
+            'stored on this device and forwarded to your YouPI gateway. Messages '
+            'are kept for up to 30 days.\n\n'
+            'By continuing you confirm you have the right to process SMS on this '
+            'device.',
           ),
-          const SizedBox(height: 12),
-          _Panel(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const _SectionTitle('Paired phones'),
-                const SizedBox(height: 8),
-                if (_devices.isEmpty)
-                  Text('No devices paired yet.', style: _body())
-                else
-                  ..._devices.map(
-                    (device) => Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '${device['deviceName'] ?? device['device_name'] ?? 'Android device'}',
-                                  style: _body(),
-                                ),
-                                Text(
-                                  '${device['deviceId'] ?? device['id'] ?? '-'}',
-                                  style: _muted(),
-                                ),
-                              ],
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: () => _unpair(device),
-                            child: const Text('Unpair'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-              ],
-            ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
           ),
-          const SizedBox(height: 12),
-          _Panel(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const _SectionTitle('Test bank SMS'),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _sender,
-                  decoration: const InputDecoration(labelText: 'Sender'),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _sms,
-                  minLines: 3,
-                  maxLines: 5,
-                  decoration: const InputDecoration(
-                    labelText: 'SMS text',
-                    hintText:
-                        'Dear Customer, A/C *1234 credited by Rs 1.00 via UPI…',
-                  ),
-                ),
-                const SizedBox(height: 10),
-                FilledButton(
-                  onPressed: _sendTest,
-                  child: const Text('Dispatch test SMS'),
-                ),
-                if (_testResult.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Text(_testResult, style: _muted()),
-                ],
-              ],
-            ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Agree & continue'),
           ),
         ],
       ),
+    );
+    return accepted == true;
+  }
+
+  Future<void> _pairThisPhone() async {
+    if (!Platform.isAndroid) return;
+    setState(() => _pairError = null);
+
+    // Ask for device permissions first. A pairing error must not hide the
+    // system SMS/notification dialogs from the operator.
+    final smsGranted = await _observer.requestSmsPermission();
+    await _observer.requestNotificationPermission();
+    if (!mounted) return;
+
+    Map<String, String> pairing;
+    try {
+      pairing = await _fetchPairing();
+    } catch (e) {
+      const hint =
+          'Could not load the pairing token. Check the YouPI admin token '
+          '(key icon above) and the network connection.';
+      setState(() => _pairError = '$hint $e');
+      _snack(context, hint);
+      return;
+    }
+
+    var token = pairing['token'] ?? '';
+    var gateway = pairing['gateway'] ?? '';
+    if (token.isEmpty || gateway.isEmpty) {
+      const message =
+          'Pairing token is unavailable. Set the YouPI admin token (key icon '
+          'above), then try again.';
+      setState(() => _pairError = message);
+      _snack(context, message);
+      return;
+    }
+
+    if (!_observer.config.consentAccepted) {
+      final accepted = await _showSmsConsent();
+      if (!accepted) return;
+      await _observer.setConsent(true);
+    }
+
+    var result = await _observer.pairDevice(secret: token, baseUrl: gateway);
+
+    // The pairing token is short-lived. If it expired, fetch a fresh one and
+    // retry once.
+    if (!result.ok && result.httpStatus == 401) {
+      try {
+        pairing = await _fetchPairing();
+        token = pairing['token'] ?? '';
+        gateway = pairing['gateway'] ?? '';
+      } catch (_) {
+        // Keep the original error.
+      }
+      if (token.isNotEmpty && gateway.isNotEmpty) {
+        result = await _observer.pairDevice(secret: token, baseUrl: gateway);
+      }
+    }
+
+    if (!mounted) return;
+    if (!result.ok) {
+      final message = result.message.isEmpty
+          ? 'Pairing failed (HTTP ${result.httpStatus}).'
+          : result.message;
+      setState(() => _pairError = message);
+      _snack(context, message);
+      return;
+    }
+
+    if (smsGranted) await _observer.setEnabled(true);
+    if (!mounted) return;
+    _snack(
+      context,
+      smsGranted
+          ? 'This phone is paired and the observer is running.'
+          : 'Paired. Grant SMS access below to start observing.',
+    );
+  }
+
+  Future<void> _unpairThisPhone() async {
+    final ok = await _confirm(
+      context,
+      'Unpair this phone?',
+      'This device will stop forwarding bank SMS.',
+    );
+    if (!ok) return;
+    final deviceId = _observer.config.deviceId;
+    await _observer.unpairDevice();
+    if (deviceId.isNotEmpty) {
+      try {
+        await YoupiAdminApi.delete('/admin/sms-gateway/devices/$deviceId');
+      } catch (_) {
+        // Local credentials are already gone; a stale server row can be
+        // removed later.
+      }
+    }
+    if (mounted) _snack(context, 'This phone is no longer paired.');
+  }
+
+  Widget _observerPanel() {
+    return AnimatedBuilder(
+      animation: _observer,
+      builder: (context, _) {
+        final config = _observer.config;
+        final state = _observer.state;
+        final paired = config.paired;
+        final running = paired && config.enabled;
+        final smsGranted = state?.smsPermission ?? false;
+        final notificationsGranted = state?.notificationsPermission ?? false;
+        final error = _observer.platformError;
+        final android = Platform.isAndroid;
+
+        return _Panel(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const _SectionTitle('This phone'),
+                  const Spacer(),
+                  _Pill(
+                    !android
+                        ? 'ANDROID ONLY'
+                        : paired
+                            ? (running ? 'RUNNING' : 'PAUSED')
+                            : 'NOT PAIRED',
+                    color: !android
+                        ? KkSurface.outline
+                        : paired
+                            ? (running
+                                ? KkSurface.accent
+                                : KkSurface.secondary)
+                            : KkSurface.outline,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              if (!android)
+                Text(
+                  'The SMS observer runs on the Android phone that receives '
+                  'the bank SMS.',
+                  style: _body(),
+                )
+              else if (!paired) ...[
+                Text(
+                  'Pair this phone to forward bank credit SMS automatically. '
+                  'You will be asked for SMS and notification access.',
+                  style: _body(),
+                ),
+                const SizedBox(height: 12),
+                FilledButton.icon(
+                  onPressed: _observer.busy ? null : _pairThisPhone,
+                  icon: const Icon(TablerIcons.link, size: 17),
+                  label: Text(
+                    _observer.busy ? 'Pairing...' : 'Pair this phone',
+                  ),
+                ),
+                const SizedBox(height: 4),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text('SMS verification', style: _body(bold: true)),
+                  subtitle: Text(
+                    'Pair this phone to turn verification on.',
+                    style: _muted(),
+                  ),
+                  value: false,
+                  onChanged: null,
+                ),
+                const SizedBox(height: 4),
+                if (!smsGranted)
+                  _ObserverPermissionRow(
+                    icon: TablerIcons.message,
+                    title: 'SMS access',
+                    subtitle: 'Required to read bank credit messages',
+                    onGrant: _observer.requestSmsPermission,
+                  ),
+                if (!notificationsGranted)
+                  _ObserverPermissionRow(
+                    icon: TablerIcons.bellRinging,
+                    title: 'Notifications',
+                    subtitle: 'Android 13+ keeps the listener running',
+                    onGrant: _observer.requestNotificationPermission,
+                  ),
+              ] else ...[
+                _KeyValue(
+                  'Device',
+                  config.shortDeviceId.isEmpty
+                      ? 'Paired'
+                      : config.shortDeviceId,
+                ),
+                _KeyValue(
+                  'Merchant',
+                  config.shortMerchantId.isEmpty
+                      ? '-'
+                      : config.shortMerchantId,
+                ),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text('SMS verification', style: _body(bold: true)),
+                  subtitle: Text(
+                    running
+                        ? 'Active - forwarding bank SMS.'
+                        : 'Standby - turn on to start verifying payments.',
+                    style: _muted(),
+                  ),
+                  value: running,
+                  onChanged: smsGranted
+                      ? (value) => _observer.setEnabled(value)
+                      : null,
+                ),
+                if (!smsGranted)
+                  _ObserverPermissionRow(
+                    icon: TablerIcons.message,
+                    title: 'SMS access',
+                    subtitle: 'Required to read bank credit messages',
+                    onGrant: _observer.requestSmsPermission,
+                  ),
+                if (!notificationsGranted)
+                  _ObserverPermissionRow(
+                    icon: TablerIcons.bellRinging,
+                    title: 'Notifications',
+                    subtitle: 'Android 13+ keeps the listener running',
+                    onGrant: _observer.requestNotificationPermission,
+                  ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: _observer.openAppSettings,
+                      icon: const Icon(TablerIcons.settings, size: 16),
+                      label: const Text('System settings'),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: _observer.busy ? null : _unpairThisPhone,
+                      icon: const Icon(TablerIcons.linkOff, size: 16),
+                      label: const Text('Unpair'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _ObserverStat(
+                        label: 'Forwarded',
+                        value: state?.stats.forwarded ?? 0,
+                        color: KkSurface.accent,
+                      ),
+                    ),
+                    Expanded(
+                      child: _ObserverStat(
+                        label: 'Waiting',
+                        value: state?.stats.pending ?? 0,
+                        color: KkSurface.secondary,
+                      ),
+                    ),
+                    Expanded(
+                      child: _ObserverStat(
+                        label: 'Failed',
+                        value: state?.stats.failed ?? 0,
+                        color: KkSurface.error,
+                      ),
+                    ),
+                  ],
+                ),
+                if (state != null && state.events.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  const _SectionTitle('Recent SMS'),
+                  const SizedBox(height: 4),
+                  ...state.events.take(3).map(_observerEventRow),
+                ],
+              ],
+              if (_pairError != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  _pairError!,
+                  style: _muted().copyWith(color: KkSurface.error),
+                ),
+              ],
+              if (error != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  error,
+                  style: _muted().copyWith(color: KkSurface.error),
+                ),
+              ],
+              const SizedBox(height: 8),
+              Text(
+                'If the old SMS Gateway app is still installed on this phone, '
+                'disable it so both apps do not forward the same SMS.',
+                style: _muted(),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _observerEventRow(ObserverEvent event) {
+    final color = switch (event.status) {
+      EventStatus.sent =>
+        event.isRejected ? KkSurface.secondary : KkSurface.accent,
+      EventStatus.failed => KkSurface.error,
+      EventStatus.pending => KkSurface.secondary,
+      EventStatus.ignored => KkSurface.outline,
+    };
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  event.sender,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: _body(bold: true),
+                ),
+                Text(
+                  event.body,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: _muted(),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                renderAmount(event.amount, event.amountPaise),
+                style: _body(bold: true),
+              ),
+              Text(
+                event.status.label,
+                style: _muted(size: 10).copyWith(color: color),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) => _observerPanel();
+}
+
+class _ObserverPermissionRow extends StatelessWidget {
+  const _ObserverPermissionRow({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onGrant,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Future<bool> Function() onGrant;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: KkSurface.containerHigh,
+              borderRadius: BorderRadius.circular(9),
+            ),
+            child: Icon(icon, size: 17, color: KkSurface.accent),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: _body(bold: true)),
+                Text(subtitle, style: _muted()),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: () => onGrant(),
+            child: const Text('Grant'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ObserverStat extends StatelessWidget {
+  const _ObserverStat({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final String label;
+  final int value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '$value',
+          style: GoogleFonts.publicSans(
+            fontSize: 20,
+            fontWeight: FontWeight.w800,
+            color: color,
+          ),
+        ),
+        Text(label.toUpperCase(), style: _muted(size: 9.5)),
+      ],
     );
   }
 }
@@ -1158,8 +1383,11 @@ class _GatewayTabState extends State<_GatewayTab> {
     final observers = _observers ?? const {};
     final whatsapp = _whatsapp ?? const {};
     final gmail = observers['gmail'] as Map<String, dynamic>?;
-    final sms = observers['sms'] as Map<String, dynamic>?;
     final android = observers['android'] as Map<String, dynamic>?;
+    final androidDevices = (android?['devices'] as List?) ?? const [];
+    final androidConnected = androidDevices.any(
+      (device) => device is Map && device['status'] == 'CONNECTED',
+    );
     final waStatus = '${whatsapp['status'] ?? 'DISCONNECTED'}';
     final waQr = whatsapp['qrCode']?.toString();
 
@@ -1170,6 +1398,8 @@ class _GatewayTabState extends State<_GatewayTab> {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
         children: [
+          const _ThisPhonePanel(),
+          const SizedBox(height: 12),
           _Panel(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1211,18 +1441,22 @@ class _GatewayTabState extends State<_GatewayTab> {
                   ),
                 ),
                 _KeyValue(
-                  'SMS',
-                  '${sms?['status'] ?? 'STANDBY'}',
+                  'SMS verification',
+                  androidConnected
+                      ? 'Phone connected'
+                      : 'Waiting for phone',
                   trailing: _Pill(
-                    sms?['isRunning'] == true ? 'ACTIVE' : 'IDLE',
-                    color: sms?['isRunning'] == true
+                    androidConnected ? 'CONNECTED' : 'STANDBY',
+                    color: androidConnected
                         ? KkSurface.accent
                         : KkSurface.outline,
                   ),
                 ),
-                _KeyValue(
-                  'Android devices',
-                  '${android?['totalDevices'] ?? 0} paired',
+                const SizedBox(height: 6),
+                Text(
+                  'Start or stop phone forwarding with the SMS verification '
+                  'toggle in "This phone" above.',
+                  style: _muted(),
                 ),
               ],
             ),

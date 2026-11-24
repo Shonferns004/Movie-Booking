@@ -4,7 +4,7 @@
          with no icon so the only visible splash is the Flutter one. -->
     <style name="LaunchTheme" parent="@android:style/Theme.Black.NoTitleBar">
         <item name="android:windowSplashScreenBackground">@color/splash_background</item>
-        <item name="android:windowSplashScreenAnimatedIcon">@drawable/transparent_pixel</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/transparent_288</item>
         <item name="android:windowSplashScreenIconBackgroundColor">@color/splash_background</item>
         <item name="android:windowBackground">@drawable/launch_background</item>
         <item name="android:statusBarColor">@color/splash_background</item>

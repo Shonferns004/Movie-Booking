@@ -315,6 +315,11 @@ export async function createYoupiOrder({ bookingReference, customer, publicBase 
         currency: booking.currency || 'INR',
         description: `Konkani Samudai booking ${booking.booking_reference}`,
         returnUrl,
+        // The movie app has already created the booking and identified the
+        // customer. Activate the UPI slot immediately so the checkout page can
+        // show a payable QR and the SMS observer can match the credit. Without
+        // this the session stays INITIATED and every payment waits forever.
+        autoActivate: true,
         customer: customer && (customer.email || customer.mobile || customer.name)
         ? { email: customer.email, phoneNumber: customer.mobile, fullName: customer.name }
           : undefined,

@@ -1696,7 +1696,9 @@
         }
 
         renderState(data);
-        dismissSplashScreen();
+        // A session that has not acquired the UPI slot is not payable yet.
+        // Keep the splash until bind-customer activates it.
+        if (data.status !== 'INITIATED') dismissSplashScreen();
       } catch (e) {
         console.warn('loadState error:', e);
         dismissSplashScreen();
@@ -2337,7 +2339,20 @@
         queuePollTimer = null;
       }
 
-      if (data.status === 'ACTIVE' || (data.status === 'INITIATED' && (data.timeRemainingSeconds > 0 || data.expiresAt))) {
+      if (data.status === 'INITIATED') {
+        // Never show a QR before the session owns an ACTIVE UPI slot: the SMS
+        // observer only verifies ACTIVE/PROCESSING sessions, so a payment made
+        // against INITIATED can never be matched.
+        hideAllContent();
+        if (queuePollTimer) {
+          clearInterval(queuePollTimer);
+          queuePollTimer = null;
+        }
+        queuePollTimer = setInterval(() => loadState(), 1500);
+        return;
+      }
+
+      if (data.status === 'ACTIVE') {
         renderMethodSelectorBar(data);
 
         hideAllContent();
