@@ -7,6 +7,7 @@ import '../widgets/skeleton.dart';
 import 'profile_screen.dart';
 import 'scanner_screen.dart';
 import 'package:tabler_icons_plus/tabler_icons_plus.dart';
+import '../widgets/kk_pull_to_refresh.dart';
 
 /// Material 3 surface palette (matches the design tokens used by the web UI).
 class KkSurface {
@@ -282,7 +283,7 @@ class _ScannerShellState extends State<ScannerShell> {
   }
 
   Widget _buildScrollable(Widget child) {
-    return RefreshIndicator(
+    return KkPullToRefresh(
       color: KkSurface.primary,
       backgroundColor: KkSurface.container,
       onRefresh: _loadActivity,

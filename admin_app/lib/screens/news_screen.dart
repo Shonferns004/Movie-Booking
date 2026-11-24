@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/kk_pull_to_refresh.dart';
 
 import '../services/api.dart';
 import '../widgets/skeleton.dart';
@@ -121,7 +122,7 @@ class _NewsScreenState extends State<NewsScreen> {
                         style: TextStyle(color: Color(0xFF9E9890), fontSize: 13),
                       ),
                     )
-                  : RefreshIndicator(
+                  : KkPullToRefresh(
                       color: const Color(0xFFC8FF1F),
                       onRefresh: _load,
                       child: ListView.builder(

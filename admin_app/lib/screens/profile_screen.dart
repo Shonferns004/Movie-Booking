@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../widgets/kk_pull_to_refresh.dart';
 
 import '../services/api.dart';
 import '../services/auth_service.dart';
@@ -100,7 +101,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final body = _buildContent(context);
 
     if (widget.embedded) {
-      return RefreshIndicator(
+      return KkPullToRefresh(
         color: KkSurface.primary,
         backgroundColor: KkSurface.container,
         onRefresh: _load,
@@ -116,7 +117,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: KkSurface.bg,
       // No AppBar, so the content must be kept clear of the status bar / notch.
       body: SafeArea(
-        child: RefreshIndicator(
+        child: KkPullToRefresh(
           color: KkSurface.primary,
           backgroundColor: KkSurface.container,
           onRefresh: _load,

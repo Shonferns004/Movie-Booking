@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import '../widgets/kk_pull_to_refresh.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -356,7 +357,7 @@ class _LiveTabState extends State<_LiveTab> {
             (p['method'] == 'CASH_COUNTER' || p['method'] == 'CARD_COUNTER'))
         .length;
 
-    return RefreshIndicator(
+    return KkPullToRefresh(
       color: KkSurface.accent,
       onRefresh: _load,
       child: ListView(
@@ -567,7 +568,7 @@ class _AllPaymentsPageState extends State<_AllPaymentsPage> {
                 ? const Center(child: CircularProgressIndicator())
                 : _error != null
                     ? _ErrorView(message: _error!, onRetry: _load)
-                    : RefreshIndicator(
+                    : KkPullToRefresh(
                         color: KkSurface.accent,
                         onRefresh: _load,
                         child: ListView(
@@ -1907,7 +1908,7 @@ class _GatewayTabState extends State<_GatewayTab> {
     final waPhone = '${whatsapp['phoneNumber'] ?? ''}'.trim();
     final waQr = whatsapp['qrCode']?.toString();
 
-    return RefreshIndicator(
+    return KkPullToRefresh(
       color: KkSurface.accent,
       onRefresh: () => _load(quiet: true),
       child: ListView(

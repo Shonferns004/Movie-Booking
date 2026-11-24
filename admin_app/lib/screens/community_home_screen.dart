@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/kk_pull_to_refresh.dart';
 
 import '../services/api.dart';
 import 'events_admin_screen.dart';
@@ -85,7 +86,7 @@ class _CommunityHomeScreenState extends State<CommunityHomeScreen> {
       body: SafeArea(
         child: _loading
             ? const Center(child: CircularProgressIndicator(color: KkSurface.accent))
-            : RefreshIndicator(
+            : KkPullToRefresh(
                 color: KkSurface.accent,
                 backgroundColor: KkSurface.containerLow,
                 onRefresh: _load,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import '../widgets/kk_pull_to_refresh.dart';
 
 import '../services/api.dart';
 import '../widgets/app_toast.dart';
@@ -300,7 +301,7 @@ class _GalleryScreenState extends State<GalleryScreen> {
                     child: Text(_error!, style: const TextStyle(color: Color(0xFFF08A80))),
                   ),
                 )
-              : RefreshIndicator(
+              : KkPullToRefresh(
                   color: const Color(0xFFC8FF1F),
                   onRefresh: _load,
                   child: ListView(

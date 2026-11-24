@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/kk_pull_to_refresh.dart';
 
 import '../services/api.dart';
 import '../widgets/app_toast.dart';
@@ -152,7 +153,7 @@ class _NoticesAdminScreenState extends State<NoticesAdminScreen> {
                   ? const Center(
                       child: Text('No notices yet.', style: TextStyle(color: Color(0xFF9E9890))),
                     )
-                  : RefreshIndicator(
+                  : KkPullToRefresh(
                       color: const Color(0xFFC8FF1F),
                       onRefresh: _load,
                       child: ListView.separated(
