@@ -111,7 +111,9 @@ class _RefundsScreenState extends State<RefundsScreen> {
   }
 
   Future<void> _approve(dynamic request) async {
-    final paidMinor = (request['paid_minor'] as num?)?.toInt() ?? 0;
+    final paidMinor = (request['captured_minor'] as num?)?.toInt()
+        ?? (request['paid_minor'] as num?)?.toInt()
+        ?? 0;
     final refundController = TextEditingController(
       text: (((request['refund_minor'] as num?)?.toInt() ?? 0) / 100).toStringAsFixed(2),
     );
@@ -405,7 +407,7 @@ class _RefundsScreenState extends State<RefundsScreen> {
           const SizedBox(height: 10),
           Row(
             children: [
-              Expanded(child: _metric('PAID', _money(request['paid_minor']))),
+              Expanded(child: _metric('PAID', _money(request['captured_minor'] ?? request['paid_minor']))),
               Expanded(child: _metric('REQUESTED REFUND', '${_money(request['refund_minor'])} · $percent%')),
             ],
           ),

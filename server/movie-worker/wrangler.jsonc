@@ -101,6 +101,10 @@
 		"PAYMENT_PROVIDER": "youpi",
 		"MAX_SEATS_PER_BOOKING": "10",
 		"HOLD_EXPIRY_SECONDS": "300",
+		// Cancellation refund windows: "hoursBeforeShow:percent", highest first.
+		// Customers request from My tickets; staff approve and record the UPI payout.
+		"REFUND_TIERS": "24:100,2:50",
+		"CANCELLATION_ENABLED": "true",
 		"JWT_ACCESS_TTL": "7d",
 		"JWT_REFRESH_TTL": "30d",
 		// Neon Object Storage. Fill in the branch endpoint + bucket name:

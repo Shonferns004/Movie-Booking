@@ -52,6 +52,10 @@ services:
         value: 10
       - key: HOLD_EXPIRY_SECONDS
         value: 300
+      - key: REFUND_TIERS
+        value: 24:100,2:50
+      - key: CANCELLATION_ENABLED
+        value: true
       - key: WORKER_POLL_INTERVAL_MS
         value: 5000
       - key: EMAIL_PROVIDER

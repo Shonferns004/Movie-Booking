@@ -148,12 +148,11 @@ class Api {
 
   static String _message(http.Response res, String fallback) {
     try {
-      final data = jsonDecode(res.body);
-      if (data is Map && data['error'] != null) return data['error'].toString();
+      return jsonDecode(res.body)['error']?.toString() ?? fallback;
     } catch (_) {
-      // Non-JSON error body: fall through to the friendly message.
+      // Non-JSON error body: use the friendly message.
+      return fallback;
     }
-    return fallback;
   }
 
   static Future<List<dynamic>> getCancellationRequests(
@@ -181,7 +180,7 @@ class Api {
       '/bookings/cancellation-requests/$requestId/approve',
       body: body,
     );
-    if (res.statusCode == 200) return jsonDecode(res.body) as Map<String, dynamic>;
+    if (res.statusCode == 200) return jsonDecode(res.body);
     throw Exception(_message(res, 'Failed to approve the cancellation'));
   }
 
@@ -198,7 +197,7 @@ class Api {
       '/bookings/cancellation-requests/$requestId/reject',
       body: body,
     );
-    if (res.statusCode == 200) return jsonDecode(res.body) as Map<String, dynamic>;
+    if (res.statusCode == 200) return jsonDecode(res.body);
     throw Exception(_message(res, 'Failed to reject the cancellation'));
   }
 
@@ -220,7 +219,7 @@ class Api {
     if (utr != null && utr.trim().isNotEmpty) body['utr'] = utr.trim();
     if (note != null && note.trim().isNotEmpty) body['note'] = note.trim();
     final res = await _request(token, 'PATCH', '/bookings/refunds/$refundId', body: body);
-    if (res.statusCode == 200) return jsonDecode(res.body) as Map<String, dynamic>;
+    if (res.statusCode == 200) return jsonDecode(res.body);
     throw Exception(_message(res, 'Failed to update the refund'));
   }
 
@@ -235,7 +234,7 @@ class Api {
     if (reason != null && reason.trim().isNotEmpty) body['reason'] = reason.trim();
     if (refundMinor != null) body['refundMinor'] = refundMinor;
     final res = await _request(token, 'POST', '/bookings/admin/$bookingId/cancel', body: body);
-    if (res.statusCode == 200) return jsonDecode(res.body) as Map<String, dynamic>;
+    if (res.statusCode == 200) return jsonDecode(res.body);
     throw Exception(_message(res, 'Failed to cancel the booking'));
   }
 

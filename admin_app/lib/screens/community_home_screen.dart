@@ -55,8 +55,8 @@ class _CommunityHomeScreenState extends State<CommunityHomeScreen> {
         Api.getRefunds(token),
       ]);
       if (!mounted) return;
-      final requests = results[4] as List<dynamic>;
-      final refunds = results[5] as List<dynamic>;
+      final requests = results[4];
+      final refunds = results[5];
       setState(() {
         _members = results[0];
         _events = results[1];

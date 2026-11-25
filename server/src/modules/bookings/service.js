@@ -121,6 +121,7 @@ async function finalizeCancellation(client, {
   policyPercent = null,
   refundMinor = null,
   source = 'admin',
+  allowCheckedIn = false,
 }) {
   const { rows: lockedRows } = await client.query('SELECT * FROM bookings WHERE id=$1 FOR UPDATE', [booking.id]);
   if (!lockedRows.length) throw notFound('booking not found');
@@ -150,7 +151,7 @@ async function finalizeCancellation(client, {
     'SELECT id, status, checked_in_at FROM tickets WHERE booking_id=$1 FOR UPDATE',
     [current.id],
   );
-  if (tickets.some((ticket) => ticket.checked_in_at || ticket.status === 'checked_in')) {
+  if (!allowCheckedIn && tickets.some((ticket) => ticket.checked_in_at || ticket.status === 'checked_in')) {
     throw conflict('a checked-in ticket cannot be cancelled');
   }
 
@@ -540,7 +541,7 @@ export async function listCancellationRequests({ status } = {}) {
             s.starts_at, m.title,
             u.email AS requested_by_email,
             (SELECT COALESCE(SUM(p.amount_minor),0)::int
-               FROM payments p WHERE p.booking_id=b.id AND p.status='verified') AS paid_minor
+               FROM payments p WHERE p.booking_id=b.id AND p.status='verified') AS captured_minor
        FROM booking_cancellation_requests r
        JOIN bookings b ON b.id=r.booking_id
        JOIN shows s ON s.id=b.show_id
@@ -556,11 +557,28 @@ export async function listCancellationRequests({ status } = {}) {
 
 export async function approveCancellationRequest({ requestId, actorId, note, refundMinor }) {
   return withTransaction(async (client) => {
+    // Read the request to find its booking, then always take locks in booking -> request
+    // order. Request creation does the same, so the two cannot deadlock.
+    const { rows: preview } = await client.query(
+      'SELECT * FROM booking_cancellation_requests WHERE id=$1',
+      [requestId],
+    );
+    if (!preview.length) throw notFound('cancellation request not found');
+
+    const { rows: bookingRows } = await client.query(
+      `SELECT b.*, s.starts_at
+         FROM bookings b JOIN shows s ON s.id=b.show_id
+        WHERE b.id=$1
+        FOR UPDATE OF b`,
+      [preview[0].booking_id],
+    );
+    if (!bookingRows.length) throw notFound('booking not found');
+    const booking = bookingRows[0];
+
     const { rows } = await client.query(
       'SELECT * FROM booking_cancellation_requests WHERE id=$1 FOR UPDATE',
       [requestId],
     );
-    if (!rows.length) throw notFound('cancellation request not found');
     const request = rows[0];
 
     if (request.status === 'approved') {
@@ -570,16 +588,6 @@ export async function approveCancellationRequest({ requestId, actorId, note, ref
     if (request.status !== 'pending') {
       throw conflict(`this request was already ${request.status}`);
     }
-
-    const { rows: bookingRows } = await client.query(
-      `SELECT b.*, s.starts_at
-         FROM bookings b JOIN shows s ON s.id=b.show_id
-        WHERE b.id=$1
-        FOR UPDATE OF b`,
-      [request.booking_id],
-    );
-    if (!bookingRows.length) throw notFound('booking not found');
-    const booking = bookingRows[0];
 
     if (booking.status === 'cancelled') {
       await client.query(
@@ -637,11 +645,23 @@ export async function approveCancellationRequest({ requestId, actorId, note, ref
 
 export async function rejectCancellationRequest({ requestId, actorId, note }) {
   return withTransaction(async (client) => {
+    const { rows: preview } = await client.query(
+      'SELECT * FROM booking_cancellation_requests WHERE id=$1',
+      [requestId],
+    );
+    if (!preview.length) throw notFound('cancellation request not found');
+
+    // Lock in booking -> request order, matching request creation and approval.
+    const { rows: bookingRows } = await client.query(
+      'SELECT * FROM bookings WHERE id=$1 FOR UPDATE',
+      [preview[0].booking_id],
+    );
+    const booking = bookingRows[0] || null;
+
     const { rows } = await client.query(
       'SELECT * FROM booking_cancellation_requests WHERE id=$1 FOR UPDATE',
       [requestId],
     );
-    if (!rows.length) throw notFound('cancellation request not found');
     const request = rows[0];
 
     if (request.status === 'rejected') return request;
@@ -657,8 +677,6 @@ export async function rejectCancellationRequest({ requestId, actorId, note }) {
       [request.id, note || null, actorId],
     );
 
-    const { rows: bookings } = await client.query('SELECT * FROM bookings WHERE id=$1', [request.booking_id]);
-    const booking = bookings[0];
     if (booking) {
       await audit(client, actorId, 'cancellation_rejected', 'booking', booking.id, {
         requestId: request.id,
@@ -851,6 +869,9 @@ export async function cancelBookingsForShow(client, showId, {
       policyPercent: booking.status === 'confirmed' ? 100 : 0,
       refundMinor: booking.status === 'confirmed' ? paidMinor : 0,
       source: 'show_cancelled',
+      // The venue is cancelling the whole show: even a scanned ticket is now invalid
+      // and must be refunded, so do not let the check block the operation.
+      allowCheckedIn: true,
     }));
   }
   return results;
