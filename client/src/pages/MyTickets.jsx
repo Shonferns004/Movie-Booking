@@ -18,7 +18,20 @@ const COLORS = {
   deep: '#171B1F',
 };
 
-function TicketPassModal({ booking, onClose, onDownload }) {
+const REFUND_STATUS = {
+  pending: { label: 'Refund queued', tone: 'text-[#8A6D1A]' },
+  processing: { label: 'Refund processing', tone: 'text-[#8A6D1A]' },
+  completed: { label: 'Refunded', tone: 'text-[#2E6B2E]' },
+  failed: { label: 'Refund failed', tone: 'text-[#A23B32]' },
+};
+
+const inr = (minor = 0) => new Intl.NumberFormat('en-IN', {
+  style: 'currency',
+  currency: 'INR',
+  maximumFractionDigits: 2,
+}).format((Number(minor) || 0) / 100);
+
+function TicketPassModal({ booking, onClose, onDownload, onUpdated }) {
   const seats = Array.isArray(booking.seats) ? booking.seats : [];
   const date = new Date(booking.starts_at || '');
   const dateLabel = Number.isNaN(date.getTime())
@@ -29,6 +42,56 @@ function TicketPassModal({ booking, onClose, onDownload }) {
     : date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
   const seatClass = [...new Set(seats.map((seat) => seat?.category_name).filter(Boolean))].join(' · ');
   const single = seats.length === 1;
+
+  const bookingStatus = String(booking.status || '').toLowerCase();
+  const cancellation = booking.cancellation || null;
+  const refunds = Array.isArray(booking.refunds) ? booking.refunds : [];
+  const refundTotal = refunds.reduce((sum, row) => sum + (Number(row.amount_minor) || 0), 0);
+  const startsAt = Number.isNaN(date.getTime()) ? null : date;
+  const isUpcoming = Boolean(startsAt && startsAt.getTime() > Date.now());
+  const hasScanned = seats.some((seat) => seat.checked_in_at || seat.ticket_status === 'checked_in');
+  const requestOpen = !cancellation || cancellation.status === 'rejected';
+  const canRequest = bookingStatus === 'confirmed' && isUpcoming && !hasScanned && requestOpen;
+  const pendingApproval = cancellation?.status === 'pending' || requestSent;
+
+  const [cancelMode, setCancelMode] = useState(false);
+  const [quote, setQuote] = useState(null);
+  const [quoteLoading, setQuoteLoading] = useState(false);
+  const [reason, setReason] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [cancelError, setCancelError] = useState('');
+  const [requestSent, setRequestSent] = useState(false);
+
+  const openCancel = async () => {
+    setCancelMode(true);
+    setCancelError('');
+    setQuote(null);
+    setQuoteLoading(true);
+    try {
+      const response = await api.get(`/bookings/${encodeURIComponent(booking.booking_reference)}/cancel-quote`);
+      setQuote(response.data);
+    } catch (err) {
+      setCancelError(err?.response?.data?.error || err?.message || 'Could not load the refund estimate.');
+    } finally {
+      setQuoteLoading(false);
+    }
+  };
+
+  const submitCancel = async () => {
+    setSubmitting(true);
+    setCancelError('');
+    try {
+      await api.post(`/bookings/${encodeURIComponent(booking.booking_reference)}/cancel`, {
+        reason: reason.trim() || undefined,
+      });
+      setRequestSent(true);
+      onUpdated?.();
+    } catch (err) {
+      setCancelError(err?.response?.data?.error || err?.message || 'Could not send the cancellation request.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     const onKey = (event) => {
@@ -143,6 +206,189 @@ function TicketPassModal({ booking, onClose, onDownload }) {
               </button>
             </div>
           </div>
+
+          {(bookingStatus === 'cancelled' || cancellation || canRequest) && (
+            <section className="mt-5 rounded-2xl border border-[#1E2227]/15 bg-white/40 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#1E2227]/70">
+                  Cancellation
+                </p>
+                <Link
+                  to="/refunds"
+                  className="text-[9px] font-bold uppercase tracking-[0.12em] text-[#1E2227]/70 underline underline-offset-2"
+                >
+                  Policy
+                </Link>
+              </div>
+
+              {bookingStatus === 'cancelled' ? (
+                <div className="mt-3">
+                  <p className="text-[12px] font-semibold text-[#1E2227]">
+                    This booking is cancelled.
+                  </p>
+                  {booking.cancellation_reason && (
+                    <p className="mt-1 text-[11px] leading-5 text-[#1E2227]/65">
+                      Reason: {booking.cancellation_reason}
+                    </p>
+                  )}
+                  {refunds.length === 0 ? (
+                    <p className="mt-2 text-[11px] leading-5 text-[#1E2227]/65">
+                      No payment was captured for this booking, so no refund is due.
+                    </p>
+                  ) : (
+                    <div className="mt-3 space-y-2">
+                      {refunds.map((refund) => {
+                        const state = REFUND_STATUS[refund.status] || { label: refund.status, tone: 'text-[#1E2227]/70' };
+                        return (
+                          <div key={refund.id} className="rounded-xl bg-[#1E2227]/[0.06] px-3 py-2.5">
+                            <div className="flex items-center justify-between gap-3">
+                              <span className={`text-[10px] font-bold uppercase tracking-[0.12em] ${state.tone}`}>
+                                {state.label}
+                              </span>
+                              <span className="text-[13px] font-bold tabular-nums text-[#1E2227]">
+                                {inr(refund.amount_minor)}
+                              </span>
+                            </div>
+                            {refund.utr && (
+                              <p className="mt-1 text-[10px] text-[#1E2227]/60">
+                                UTR <span className="font-mono">{refund.utr}</span>
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
+                      <p className="text-[10px] leading-5 text-[#1E2227]/55">
+                        Approved refunds are paid to the UPI account used for payment.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ) : pendingApproval ? (
+                <div className="mt-3">
+                  <p className="text-[12px] font-semibold text-[#1E2227]">
+                    Cancellation requested · waiting for the venue
+                  </p>
+                  <p className="mt-1 text-[11px] leading-5 text-[#1E2227]/65">
+                    Your tickets stay valid until the request is reviewed. If approved,{' '}
+                    <strong>{inr(cancellation?.refund_minor ?? quote?.quote?.refundMinor ?? 0)}</strong>{' '}
+                    will be refunded to your UPI account.
+                  </p>
+                  {cancellation?.reason && (
+                    <p className="mt-1 text-[10px] text-[#1E2227]/55">Reason: {cancellation.reason}</p>
+                  )}
+                </div>
+              ) : cancelMode ? (
+                <div className="mt-3">
+                  {quoteLoading ? (
+                    <div className="flex items-center gap-2 py-4 text-[11px] text-[#1E2227]/65">
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-dashed border-[#1E2227]/50 border-t-transparent" />
+                      Checking the refund window…
+                    </div>
+                  ) : quote?.quote?.allowed ? (
+                    <div>
+                      <div className="flex items-end justify-between gap-3 rounded-xl bg-[#C8FF1F] px-3 py-3 text-[#1E2227]">
+                        <div>
+                          <p className="text-[8px] font-bold uppercase tracking-[0.16em] text-[#1E2227]/70">
+                            Refund estimate
+                          </p>
+                          <p className="mt-0.5 text-[22px] font-bold leading-none tabular-nums">
+                            {inr(quote.quote.refundMinor)}
+                          </p>
+                        </div>
+                        <p className="text-right text-[10px] font-semibold leading-4">
+                          {quote.quote.percent}% of {inr(quote.quote.paidMinor)}
+                        </p>
+                      </div>
+                      <p className="mt-2 text-[10px] leading-5 text-[#1E2227]/65">
+                        Request before{' '}
+                        {quote.quote.deadline
+                          ? new Date(quote.quote.deadline).toLocaleString('en-IN', {
+                            day: '2-digit',
+                            month: 'short',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: true,
+                          })
+                          : 'the show starts'}
+                        . The venue reviews every request before paying it out.
+                      </p>
+                      <label className="mt-3 block">
+                        <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-[#1E2227]/70">
+                          Reason (optional)
+                        </span>
+                        <textarea
+                          value={reason}
+                          onChange={(event) => setReason(event.target.value)}
+                          maxLength={500}
+                          rows={2}
+                          placeholder="Plans changed, booked the wrong show…"
+                          className="mt-1 w-full resize-none rounded-xl border border-[#1E2227]/15 bg-white px-3 py-2 text-[12px] text-[#1E2227] outline-none placeholder:text-[#1E2227]/35 focus:border-[#1E2227]/40"
+                        />
+                      </label>
+                      {cancelError && (
+                        <p className="mt-2 rounded-lg bg-[#A23B32]/10 px-3 py-2 text-[11px] text-[#A23B32]">
+                          {cancelError}
+                        </p>
+                      )}
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          disabled={submitting}
+                          onClick={submitCancel}
+                          className="flex-1 rounded-full bg-[#1E2227] px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#F2F0EC] disabled:opacity-60"
+                        >
+                          {submitting ? 'Sending…' : 'Request cancellation'}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={submitting}
+                          onClick={() => setCancelMode(false)}
+                          className="rounded-full border border-[#1E2227]/20 px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#1E2227]/70"
+                        >
+                          Keep tickets
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="text-[11px] leading-5 text-[#1E2227]/70">
+                        {quote?.quote?.reason || cancelError || 'This booking is not eligible for self-service cancellation.'}
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <Link
+                          to="/refunds"
+                          className="rounded-full border border-[#1E2227]/20 px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#1E2227]/70"
+                        >
+                          Read policy
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => setCancelMode(false)}
+                          className="rounded-full bg-[#1E2227] px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#F2F0EC]"
+                        >
+                          Close
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="mt-3">
+                  <p className="text-[11px] leading-5 text-[#1E2227]/65">
+                    Changed your plans? Check the refund estimate before sending a request. Your tickets stay valid until the venue approves it.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={openCancel}
+                    className="mt-3 inline-flex items-center gap-2 rounded-full border border-[#1E2227]/25 px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#1E2227] transition-colors hover:bg-[#1E2227]/5"
+                  >
+                    <UiIcon name="event_busy" className="text-[14px]" />
+                    Request cancellation
+                  </button>
+                </div>
+              )}
+            </section>
+          )}
         </div>
       </div>
     </div>,
@@ -162,6 +408,7 @@ export default function MyTickets() {
   const [now] = useState(() => Date.now());
   const [printBooking, setPrintBooking] = useState(null);
   const [previewBooking, setPreviewBooking] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
   const pageRef = useRef(null);
   const token = localStorage.getItem('token');
 
@@ -199,7 +446,12 @@ export default function MyTickets() {
         if (bookingsResult.status === 'fulfilled') {
           const rows = Array.isArray(bookingsResult.value.data) ? bookingsResult.value.data : [];
           // Pending bookings are still being paid for: never show them as passes.
-          setBookings(rows.filter((booking) => booking.status !== 'pending'));
+          const visible = rows.filter((booking) => booking.status !== 'pending');
+          setBookings(visible);
+          // Keep an open pass in sync after a cancellation request changes its state.
+          setPreviewBooking((current) => (
+            current ? visible.find((booking) => booking.id === current.id) || current : current
+          ));
         } else {
           const err = bookingsResult.reason;
           setError(err?.response?.data?.error || err?.message || 'Unable to load your tickets.');
@@ -219,7 +471,7 @@ export default function MyTickets() {
     return () => {
       stop = true;
     };
-  }, [token]);
+  }, [token, refreshKey]);
 
   // Print-to-PDF: the browser print dialog produces a real PDF of the ticket.
   useEffect(() => {
@@ -424,6 +676,7 @@ export default function MyTickets() {
         <TicketPassModal
           booking={previewBooking}
           onClose={() => setPreviewBooking(null)}
+          onUpdated={() => setRefreshKey((key) => key + 1)}
           onDownload={(booking) => {
             setPreviewBooking(null);
             setPrintBooking(booking);

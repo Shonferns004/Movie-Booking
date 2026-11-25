@@ -10,6 +10,7 @@ import SeatSelection from './pages/SeatSelection.jsx';
 import Checkout from './pages/Checkout.jsx';
 import BookingConfirmation from './pages/BookingConfirmation.jsx';
 import MyTickets from './pages/MyTickets.jsx';
+import RefundPolicy from './pages/RefundPolicy.jsx';
 import Login from './pages/Login.jsx';
 import UiIcon from './components/UiIcon.jsx';
 
@@ -336,7 +337,7 @@ function SiteFooter() {
           <FooterColumn
             title="Help"
             links={[
-              { label: 'Cancellation & refunds', to: '/my-tickets' },
+              { label: 'Cancellation & refunds', to: '/refunds' },
               { label: 'Food & beverages menu', to: '/#events' },
               { label: 'Privacy policy', to: '/' },
             ]}
@@ -419,6 +420,7 @@ export default function App() {
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/booking/:reference" element={<BookingConfirmation />} />
           <Route path="/my-tickets" element={<MyTickets />} />
+          <Route path="/refunds" element={<RefundPolicy />} />
           <Route path="/login" element={<Login />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

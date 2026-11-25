@@ -6,6 +6,7 @@ import 'events_admin_screen.dart';
 import 'gallery_screen.dart';
 import 'members_screen.dart';
 import 'notices_admin_screen.dart';
+import 'refunds_screen.dart';
 import 'scanner_shell.dart' show KkSurface;
 import 'package:tabler_icons_plus/tabler_icons_plus.dart';
 
@@ -29,6 +30,7 @@ class _CommunityHomeScreenState extends State<CommunityHomeScreen> {
   List<dynamic> _events = const [];
   List<dynamic> _notices = const [];
   List<dynamic> _hero = const [];
+  int _openRefunds = 0;
 
   @override
   void initState() {
@@ -49,13 +51,21 @@ class _CommunityHomeScreenState extends State<CommunityHomeScreen> {
         Api.getCommunityEvents(token),
         Api.getCommunityNotices(token),
         Api.getHeroImages(token),
+        Api.getCancellationRequests(token),
+        Api.getRefunds(token),
       ]);
       if (!mounted) return;
+      final requests = results[4] as List<dynamic>;
+      final refunds = results[5] as List<dynamic>;
       setState(() {
         _members = results[0];
         _events = results[1];
         _notices = results[2];
         _hero = results[3];
+        _openRefunds = requests.where((row) => row is Map && row['status'] == 'pending').length
+            + refunds
+                .where((row) => row is Map && (row['status'] == 'pending' || row['status'] == 'processing'))
+                .length;
         _loading = false;
         _error = null;
       });
@@ -388,6 +398,17 @@ class _CommunityHomeScreenState extends State<CommunityHomeScreen> {
               hint: 'Festivals & tickets',
               icon: TablerIcons.confetti,
               onTap: () => _open(EventsAdminScreen(token: widget.token)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            _actionTile(
+              label: 'Refunds',
+              hint: _openRefunds > 0 ? '$_openRefunds waiting' : 'Requests & payouts',
+              icon: TablerIcons.receipt,
+              onTap: () => _open(RefundsScreen(token: widget.token)),
             ),
           ],
         ),

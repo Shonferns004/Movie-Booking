@@ -144,6 +144,101 @@ class Api {
   static Future<List<dynamic>> getBookings(String token) =>
       _getList(token, '/bookings', 'Failed to load bookings');
 
+  // --- Cancellations & refunds ---------------------------------------------
+
+  static String _message(http.Response res, String fallback) {
+    try {
+      final data = jsonDecode(res.body);
+      if (data is Map && data['error'] != null) return data['error'].toString();
+    } catch (_) {
+      // Non-JSON error body: fall through to the friendly message.
+    }
+    return fallback;
+  }
+
+  static Future<List<dynamic>> getCancellationRequests(
+    String token, {
+    String? status,
+  }) =>
+      _getList(
+        token,
+        '/bookings/cancellation-requests${status == null ? '' : '?status=$status'}',
+        'Failed to load cancellation requests',
+      );
+
+  static Future<Map<String, dynamic>> approveCancellationRequest(
+    String token,
+    String requestId, {
+    String? note,
+    int? refundMinor,
+  }) async {
+    final body = <String, dynamic>{};
+    if (note != null && note.trim().isNotEmpty) body['note'] = note.trim();
+    if (refundMinor != null) body['refundMinor'] = refundMinor;
+    final res = await _request(
+      token,
+      'POST',
+      '/bookings/cancellation-requests/$requestId/approve',
+      body: body,
+    );
+    if (res.statusCode == 200) return jsonDecode(res.body) as Map<String, dynamic>;
+    throw Exception(_message(res, 'Failed to approve the cancellation'));
+  }
+
+  static Future<Map<String, dynamic>> rejectCancellationRequest(
+    String token,
+    String requestId, {
+    String? note,
+  }) async {
+    final body = <String, dynamic>{};
+    if (note != null && note.trim().isNotEmpty) body['note'] = note.trim();
+    final res = await _request(
+      token,
+      'POST',
+      '/bookings/cancellation-requests/$requestId/reject',
+      body: body,
+    );
+    if (res.statusCode == 200) return jsonDecode(res.body) as Map<String, dynamic>;
+    throw Exception(_message(res, 'Failed to reject the cancellation'));
+  }
+
+  static Future<List<dynamic>> getRefunds(String token, {String? status}) =>
+      _getList(
+        token,
+        '/bookings/refunds${status == null ? '' : '?status=$status'}',
+        'Failed to load refunds',
+      );
+
+  static Future<Map<String, dynamic>> updateRefund(
+    String token,
+    String refundId, {
+    required String status,
+    String? utr,
+    String? note,
+  }) async {
+    final body = <String, dynamic>{'status': status};
+    if (utr != null && utr.trim().isNotEmpty) body['utr'] = utr.trim();
+    if (note != null && note.trim().isNotEmpty) body['note'] = note.trim();
+    final res = await _request(token, 'PATCH', '/bookings/refunds/$refundId', body: body);
+    if (res.statusCode == 200) return jsonDecode(res.body) as Map<String, dynamic>;
+    throw Exception(_message(res, 'Failed to update the refund'));
+  }
+
+  static Future<Map<String, dynamic>> cancelBooking(
+    String token,
+    String bookingId, {
+    String? reason,
+    String refundMode = 'full',
+    int? refundMinor,
+  }) async {
+    final body = <String, dynamic>{'refundMode': refundMode};
+    if (reason != null && reason.trim().isNotEmpty) body['reason'] = reason.trim();
+    if (refundMinor != null) body['refundMinor'] = refundMinor;
+    final res = await _request(token, 'POST', '/bookings/admin/$bookingId/cancel', body: body);
+    if (res.statusCode == 200) return jsonDecode(res.body) as Map<String, dynamic>;
+    throw Exception(_message(res, 'Failed to cancel the booking'));
+  }
+
   static Future<List<dynamic>> getTheatres(String token) =>
       _getList(token, '/theatres', 'Failed to load theatres');
 

@@ -86,6 +86,12 @@ export const env = {
   HOLD_EXPIRY_SECONDS: Number(process.env.HOLD_EXPIRY_SECONDS || 600),
   MAX_SEATS_PER_BOOKING: Number(process.env.MAX_SEATS_PER_BOOKING || 10),
 
+  // --- Cancellations & refunds ---------------------------------------------
+  // Refund tiers as "hoursBeforeShow:percent", highest first. The customer sees this
+  // estimate; staff approve the request and pay the refund by UPI.
+  REFUND_TIERS: process.env.REFUND_TIERS || "24:100,2:50",
+  CANCELLATION_ENABLED: process.env.CANCELLATION_ENABLED !== "false",
+
   // --- Object storage -------------------------------------------------------
 
   NEON_STORAGE_ENDPOINT:

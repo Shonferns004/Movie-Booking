@@ -248,6 +248,9 @@ CREATE TABLE IF NOT EXISTS bookings (
   contact_email TEXT,
   contact_mobile TEXT,
   hold_id UUID REFERENCES seat_holds(id),
+  cancelled_at TIMESTAMPTZ,
+  cancellation_reason TEXT,
+  cancelled_by UUID REFERENCES users(id),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -294,14 +297,48 @@ CREATE TABLE IF NOT EXISTS payment_events (
 CREATE TABLE IF NOT EXISTS refunds (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   payment_id UUID NOT NULL REFERENCES payments(id) ON DELETE CASCADE,
+  booking_id UUID REFERENCES bookings(id) ON DELETE CASCADE,
   amount_minor INTEGER NOT NULL,
   reason TEXT,
+  provider TEXT,
   provider_refund_id TEXT,
-  status TEXT NOT NULL DEFAULT 'initiated',
+  method TEXT NOT NULL DEFAULT 'upi',
+  utr TEXT,
+  destination TEXT,
+  note TEXT,
+  policy_percent INTEGER,
+  -- pending -> processing -> completed | failed
+  status TEXT NOT NULL DEFAULT 'pending',
   initiated_by UUID REFERENCES users(id),
+  processed_by UUID REFERENCES users(id),
+  processed_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+CREATE TABLE IF NOT EXISTS booking_cancellation_requests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  booking_id UUID NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,
+  requested_by UUID REFERENCES users(id),
+  reason TEXT,
+  status TEXT NOT NULL DEFAULT 'pending',
+  policy_percent INTEGER NOT NULL DEFAULT 0,
+  paid_minor INTEGER NOT NULL DEFAULT 0,
+  refund_minor INTEGER NOT NULL DEFAULT 0,
+  review_note TEXT,
+  reviewed_by UUID REFERENCES users(id),
+  reviewed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_cancel_request_pending
+  ON booking_cancellation_requests (booking_id)
+  WHERE status = 'pending';
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_refunds_payment_active
+  ON refunds (payment_id)
+  WHERE status IN ('pending', 'processing', 'completed');
 
 CREATE TABLE IF NOT EXISTS tickets (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

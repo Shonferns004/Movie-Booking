@@ -1,6 +1,7 @@
 import { pool, withTransaction } from '../../db/pool.js';
 import { notFound, badRequest, conflict } from '../../utils/errors.js';
 import { publishDueMovies } from '../../jobs/publish.js';
+import { cancelBookingsForShow } from '../bookings/service.js';
 
 export async function listShows({ movieId, from, to, includeUnpublished = false } = {}) {
   if (!includeUnpublished) await publishDueMovies();
@@ -121,9 +122,9 @@ export async function deleteShow(id) {
     const { rows } = await client.query('SELECT * FROM shows WHERE id=$1 FOR UPDATE', [id]);
     if (!rows.length) throw notFound('show not found');
     await client.query("UPDATE shows SET status='cancelled', updated_at=now() WHERE id=$1", [id]);
+    // Refund every paid booking in full before the seats are released.
+    await cancelBookingsForShow(client, id, { reason: 'Show cancelled by the venue' });
     await client.query("UPDATE show_seats SET status='available', hold_id=NULL, booking_id=NULL, updated_at=now() WHERE show_id=$1", [id]);
-    await client.query("UPDATE bookings SET status='cancelled', updated_at=now() WHERE show_id=$1 AND status IN ('pending','confirmed')", [id]);
-    await client.query("UPDATE tickets SET status='cancelled' WHERE booking_id IN (SELECT id FROM bookings WHERE show_id=$1)", [id]);
     await client.query('INSERT INTO audit_logs (actor_id, action, entity_type, entity_id) VALUES (NULL,$1,$2,$3)',
       ['show_cancelled', 'show', id]);
     return { deleted: true };
@@ -192,6 +193,24 @@ export async function updateShow(id, data) {
       [movieId, auditoriumId, startsAt, endsAt, bookingOpensAt, bookingClosesAt, status, id],
     );
     const updated = updatedRows[0];
+
+    const wasCancelled = String(current.status).toLowerCase() === 'cancelled';
+    const nowCancelled = String(updated.status).toLowerCase() === 'cancelled';
+    if (!wasCancelled && nowCancelled) {
+      // Staff cancelled the show from the dashboard: refund every paid booking and
+      // release the room, including holds that never became bookings.
+      await cancelBookingsForShow(client, id, { reason: 'Show cancelled by the venue' });
+      await client.query(
+        `UPDATE seat_holds SET status='released', released_at=now()
+          WHERE show_id=$1 AND status='active'`,
+        [id],
+      );
+      await client.query(
+        `UPDATE show_seats SET status='available', hold_id=NULL, booking_id=NULL, updated_at=now()
+          WHERE show_id=$1`,
+        [id],
+      );
+    }
 
     const prices = Array.isArray(data.prices) ? data.prices : [];
     for (const price of prices) {

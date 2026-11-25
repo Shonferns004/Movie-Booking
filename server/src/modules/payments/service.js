@@ -169,6 +169,16 @@ export async function processPaymentEvent({ provider, providerEventId, eventType
     // if seats unavailable, mark for refund
     await pool.query("UPDATE bookings SET status='failed', updated_at=now() WHERE id=$1 AND status='pending'", [booking.id]);
     await pool.query("UPDATE payments SET status='requires_refund', updated_at=now() WHERE booking_id=$1", [booking.id]);
+    // Put the captured money straight into the manual payout queue so it cannot be
+    // forgotten when the confirmation loses the seat race.
+    await pool.query(
+      `INSERT INTO refunds (payment_id, booking_id, amount_minor, reason, provider, method, status)
+       SELECT p.id, p.booking_id, p.amount_minor,
+              'Seat no longer available after payment', p.provider, 'upi', 'pending'
+         FROM payments p
+        WHERE p.booking_id=$1 AND p.status='requires_refund'
+       ON CONFLICT DO NOTHING`,
+      [booking.id]);
     throw e;
   }
 

@@ -456,7 +456,7 @@ export default function Checkout() {
           <div className="px-5 py-4 sm:px-6" style={{ background: C.greenSoft, color: C.green }}>
             <p className="text-xs font-bold">Cancellation Available</p>
             <p className="mt-1 text-[11px] leading-5 text-[#B6E36A]/85">
-              This venue supports booking cancellation. <span className="underline-offset-2">View cancellation policy</span>
+              This venue supports booking cancellation. <Link to="/refunds" className="font-semibold underline underline-offset-2">View cancellation policy</Link>
             </p>
           </div>
         </section>

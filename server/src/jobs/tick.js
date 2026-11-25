@@ -68,7 +68,8 @@ export async function processOutbox() {
             throw new Error(data.error || data.message || `WhatsApp ticket failed (${response.status})`);
           }
           providerMessageId = data.id || `whatsapp-${Date.now()}`;
-        } else if (msg.event_type === 'membership_renewal_whatsapp') {
+        } else if (msg.event_type === 'membership_renewal_whatsapp'
+          || msg.event_type === 'cancellation_whatsapp') {
           const base = String(env.YOUPI_API_URL || '').replace(/\/$/, '');
           if (!base) throw new Error('YOUPI_API_URL is not configured');
           const response = await fetch(`${base}/api/v1/internal/whatsapp/message`, {
