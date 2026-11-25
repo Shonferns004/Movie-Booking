@@ -52,7 +52,6 @@ function TicketPassModal({ booking, onClose, onDownload, onUpdated }) {
   const hasScanned = seats.some((seat) => seat.checked_in_at || seat.ticket_status === 'checked_in');
   const requestOpen = !cancellation || cancellation.status === 'rejected';
   const canRequest = bookingStatus === 'confirmed' && isUpcoming && !hasScanned && requestOpen;
-  const pendingApproval = cancellation?.status === 'pending' || requestSent;
 
   const [cancelMode, setCancelMode] = useState(false);
   const [quote, setQuote] = useState(null);
@@ -61,6 +60,7 @@ function TicketPassModal({ booking, onClose, onDownload, onUpdated }) {
   const [submitting, setSubmitting] = useState(false);
   const [cancelError, setCancelError] = useState('');
   const [requestSent, setRequestSent] = useState(false);
+  const pendingApproval = cancellation?.status === 'pending' || requestSent;
 
   const openCancel = async () => {
     setCancelMode(true);
