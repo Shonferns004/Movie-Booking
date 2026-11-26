@@ -32,6 +32,12 @@ router.post('/refresh', validate(refreshSchema), async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+router.post('/logout', validate(refreshSchema), async (req, res, next) => {
+  try {
+    res.json(await auth.revokeSession(req.body.refreshToken));
+  } catch (e) { next(e); }
+});
+
 // WhatsApp OTP sign-in, using the same gateway/customer identity as checkout.
 router.post('/otp/send', validate(otpSendSchema), async (req, res, next) => {
   try {

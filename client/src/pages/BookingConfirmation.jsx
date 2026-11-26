@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import api from '../services/api.js';
 import { useSileoNotice } from '../hooks/useSileoNotice.js';
@@ -25,6 +25,9 @@ function statusStyles(status = '') {
 
 export default function BookingConfirmation() {
   const { reference } = useParams();
+  const [searchParams] = useSearchParams();
+  const guestToken = searchParams.get('token')
+    || (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(`bookingToken:${reference}`) : null);
   const [booking, setBooking] = useState(null);
   const [error, setError] = useState('');
 
@@ -48,7 +51,9 @@ export default function BookingConfirmation() {
     const loadBooking = async () => {
       try {
         setRefreshing(true);
-        const response = await api.get(`/bookings/${reference}`);
+        const response = await api.get(`/bookings/${reference}`, {
+          params: guestToken ? { token: guestToken } : undefined,
+        });
         if (!stopped) {
           setBooking(response.data);
           setError('');
@@ -69,7 +74,7 @@ export default function BookingConfirmation() {
       stopped = true;
       if (intervalId) clearInterval(intervalId);
     };
-  }, [reference, booking?.status]);
+  }, [reference, booking?.status, guestToken]);
 
   if (!booking && !error) {
     return (

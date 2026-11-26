@@ -128,9 +128,10 @@ export default function Login() {
       if (data.user) {
         localStorage.setItem('user', JSON.stringify({ ...data.user, mobile: data.mobile || data.user.mobile }));
       }
-      if (data.youpiCustomerToken) {
-        localStorage.setItem('youpiCustomerToken', data.youpiCustomerToken);
-      }
+      // The gateway session token is no longer needed in browser storage: a
+      // signed-in checkout is marked verified in gateway metadata. Remove any
+      // value left by an older build.
+      localStorage.removeItem('youpiCustomerToken');
       notify.success({ title: 'Signed in', description: 'Welcome back to Konkani Samudai.' });
       navigate('/movies');
     } catch (err) {
@@ -153,6 +154,9 @@ export default function Login() {
       localStorage.setItem('token', r.data.accessToken || r.data.token);
       if (r.data.refreshToken) localStorage.setItem('refreshToken', r.data.refreshToken);
       if (r.data.user) localStorage.setItem('user', JSON.stringify(r.data.user));
+      // A password login starts a new identity; never reuse the previous
+      // gateway customer session.
+      localStorage.removeItem('youpiCustomerToken');
       notify.success({
         title: isRegister ? 'Account created' : 'Signed in',
         description: isRegister ? 'Welcome to Konkani Samudai.' : 'Welcome back.',

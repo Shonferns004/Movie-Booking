@@ -44,6 +44,13 @@ export default function EventTicket() {
         setStatus(String(response.data?.status || ''));
         setError('');
         setLoading(false);
+        if (response.data?.providerStatus === 'SUCCESS' && response.data?.status !== 'paid') {
+          // The public read is read-only; settle the paid state through the
+          // amount-checked confirmation route, then reload.
+          await api.post(`/community/events/checkout/${orderId}/confirm`, {}).catch(() => {});
+          if (!stop) timer = setTimeout(load, 800);
+          return;
+        }
         if (response.data?.status !== 'paid') {
           timer = setTimeout(load, 3500);
         }

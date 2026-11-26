@@ -1062,11 +1062,12 @@ function TicketModal({ event, onClose }) {
         try {
           const response = await api.get(`/community/events/checkout/${activeOrder.orderId}`);
           const status = String(response.data?.status || '');
-          if (status === 'paid') {
+          const providerStatus = String(response.data?.providerStatus || '');
+          if (status === 'paid' || providerStatus === 'SUCCESS') {
             await finish(activeOrder.orderId);
             return;
           }
-          if (status === 'failed' || status === 'expired') {
+          if (status === 'failed' || status === 'expired' || providerStatus === 'FAILED' || providerStatus === 'EXPIRED') {
             stopPolling();
             setStage('form');
             setError('The payment did not go through. Please try again.');

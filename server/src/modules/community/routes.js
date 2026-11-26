@@ -1,14 +1,23 @@
 ﻿import { Router } from 'express';
 import multer from 'multer';
+import crypto from 'node:crypto';
+import { z } from 'zod';
 
 import * as community from './service.js';
 import * as payments from '../payments/service.js';
-import { getUserRoles, verifyToken } from '../auth/service.js';
+import { getUserAuthState, verifyToken } from '../auth/service.js';
+import { validate } from '../../middleware/validate.js';
 import { requireAuth, optionalAuth } from '../../middleware/auth.js';
 import { forbidden, unauthorized } from '../../utils/errors.js';
 import { isNeonStorageEnabled, uploadObject } from '../../integrations/neon-storage.js';
 
 const router = Router();
+
+function safeEqual(left, right) {
+  const a = Buffer.from(String(left || ''));
+  const b = Buffer.from(String(right || ''));
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -18,17 +27,17 @@ const upload = multer({
 /** Accepts either the shared admin token or a JWT whose user has the ADMIN role. */
 function adminOnly(req, res, next) {
   const supplied = req.headers['x-admin-token'];
-  const expected = process.env.ADMIN_TOKEN;
-  if (expected && supplied === expected) return next();
+  const expected = String(process.env.ADMIN_TOKEN || '').trim();
+  if (expected && safeEqual(supplied, expected)) return next();
 
   const header = req.headers.authorization || '';
   if (!header.startsWith('Bearer ')) return next(unauthorized());
 
   try {
     const payload = verifyToken(header.slice(7));
-    getUserRoles(payload.sub)
-      .then((roles) => {
-        if (roles.includes('ADMIN')) return next();
+    getUserAuthState(payload.sub)
+      .then((state) => {
+        if (state && state.status === 'active' && state.roles.includes('ADMIN')) return next();
         return next(forbidden('Admin role required'));
       })
       .catch(() => next(unauthorized()));
@@ -132,15 +141,22 @@ router.get('/events/tickets/me', requireAuth, async (req, res, next) => {
   }
 });
 
-router.post('/events/:id/checkout', optionalAuth, async (req, res, next) => {
+const eventCheckoutSchema = z.object({
+  tierId: z.string().max(100).optional(),
+  quantity: z.number().int().min(1).max(10).optional(),
+  name: z.string().trim().max(120).optional(),
+  phone: z.string().trim().max(20).optional(),
+});
+
+router.post('/events/:id/checkout', optionalAuth, validate(eventCheckoutSchema), async (req, res, next) => {
   try {
     res.status(201).json(
       await community.createTicketCheckout({
         eventId: req.params.id,
-        tierId: req.body?.tierId,
-        quantity: req.body?.quantity,
-        name: req.body?.name,
-        phone: req.body?.phone,
+        tierId: req.body.tierId,
+        quantity: req.body.quantity,
+        name: req.body.name,
+        phone: req.body.phone,
         userId: req.user?.id,
         publicBase: payments.youpiPublicBase(req),
       }),
@@ -160,7 +176,7 @@ router.get('/events/checkout/:orderId', async (req, res, next) => {
 
 router.post('/events/checkout/:orderId/confirm', async (req, res, next) => {
   try {
-    res.json(await community.confirmTicketCheckout(req.params.orderId, { utr: req.body?.utr }));
+    res.json(await community.confirmTicketCheckout(req.params.orderId));
   } catch (e) {
     next(e);
   }

@@ -85,6 +85,10 @@ CREATE TABLE IF NOT EXISTS community_ticket_orders (
 CREATE INDEX IF NOT EXISTS community_ticket_orders_status_idx
   ON community_ticket_orders (status, created_at DESC);
 
+CREATE INDEX IF NOT EXISTS idx_community_open_amounts
+  ON community_ticket_orders (status, amount_minor)
+  WHERE status IN ('creating', 'created');
+
 -- Event passes need their own date/time/venue for the printed ticket.
 ALTER TABLE community_ticket_orders ADD COLUMN IF NOT EXISTS event_date TEXT;
 ALTER TABLE community_ticket_orders ADD COLUMN IF NOT EXISTS event_time TEXT;

@@ -340,6 +340,13 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_refunds_payment_active
   ON refunds (payment_id)
   WHERE status IN ('pending', 'processing', 'completed');
 
+CREATE INDEX IF NOT EXISTS idx_sessions_token_hash
+  ON sessions (token_hash)
+  WHERE revoked_at IS NULL;
+
+CREATE INDEX IF NOT EXISTS idx_sessions_user_active
+  ON sessions (user_id, revoked_at);
+
 CREATE TABLE IF NOT EXISTS tickets (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   booking_id UUID NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,

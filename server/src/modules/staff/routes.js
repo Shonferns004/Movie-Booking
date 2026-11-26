@@ -8,7 +8,7 @@ const router = Router();
 
 const validateSchema = z.object({
   ticketReference: z.string().min(1),
-  showId: z.string().uuid().optional(),
+  showId: z.string().uuid(),
   metadata: z.any().optional(),
 });
 

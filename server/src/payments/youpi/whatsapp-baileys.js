@@ -56,7 +56,7 @@ async function createPostgresAuthState(connectionString, schemaName) {
     connectionTimeoutMillis: 20000,
     idleTimeoutMillis: 30000,
     ssl: /neon\.tech|supabase\.co|amazonaws\.com/.test(connectionString)
-      ? { rejectUnauthorized: false }
+      ? { rejectUnauthorized: true }
       : undefined,
   });
 

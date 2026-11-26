@@ -2,6 +2,26 @@ import { pool, withTransaction } from '../../db/pool.js';
 import { badRequest, notFound, conflict, forbidden } from '../../utils/errors.js';
 import { randomReference } from '../../utils/crypto.js';
 import { quoteCancellation, cancellationPolicy } from './refund-policy.js';
+import { env } from '../../config/env.js';
+import crypto from 'node:crypto';
+
+/**
+ * Stateless signed token for a guest booking link. It proves the holder received
+ * the checkout response/confirmation link; it is not stored in the database.
+ */
+export function guestTokenForReference(reference) {
+  const secret = env.GUEST_ACCESS_SECRET || env.JWT_SECRET || '';
+  if (!secret || !reference) return '';
+  return crypto.createHmac('sha256', secret).update(`guest-booking:${reference}`).digest('base64url');
+}
+
+export function guestTokenMatches(reference, token) {
+  const expected = guestTokenForReference(reference);
+  if (!expected || !token) return false;
+  const supplied = Buffer.from(String(token));
+  const wanted = Buffer.from(expected);
+  return supplied.length === wanted.length && crypto.timingSafeEqual(supplied, wanted);
+}
 
 const REQUEST_STATUSES = ['pending', 'approved', 'rejected', 'withdrawn'];
 const REFUND_STATUSES = ['pending', 'processing', 'completed', 'failed'];
@@ -224,6 +244,9 @@ export async function createBooking({ holdId, userId, sessionRef, contactEmail, 
     const hold = holds[0];
     if (hold.status !== 'active') throw badRequest('hold not active');
     if (new Date(hold.expires_at) <= new Date()) throw badRequest('hold expired');
+    if (!hold.owner_user_id && !hold.session_ref) {
+      throw forbidden('hold is not bound to an account or guest session');
+    }
     if (hold.owner_user_id && hold.owner_user_id !== userId) throw forbidden('not owner');
     if (!hold.owner_user_id && hold.session_ref && hold.session_ref !== sessionRef) throw forbidden('not owner');
 
@@ -232,7 +255,13 @@ export async function createBooking({ holdId, userId, sessionRef, contactEmail, 
 
     // Idempotent: return existing booking if one was already created.
     const { rows: existingBookings } = await client.query('SELECT * FROM bookings WHERE hold_id=$1', [holdId]);
-    if (existingBookings.length) return existingBookings[0];
+    if (existingBookings.length) {
+      const existing = existingBookings[0];
+      return {
+        ...existing,
+        guestAccessToken: existing.user_id ? null : guestTokenForReference(existing.booking_reference),
+      };
+    }
 
     // Lock the show to prevent venue changes during booking.
     await client.query('SELECT * FROM shows WHERE id=$1 FOR SHARE', [hold.show_id]);
@@ -284,7 +313,10 @@ export async function createBooking({ holdId, userId, sessionRef, contactEmail, 
         [booking.id, it.show_seat_id, label, si.category_name, it.price_minor, it.currency]);
     }
 
-    return booking;
+    return {
+      ...booking,
+      guestAccessToken: booking.user_id ? null : guestTokenForReference(booking.booking_reference),
+    };
   });
 }
 
@@ -317,12 +349,37 @@ async function loadBookingExtras(db, bookingId) {
   };
 }
 
-export async function getBooking(reference, user) {
+export async function getBooking(reference, user, guestToken = null) {
   const { rows } = await pool.query('SELECT * FROM bookings WHERE booking_reference=$1', [reference]);
   if (!rows.length) throw notFound('booking not found');
   const booking = rows[0];
-  if (user && booking.user_id && booking.user_id !== user.id) throw forbidden();
-  if (!user && booking.user_id) throw forbidden();
+
+  if (booking.user_id) {
+    if (!user || booking.user_id !== user.id) throw forbidden();
+  } else if (!guestTokenMatches(reference, guestToken)) {
+    // A bare booking reference is not an owner credential. Return only the
+    // non-sensitive status needed by legacy links; ticket QR codes, contact
+    // details, cancellation notes and refund UTRs stay behind the signed link.
+    const seats = await pool.query(
+      'SELECT seat_label, category_name, price_minor, currency FROM booking_seats WHERE booking_id=$1 ORDER BY seat_label',
+      [booking.id],
+    );
+    return {
+      booking_reference: booking.booking_reference,
+      status: booking.status,
+      show_id: booking.show_id,
+      total_minor: booking.total_minor,
+      currency: booking.currency,
+      created_at: booking.created_at,
+      seats: seats.rows,
+      tickets: [],
+      cancellation: null,
+      refunds: [],
+      paid_minor: 0,
+      restricted: true,
+    };
+  }
+
   const seats = await pool.query('SELECT * FROM booking_seats WHERE booking_id=$1', [booking.id]);
   const tickets = await pool.query('SELECT id, ticket_reference, status, checked_in_at FROM tickets WHERE booking_id=$1', [booking.id]);
   const extras = await loadBookingExtras(pool, booking.id);

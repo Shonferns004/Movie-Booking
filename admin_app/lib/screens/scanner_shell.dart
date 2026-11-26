@@ -209,6 +209,12 @@ class _ScannerShellState extends State<ScannerShell> {
   Future<void> _manualEntry() async {
     final token = widget.token;
     if (token == null || token.isEmpty) return;
+    final showId = widget.selectedShowId;
+    if (showId == null || showId.isEmpty) {
+      AppToast.show(context, 'Select a show before entering a ticket code.',
+          type: AppToastType.error);
+      return;
+    }
     final code = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
@@ -220,8 +226,7 @@ class _ScannerShellState extends State<ScannerShell> {
 
     setState(() => _busy = true);
     try {
-      final res = await Api.validateTicket(token, code,
-          showId: widget.selectedShowId);
+      final res = await Api.validateTicket(token, code, showId: showId);
       final result = res['result'] ?? 'UNKNOWN';
       if (result == 'VALID') widget.onScanned(1);
       AppToast.show(

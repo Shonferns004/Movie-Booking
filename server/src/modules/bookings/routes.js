@@ -154,7 +154,7 @@ router.post('/:reference/cancel', requireAuth, validate(cancelRequestSchema), as
 });
 
 router.get('/:reference', optionalAuth, async (req, res, next) => {
-  try { res.json(await bookings.getBooking(req.params.reference, req.user)); } catch (e) { next(e); }
+  try { res.json(await bookings.getBooking(req.params.reference, req.user, req.query.token)); } catch (e) { next(e); }
 });
 
 export default router;

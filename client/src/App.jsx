@@ -13,6 +13,7 @@ import MyTickets from './pages/MyTickets.jsx';
 import RefundPolicy from './pages/RefundPolicy.jsx';
 import Login from './pages/Login.jsx';
 import UiIcon from './components/UiIcon.jsx';
+import { session } from './services/api.js';
 
 const NAV_LINKS = [
   { to: '/', label: 'Home', end: true, icon: 'diversity_3' },
@@ -78,10 +79,7 @@ function Nav() {
   }, [accountOpen]);
 
   function logout() {
-    localStorage.removeItem('token');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('user');
-    localStorage.removeItem('youpiCustomerToken');
+    session.logout();
     setToken(false);
     setMobileOpen(false);
     navigate('/', { replace: true });

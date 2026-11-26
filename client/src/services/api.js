@@ -26,6 +26,21 @@ const session = {
   clear() {
     localStorage.removeItem('token');
     localStorage.removeItem('refreshToken');
+    localStorage.removeItem('user');
+    localStorage.removeItem('youpiCustomerToken');
+  },
+  async logout() {
+    const refreshToken = this.refreshToken;
+    // Clear local state immediately so a failed network call cannot leave the
+    // browser signed in.
+    this.clear();
+    if (refreshToken) {
+      try {
+        await axios.post(`${API_BASE}/api/v1/auth/logout`, { refreshToken });
+      } catch {
+        // The server will expire the session at its normal time.
+      }
+    }
   },
 };
 

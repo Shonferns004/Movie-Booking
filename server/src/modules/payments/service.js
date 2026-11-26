@@ -1,8 +1,9 @@
 ﻿import { pool, withTransaction } from '../../db/pool.js';
-import { badRequest, notFound, conflict, serviceUnavailable } from '../../utils/errors.js';
+import { badRequest, notFound, conflict, forbidden, serviceUnavailable } from '../../utils/errors.js';
 import { randomToken, sha256 } from '../../utils/crypto.js';
 import { env } from '../../config/env.js';
 import { IS_WORKERS } from '../../config/runtime.js';
+import { guestTokenForReference } from '../bookings/service.js';
 import crypto from 'node:crypto';
 
 async function confirmBookingAfterPayment(client, bookingId, paymentId) {
@@ -94,18 +95,36 @@ async function confirmBookingAfterPayment(client, bookingId, paymentId) {
   return booking;
 }
 
-export async function createPaymentOrder({ bookingReference, provider }) {
+export async function createPaymentOrder({ bookingReference, provider, userId, sessionRef }) {
   const { rows } = await pool.query('SELECT * FROM bookings WHERE booking_reference=$1', [bookingReference]);
   if (!rows.length) throw notFound('booking not found');
   const booking = rows[0];
   if (booking.status !== 'pending') throw badRequest('booking not payable');
-  const prov = provider || env.PAYMENT_PROVIDER;
+  await assertBookingAccess(pool, booking, { userId, sessionRef });
+  const requested = env.ALLOW_PROVIDER_OVERRIDE ? (provider || env.PAYMENT_PROVIDER) : env.PAYMENT_PROVIDER;
+  if (!['mock', 'youpi'].includes(requested)) throw badRequest('unsupported payment provider');
   const orderId = `order_${randomToken(8)}`;
   const { rows: pays } = await pool.query(
     `INSERT INTO payments (booking_id, provider, provider_order_id, amount_minor, currency, status)
      VALUES ($1,$2,$3,$4,$5,'created') RETURNING *`,
-    [booking.id, prov, orderId, booking.total_minor, booking.currency]);
-  return { payment: pays[0], orderId, amount: booking.total_minor, currency: booking.currency, provider: prov };
+    [booking.id, requested, orderId, booking.total_minor, booking.currency]);
+  return { payment: pays[0], orderId, amount: booking.total_minor, currency: booking.currency, provider: requested };
+}
+
+/**
+ * A payment order is a booking-scoped write. The caller must own the booking
+ * account or present the guest session that created the hold.
+ */
+async function assertBookingAccess(db, booking, { userId, sessionRef }) {
+  if (booking.user_id) {
+    if (!userId || booking.user_id !== userId) throw forbidden('not the booking owner');
+    return;
+  }
+  if (!sessionRef) throw forbidden('guest session reference required');
+  const { rows } = await db.query('SELECT session_ref FROM seat_holds WHERE id=$1', [booking.hold_id]);
+  if (!rows.length || !rows[0].session_ref || rows[0].session_ref !== sessionRef) {
+    throw forbidden('not the booking owner');
+  }
 }
 
 export async function processPaymentEvent({ provider, providerEventId, eventType, payload }) {
@@ -140,45 +159,71 @@ export async function processPaymentEvent({ provider, providerEventId, eventType
   if (!booking) throw notFound('booking not found for payment');
 
   const success = eventType.includes('success') || payload.status === 'success' || payload.status === 'captured';
+  const orderId = payload.orderId || payload.providerOrderId || null;
+
+  // A payment event must match a real payment row for this provider and booking.
+  // This is the last trusted decision point before seats/tickets change.
+  let payment = null;
+  if (orderId) {
+    const { rows } = await pool.query(
+      'SELECT * FROM payments WHERE provider_order_id=$1 AND provider=$2',
+      [orderId, provider],
+    );
+    payment = rows[0] || null;
+    if (payment && payment.booking_id !== booking.id) {
+      throw conflict('payment order does not belong to booking');
+    }
+  } else {
+    const { rows } = await pool.query(
+      `SELECT * FROM payments
+        WHERE booking_id=$1 AND provider=$2 AND status IN ('created','verified')
+        ORDER BY created_at DESC LIMIT 1`,
+      [booking.id, provider],
+    );
+    payment = rows[0] || null;
+  }
+  if (!payment) throw conflict('no payable payment for this booking');
 
   if (!success) {
-    await pool.query("UPDATE payments SET status='failed', updated_at=now() WHERE booking_id=$1", [booking.id]);
+    await pool.query(
+      "UPDATE payments SET status='failed', updated_at=now() WHERE id=$1 AND status IN ('created','verified')",
+      [payment.id],
+    );
     await pool.query("UPDATE payment_events SET processing_status='processed', processed_at=now() WHERE id=$1", [eventId]);
     return { success: false };
   }
 
-  // Update only the payment row that belongs to this order. A booking can have an
-  // abandoned earlier order (with a different verification amount); marking that
-  // row verified would corrupt reconciliation. A retry keeps the same order id, so
-  // its earlier `failed` row may be promoted once the new attempt succeeds.
-  const orderId = payload.orderId || payload.providerOrderId || null;
-  await pool.query(
-    `UPDATE payments SET status='verified', provider_payment_id=$1, verified_at=now(), updated_at=now()
-     WHERE booking_id=$2
-       AND (status IN ('created','verified') OR (status='failed' AND $3::text IS NOT NULL))
-       AND ($3::text IS NULL OR provider_order_id = $3)`,
-    [payload.paymentId || payload.providerPaymentId || `pay_${randomToken(6)}`, booking.id, orderId]);
+  if (!['created', 'verified', 'failed'].includes(payment.status)) {
+    throw conflict(`payment is ${payment.status}`);
+  }
+
+  const updated = await pool.query(
+    `UPDATE payments
+        SET status='verified', provider_payment_id=COALESCE($2, provider_payment_id),
+            verified_at=now(), updated_at=now()
+      WHERE id=$1 AND status IN ('created','verified','failed')
+      RETURNING *`,
+    [payment.id, payload.paymentId || payload.providerPaymentId || null],
+  );
+  if (!updated.rows.length) throw conflict('payment could not be verified');
 
   try {
     await withTransaction(async (client) => {
       // idempotent conversion
-      await confirmBookingAfterPayment(client, booking.id, null);
+      await confirmBookingAfterPayment(client, booking.id, payment.id);
     });
   } catch (e) {
     console.error('[payments] confirmBookingAfterPayment failed:', e.message, e.stack);
     // if seats unavailable, mark for refund
     await pool.query("UPDATE bookings SET status='failed', updated_at=now() WHERE id=$1 AND status='pending'", [booking.id]);
-    await pool.query("UPDATE payments SET status='requires_refund', updated_at=now() WHERE booking_id=$1", [booking.id]);
+    await pool.query("UPDATE payments SET status='requires_refund', updated_at=now() WHERE id=$1", [payment.id]);
     // Put the captured money straight into the manual payout queue so it cannot be
     // forgotten when the confirmation loses the seat race.
     await pool.query(
       `INSERT INTO refunds (payment_id, booking_id, amount_minor, reason, provider, method, status)
-       SELECT p.id, p.booking_id, p.amount_minor,
-              'Seat no longer available after payment', p.provider, 'upi', 'pending'
-         FROM payments p
-        WHERE p.booking_id=$1 AND p.status='requires_refund'
+       VALUES ($1,$2,$3,'Seat no longer available after payment',$4,'upi','pending')
        ON CONFLICT DO NOTHING`,
-      [booking.id]);
+      [payment.id, booking.id, payment.amount_minor, payment.provider || provider]);
     throw e;
   }
 
@@ -245,35 +290,37 @@ function toRupees(amountMinor) {
  * their amount again after 15 minutes.
  */
 const VERIFICATION_OFFSET_MAX_MINOR = 99;
-const VERIFICATION_AMOUNT_HOLD_MINUTES = 15;
 
 async function allocatePayableMinor(client, baseMinor) {
   const base = Number(baseMinor || 0);
   // Serialise allocation across API instances so two orders can never pick the
   // same paise offset for the same base amount.
   await client.query("SELECT pg_advisory_xact_lock(hashtext('youpi-payable-amount'))");
+  const holdMinutes = Number(env.YOUPI_AMOUNT_HOLD_MINUTES || 60);
   const { rows } = await client.query(
     `SELECT amount_minor FROM payments
      WHERE (status = 'created' AND created_at > now() - ($1::int * interval '1 minute'))
         OR (status = 'verified' AND verified_at > now() - ($1::int * interval '1 minute'))
         OR (status IN ('failed', 'requires_refund') AND updated_at > now() - ($1::int * interval '1 minute'))`,
-    [VERIFICATION_AMOUNT_HOLD_MINUTES]
+    [holdMinutes]
   );
   const used = new Set(rows.map((row) => Number(row.amount_minor)));
+  if (used.has(base)) {
+    // The gateway may have opened a session on the base amount already.
+    throw conflict('every payable amount for this total is reserved; retry shortly');
+  }
 
   for (let offset = 1; offset <= VERIFICATION_OFFSET_MAX_MINOR; offset += 1) {
     const candidate = base + offset;
     if (!used.has(candidate)) return { payableMinor: candidate, offsetMinor: offset };
   }
 
-  // 99 concurrent bookings with the same total is unlikely; degrade gracefully and
-  // let the gateway's amount match handle it.
-  console.warn('[payments] all verification offsets are in use; falling back to the base amount');
-  return { payableMinor: base, offsetMinor: 0 };
+  // Never reuse an amount: the gateway routes credits by exact amount.
+  throw conflict('too many open payments for this total; retry shortly');
 }
 
 /** Create a YOUPI payment session for a pending booking. */
-export async function createYoupiOrder({ bookingReference, customer, publicBase }) {
+export async function createYoupiOrder({ bookingReference, customer, publicBase, userId, sessionRef }) {
   const orderId = `order_${randomToken(8)}`;
 
   // Allocate the payable amount and reserve the local payment row atomically. The
@@ -284,6 +331,7 @@ export async function createYoupiOrder({ bookingReference, customer, publicBase 
     if (!rows.length) throw notFound('booking not found');
     const bookingRow = rows[0];
     if (bookingRow.status !== 'pending') throw badRequest('booking not payable');
+    await assertBookingAccess(client, bookingRow, { userId, sessionRef });
 
     const allocation = await allocatePayableMinor(client, bookingRow.total_minor);
     const { rows: pays } = await client.query(
@@ -304,10 +352,31 @@ export async function createYoupiOrder({ bookingReference, customer, publicBase 
   // origin than this API (for example a Vercel client talking to a Render API). Prefer
   // APP_BASE_URL for that redirect; publicBase is only a same-origin fallback.
   const appOrigin = (env.APP_BASE_URL || publicBase || '').replace(/\/$/, '');
-  const returnUrl = `${appOrigin}/booking/${booking.booking_reference}`;
-  const merchantCustomer = customer && (customer.name || customer.email || customer.mobile)
-    ? { name: customer.name || '', email: customer.email || '', phone: customer.mobile || '' }
+  // A guest has no session cookie/JWT, so the confirmation link carries a signed
+  // token that only proves possession of the booking reference.
+  const guestToken = booking.user_id ? '' : guestTokenForReference(booking.booking_reference);
+  const returnUrl = `${appOrigin}/booking/${booking.booking_reference}${guestToken ? `?token=${encodeURIComponent(guestToken)}` : ''}`;
+  // A signed-in payer's identity comes from the account, never from the request
+  // body; a guest's prefill fields are only used by the gateway's OTP flow.
+  let payer = customer;
+  if (userId) {
+    const { rows: profile } = await pool.query(
+      'SELECT email, mobile, display_name FROM users WHERE id=$1',
+      [userId],
+    );
+    if (profile[0]) {
+      payer = {
+        name: profile[0].display_name || '',
+        email: profile[0].email || '',
+        mobile: profile[0].mobile || '',
+      };
+    }
+  }
+  const merchantCustomer = payer && (payer.name || payer.email || payer.mobile)
+    ? { name: payer.name || '', email: payer.email || '', phone: payer.mobile || '' }
     : null;
+  // Only a caller we actually authenticated may skip the gateway's OTP step.
+  const merchantVerified = Boolean(userId);
 
   let session;
   try {
@@ -330,13 +399,13 @@ export async function createYoupiOrder({ bookingReference, customer, publicBase 
         // show a payable QR and the SMS observer can match the credit. Without
         // this the session stays INITIATED and every payment waits forever.
         autoActivate: true,
-        customer: customer && (customer.email || customer.mobile || customer.name)
-        ? { email: customer.email, phoneNumber: customer.mobile, fullName: customer.name }
+        customer: payer && (payer.email || payer.mobile || payer.name)
+        ? { email: payer.email, phoneNumber: payer.mobile, fullName: payer.name }
           : undefined,
         metadata: {
           bookingReference: booking.booking_reference,
           bookingId: booking.id,
-          skipCustomerAuth: Boolean(merchantCustomer),
+          skipCustomerAuth: merchantVerified,
           ...(merchantCustomer ? { merchantCustomer } : {}),
         },
       }),
@@ -360,24 +429,10 @@ export async function createYoupiOrder({ bookingReference, customer, publicBase 
   }
 
   // The gateway is reachable through this server's own port, so the browser always
-  // talks to a single origin. `base` is empty only when the caller cannot be resolved.
+  // talks to a single origin. Do not append customer identity or a bearer token to
+  // the URL: query strings leak through history, logs, and referrers.
   const base = (publicBase || '').replace(/\/$/, '');
-
-  // Hand the signed-in profile to the portal so it never asks for the same mobile/OTP
-  // again. The portal reads and then strips these parameters from the URL.
-  let checkoutUrl = `${base}/checkout/${session.paymentId}`;
-  if (merchantCustomer && base) {
-    try {
-      const portalCheckoutUrl = new URL(checkoutUrl);
-      if (merchantCustomer.name) portalCheckoutUrl.searchParams.set('customerName', merchantCustomer.name);
-      if (merchantCustomer.phone) portalCheckoutUrl.searchParams.set('customerPhone', merchantCustomer.phone);
-      if (merchantCustomer.email) portalCheckoutUrl.searchParams.set('customerEmail', merchantCustomer.email);
-      portalCheckoutUrl.searchParams.set('skipAuth', '1');
-      checkoutUrl = portalCheckoutUrl.toString();
-    } catch {
-      // Keep the plain checkout URL if it cannot be parsed.
-    }
-  }
+  const checkoutUrl = `${base}/checkout/${session.paymentId}`;
 
   return {
     payment,
@@ -496,6 +551,7 @@ export async function createYoupiSession({
   returnUrl,
   metadata,
   customer,
+  verifiedCustomer = false,
 }) {
   const gateway = youpiApi();
   const merchantCustomer = customer && (customer.fullName || customer.email || customer.phone)
@@ -503,7 +559,9 @@ export async function createYoupiSession({
     : null;
   const sessionMetadata = {
     ...(metadata || {}),
-    skipCustomerAuth: Boolean(merchantCustomer),
+    // Only skip the gateway OTP when the caller's identity was actually verified
+    // by an authenticated session, never merely because contact fields were sent.
+    skipCustomerAuth: Boolean(verifiedCustomer),
     ...(merchantCustomer ? { merchantCustomer } : {}),
   };
   let res;
@@ -539,40 +597,28 @@ export async function createYoupiSession({
   }
 
   // The gateway builds its checkout URL from merchant branding, which may still say
-  // "localhost" on a hosted deployment. Force the public portal origin and carry the
-  // signed-in profile so the customer is not asked for a second OTP.
+  // "localhost" on a hosted deployment. Force the public portal origin; identity is
+  // carried in metadata, never in the URL.
   const portalBase = (env.YOUPI_PUBLIC_BASE_URL || youpiApi().replace(/\/youpi\/?$/, ''))
     .replace(/\/+$/, '');
   if (body.paymentId && portalBase) {
-    let checkoutUrl = `${portalBase}/checkout/${body.paymentId}`;
-    if (merchantCustomer) {
-      try {
-        const portalUrl = new URL(checkoutUrl);
-        if (merchantCustomer.name) portalUrl.searchParams.set('customerName', merchantCustomer.name);
-        if (merchantCustomer.phone) portalUrl.searchParams.set('customerPhone', merchantCustomer.phone);
-        if (merchantCustomer.email) portalUrl.searchParams.set('customerEmail', merchantCustomer.email);
-        portalUrl.searchParams.set('skipAuth', '1');
-        checkoutUrl = portalUrl.toString();
-      } catch {
-        // Keep the plain checkout URL if it cannot be parsed.
-      }
-    }
-    body.checkoutUrl = checkoutUrl;
+    body.checkoutUrl = `${portalBase}/checkout/${body.paymentId}`;
   }
 
   return body;
 }
 
-/** Poll YOUPI for the authoritative status of a payment session. */export async function getYoupiStatus(paymentId) {
+/** Poll YOUPI for the authoritative status of a payment session. */
+export async function getYoupiStatus(paymentId, { publicOnly = false } = {}) {
   const gatewayBase = youpiApi();
   let res;
   try {
     res = await fetch(`${gatewayBase}/api/v1/payments/${encodeURIComponent(paymentId)}`, {
       headers: {
         ...(env.YOUPI_MERCHANT_ID ? { 'X-Merchant-Id': env.YOUPI_MERCHANT_ID } : {}),
-        // The merchant key is the webhook secret, which unlocks the merchant-private
-        // view (internal status, verification level).
-        ...(env.YOUPI_WEBHOOK_SECRET ? { 'X-Merchant-Key': env.YOUPI_WEBHOOK_SECRET } : {}),
+        // Only the server-to-server confirmation needs the merchant-private view.
+        // A public status poll must not borrow the merchant credential.
+        ...(!publicOnly && env.YOUPI_WEBHOOK_SECRET ? { 'X-Merchant-Key': env.YOUPI_WEBHOOK_SECRET } : {}),
       },
     });
   } catch (e) {
@@ -582,7 +628,16 @@ export async function createYoupiSession({
   }
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw notFound('youpi payment not found');
-  return body;
+  if (!publicOnly) return body;
+  // The browser only needs the public status fields. Never relay merchant metadata
+  // (booking id/reference, customer email/phone, return URL) to an unauthenticated
+  // caller that merely knows a payment id.
+  return {
+    status: body.status,
+    amountPaise: body.amountPaise,
+    currency: body.currency,
+    expiresAt: body.expiresAt,
+  };
 }
 
 /**
@@ -593,22 +648,23 @@ export async function confirmYoupiPayment({ orderId, utr, amountPaise }) {
   const { rows } = await pool.query('SELECT * FROM payments WHERE provider_order_id=$1 AND provider=$2', [orderId, 'youpi']);
   if (!rows.length) throw notFound('payment order not found');
   const payment = rows[0];
+  if (!payment.provider_payment_id) {
+    throw badRequest('this payment has no gateway session yet');
+  }
   const { rows: bk } = await pool.query('SELECT booking_reference FROM bookings WHERE id=$1', [payment.booking_id]);
   const bookingReference = bk[0]?.booking_reference;
 
-  if (payment.provider_payment_id) {
-    const status = await getYoupiStatus(payment.provider_payment_id);
-    if (status.status !== 'SUCCESS') {
-      return { success: false, status: status.status };
-    }
-    // The gateway session amount is the unique payable amount stored on our row.
-    const expectedAmount = Number(payment.amount_minor);
-    if (status.amountPaise && Number(status.amountPaise) !== expectedAmount) {
-      throw badRequest('payment amount mismatch');
-    }
-    if (amountPaise && Number(amountPaise) !== expectedAmount) {
-      throw badRequest('payment amount mismatch');
-    }
+  const status = await getYoupiStatus(payment.provider_payment_id);
+  if (status.status !== 'SUCCESS') {
+    return { success: false, status: status.status };
+  }
+  // The gateway session amount is the unique payable amount stored on our row.
+  const expectedAmount = Number(payment.amount_minor);
+  if (!status.amountPaise || Number(status.amountPaise) !== expectedAmount) {
+    throw badRequest('payment amount mismatch');
+  }
+  if (amountPaise !== undefined && Number(amountPaise) !== expectedAmount) {
+    throw badRequest('payment amount mismatch');
   }
 
   const result = await processPaymentEvent({
@@ -620,7 +676,7 @@ export async function confirmYoupiPayment({ orderId, utr, amountPaise }) {
       bookingReference,
       paymentId: payment.provider_payment_id,
       utr: utr || null,
-      amountPaise: amountPaise || null,
+      amountPaise: amountPaise ?? expectedAmount,
       status: 'success',
     },
   });

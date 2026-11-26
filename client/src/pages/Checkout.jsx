@@ -247,18 +247,12 @@ export default function Checkout() {
   }
 
   async function openPaymentModal(activeOrder, activeBooking) {
-    // If the visitor signed in with WhatsApp OTP, hand the verified customer session to
-    // the checkout page so it does not ask for the same number again.
+    // Keep identity out of the URL. The SDK carries customer fields in its request
+    // body; a signed-in caller is marked skipCustomerAuth in gateway metadata.
     let checkoutUrl = activeOrder.checkoutUrl;
     try {
       if (checkoutUrl) {
         const url = new URL(checkoutUrl);
-        const customerToken = localStorage.getItem('youpiCustomerToken');
-        if (customerToken) url.searchParams.set('customerToken', customerToken);
-        if (name.trim()) url.searchParams.set('customerName', name.trim());
-        if (mobile.trim()) url.searchParams.set('customerPhone', mobile.trim());
-        if (email.trim()) url.searchParams.set('customerEmail', email.trim());
-        url.searchParams.set('skipAuth', '1');
         url.searchParams.set('youpiParentOrigin', window.location.origin);
         checkoutUrl = url.toString();
       }
@@ -341,10 +335,14 @@ export default function Checkout() {
       });
       const createdBooking = bookingResponse.data;
       setBooking(createdBooking);
+      if (createdBooking.guestAccessToken) {
+        sessionStorage.setItem(`bookingToken:${createdBooking.booking_reference}`, createdBooking.guestAccessToken);
+      }
 
       setStatus('Starting secure payment…');
       const orderResponse = await api.post('/payments/youpi/orders', {
         bookingReference: createdBooking.booking_reference,
+        sessionRef: localStorage.getItem('sessionRef') || undefined,
         customer: {
           name: name.trim() || undefined,
           email: email.trim() || undefined,

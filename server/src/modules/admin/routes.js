@@ -1,36 +1,44 @@
 import { Router } from 'express';
+import crypto from 'node:crypto';
 import * as admin from './service.js';
 import * as auth from '../auth/service.js';
 import { unauthorized } from '../../utils/errors.js';
 
 const router = Router();
 
+function safeEqual(left, right) {
+  const a = Buffer.from(String(left || ''));
+  const b = Buffer.from(String(right || ''));
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
 /**
- * Optional shared-secret guard for the seat-builder UI.
- * When ADMIN_TOKEN is unset the endpoints stay open (local development).
+ * Shared-secret or ADMIN-JWT guard for the seat-builder/admin API.
+ * Fails closed when the shared secret is absent; an authenticated ADMIN JWT
+ * still works, so a Worker without ADMIN_TOKEN is not open to anonymous callers.
  */
 function adminOnly(req, res, next) {
-  const expected = process.env.ADMIN_TOKEN;
-  const supplied = req.headers['x-admin-token'] || req.query.token;
-  if (expected && supplied === expected) return next();
+  const expected = String(process.env.ADMIN_TOKEN || '').trim();
+  const supplied = req.headers['x-admin-token'];
+  if (expected && safeEqual(supplied, expected)) return next();
 
-  // Allow authenticated admin users (Flutter app uses JWT).
+  // Allow authenticated admin users (the Flutter app and website use JWT).
   const header = req.headers.authorization || '';
   const jwt = header.startsWith('Bearer ') ? header.slice(7) : null;
   if (jwt) {
     try {
       const payload = auth.verifyToken(jwt);
-      auth.getUserRoles(payload.sub).then((roles) => {
-        if (roles.includes('ADMIN')) return next();
+      auth.getUserAuthState(payload.sub).then((state) => {
+        if (state && state.status === 'active' && state.roles.includes('ADMIN')) return next();
         next(unauthorized('Invalid admin token'));
       }).catch(() => next(unauthorized('Invalid admin token')));
       return;
     } catch {
-      // fall through
+      // fall through to the shared-secret decision
     }
   }
 
-  if (!expected) return next(); // dev mode: open
+  if (!expected) return next(unauthorized('Admin access is not configured'));
   next(unauthorized('Invalid admin token'));
 }
 

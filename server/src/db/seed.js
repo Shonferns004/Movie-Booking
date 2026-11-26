@@ -3,6 +3,21 @@ import { pool } from './pool.js';
 import { importAllLayouts } from './importLayouts.js';
 
 async function main() {
+  const isProduction = process.env.NODE_ENV === 'production';
+  // Production seeding must use operator-supplied passwords. Local development
+  // keeps the demo defaults so `npm run seed` stays convenient.
+  const seedPassword = (name, fallback) => {
+    const value = process.env[name];
+    if (value && value.length >= 8) return value;
+    if (isProduction) throw new Error(`${name} must be set (8+ chars) when seeding production`);
+    return fallback;
+  };
+  const adminPassword = seedPassword('SEED_ADMIN_PASSWORD', 'admin123');
+  const appAdminPassword = seedPassword('SEED_APP_ADMIN_PASSWORD', 'adminapp123');
+  const appScannerPassword = seedPassword('SEED_APP_SCANNER_PASSWORD', 'scannerapp123');
+  const scannerPassword = seedPassword('SEED_SCANNER_PASSWORD', 'scanner123');
+  const customerPassword = seedPassword('SEED_CUSTOMER_PASSWORD', 'customer123');
+
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -25,7 +40,7 @@ async function main() {
     const r = await client.query('SELECT id FROM users WHERE email=$1', [adminEmail]);
     if (r.rows.length) adminId = r.rows[0].id;
     else {
-      const hash = await bcrypt.hash('admin123', 10);
+      const hash = await bcrypt.hash(adminPassword, 10);
       const ins = await client.query('INSERT INTO users (email, password_hash, display_name, status) VALUES ($1,$2,$3,$4) RETURNING id', [adminEmail, hash, 'Admin', 'active']);
       adminId = ins.rows[0].id;
     }
@@ -36,7 +51,7 @@ async function main() {
     const appAdminEmail = 'adminapp@movie.local';
     const aar = await client.query('SELECT id FROM users WHERE email=$1', [appAdminEmail]);
     if (!aar.rows.length) {
-      const hash = await bcrypt.hash('adminapp123', 10);
+      const hash = await bcrypt.hash(appAdminPassword, 10);
       const ins = await client.query('INSERT INTO users (email, password_hash, display_name, status) VALUES ($1,$2,$3,$4) RETURNING id', [appAdminEmail, hash, 'App Admin', 'active']);
       const uid = ins.rows[0].id;
       const role = await client.query("SELECT id FROM roles WHERE name='ADMIN'");
@@ -47,7 +62,7 @@ async function main() {
     const appScannerEmail = 'scannerapp@movie.local';
     const asr = await client.query('SELECT id FROM users WHERE email=$1', [appScannerEmail]);
     if (!asr.rows.length) {
-      const hash = await bcrypt.hash('scannerapp123', 10);
+      const hash = await bcrypt.hash(appScannerPassword, 10);
       const ins = await client.query('INSERT INTO users (email, password_hash, display_name, status) VALUES ($1,$2,$3,$4) RETURNING id', [appScannerEmail, hash, 'App Scanner', 'active']);
       const uid = ins.rows[0].id;
       const role = await client.query("SELECT id FROM roles WHERE name='SCANNER'");
@@ -60,7 +75,7 @@ async function main() {
     let scannerId;
     if (sr.rows.length) scannerId = sr.rows[0].id;
     else {
-      const hash = await bcrypt.hash('scanner123', 10);
+      const hash = await bcrypt.hash(scannerPassword, 10);
       const ins = await client.query('INSERT INTO users (email, password_hash, display_name, status) VALUES ($1,$2,$3,$4) RETURNING id', [scannerEmail, hash, 'Scanner', 'active']);
       scannerId = ins.rows[0].id;
     }
@@ -71,7 +86,7 @@ async function main() {
     const custEmail = 'customer@movie.local';
     const cr = await client.query('SELECT id FROM users WHERE email=$1', [custEmail]);
     if (!cr.rows.length) {
-      const hash = await bcrypt.hash('customer123', 10);
+      const hash = await bcrypt.hash(customerPassword, 10);
       const ins = await client.query('INSERT INTO users (email, password_hash, display_name, status) VALUES ($1,$2,$3,$4) RETURNING id', [custEmail, hash, 'Customer', 'active']);
       const custId = ins.rows[0].id;
       const custRole = await client.query("SELECT id FROM roles WHERE name='CUSTOMER'");

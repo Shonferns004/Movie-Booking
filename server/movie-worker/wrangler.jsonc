@@ -105,8 +105,10 @@
 		// Customers request from My tickets; staff approve and record the UPI payout.
 		"REFUND_TIERS": "24:100,2:50",
 		"CANCELLATION_ENABLED": "true",
-		"JWT_ACCESS_TTL": "7d",
+		"JWT_ACCESS_TTL": "1h",
 		"JWT_REFRESH_TTL": "30d",
+		"EXPOSE_DEV_OTP": "false",
+		"ALLOW_MOCK_PAYMENTS": "false",
 		// Neon Object Storage. Fill in the branch endpoint + bucket name:
 		//   curl "https://console.neon.tech/api/v2/projects/{project}/branches/{branch}/storage"
 		// The access key / secret are secrets: `wrangler secret put NEON_STORAGE_ACCESS_KEY_ID`

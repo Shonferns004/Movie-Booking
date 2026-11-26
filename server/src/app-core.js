@@ -52,6 +52,13 @@ export function createApp({
 } = {}) {
   const app = express();
 
+  if (env.TRUST_PROXY) {
+    // A numeric value is a hop count (Render's proxy is one hop). Express then
+    // ignores client-supplied X-Forwarded-For entries beyond that hop.
+    const hops = Number(env.TRUST_PROXY);
+    app.set('trust proxy', Number.isFinite(hops) && hops > 0 ? hops : env.TRUST_PROXY);
+  }
+
   app.use(requestLogger());
   for (const middleware of before) app.use(middleware);
 
@@ -90,8 +97,9 @@ export function createApp({
     origin(origin, callback) {
       if (!origin) return callback(null, true);
       // "null" is what a browser sends for a local file:// page - the root status.html
-      // dashboard is meant to be opened straight from disk.
-      if (origin === 'null') return callback(null, true);
+      // dashboard is meant to be opened straight from disk. Keep it for local
+      // development only; production must use a real origin.
+      if (origin === 'null' && env.NODE_ENV !== 'production') return callback(null, true);
       if (allowedOrigins.has(origin)) return callback(null, true);
       // Vite moves to the next free port in development; allow any localhost port
       // instead of failing with a confusing CORS 403.
@@ -114,6 +122,8 @@ export function createApp({
     rateLimit({ windowMs: 15 * 60 * 1000, max: 30, keyPrefix: 'auth' })
   );
   app.use('/api/v1/payments', rateLimit({ windowMs: 60 * 1000, max: 30, keyPrefix: 'payments' }));
+  // Community checkout creates gateway sessions and rows; bound it separately.
+  app.use('/api/v1/community', rateLimit({ windowMs: 60 * 1000, max: 120, keyPrefix: 'community' }));
 
   app.use(express.json({ limit: '10mb', verify: (req, res, buf) => { req.rawBody = buf; } }));
 
@@ -143,12 +153,10 @@ const rateLimitBuckets = new Map();
 
 function rateLimit({ windowMs, max, keyPrefix }) {
   return (req, res, next) => {
-    // Behind Cloudflare Workers `req.ip` can be empty/shared; the real client address
-    // is in CF-Connecting-IP (or the first X-Forwarded-For entry). Without this, every
-    // visitor shares one bucket and the whole app 429s at once.
-    const forwarded = req.headers['cf-connecting-ip']
-      || String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
-    const ip = forwarded || req.ip || req.connection?.remoteAddress || 'unknown';
+    // On Workers the edge owns CF-Connecting-IP. On Node, use Express req.ip
+    // (with trust proxy configured) and never trust a caller-supplied header.
+    const forwarded = IS_WORKERS ? req.headers['cf-connecting-ip'] : null;
+    const ip = forwarded || req.ip || req.socket?.remoteAddress || req.connection?.remoteAddress || 'unknown';
     const key = keyPrefix + ':' + ip;
     const now = Date.now();
     let bucket = rateLimitBuckets.get(key);

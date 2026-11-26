@@ -3,6 +3,17 @@ import { env } from '../../config/env.js';
 import { gatewayEnv } from '../../config/gateway-env.js';
 import { startYoupiGateway } from './gateway.js';
 import { listGatewayServices, serviceNotManaged } from './supervisor.js';
+import crypto from 'node:crypto';
+
+function adminTokenMatches(req) {
+  const expected = String(process.env.ADMIN_API_TOKEN || '').trim();
+  if (!expected) return false;
+  const header = String(req.headers.authorization || '');
+  const supplied = header.startsWith('Bearer ') ? header.slice(7) : String(req.headers['x-admin-token'] || '');
+  const a = Buffer.from(supplied);
+  const b = Buffer.from(expected);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
 
 /**
  * Public URL layout of the embedded gateway (all served by the movie API's port):
@@ -78,8 +89,18 @@ export function youpiGatewayMiddleware(req, res, next) {
   // state of the services hosted by this process instead.
   if (servicesApi) {
     if (req.method === 'GET' && path === '/api/services') {
-      listGatewayServices({ withPids: !!req.headers.authorization })
-        .then((services) => res.json(services))
+      if (!adminTokenMatches(req)) {
+        res.status(401).json({ error: 'Unauthorized' });
+        return;
+      }
+      listGatewayServices({ withPids: false })
+        .then((services) => res.json(
+          (services || []).map((service) => ({
+            id: service.id,
+            name: service.name,
+            status: service.status,
+          })),
+        ))
         .catch(next);
       return;
     }

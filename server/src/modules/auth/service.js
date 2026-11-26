@@ -3,11 +3,28 @@ import jwt from 'jsonwebtoken';
 import { pool } from '../../db/pool.js';
 import { env } from '../../config/env.js';
 import { badRequest, unauthorized, conflict } from '../../utils/errors.js';
+import { sha256 } from '../../utils/crypto.js';
 
 export async function getUserRoles(userId) {
   const { rows } = await pool.query(
     `SELECT r.name FROM roles r JOIN user_roles ur ON ur.role_id=r.id WHERE ur.user_id=$1`, [userId]);
   return rows.map((r) => r.name);
+}
+
+/** Roles plus the current account lifecycle state, used by every auth check. */
+export async function getUserAuthState(userId) {
+  const { rows } = await pool.query(
+    `SELECT u.status,
+            COALESCE(array_agg(r.name) FILTER (WHERE r.name IS NOT NULL), '{}') AS roles
+       FROM users u
+       LEFT JOIN user_roles ur ON ur.user_id=u.id
+       LEFT JOIN roles r ON r.id=ur.role_id
+      WHERE u.id=$1
+      GROUP BY u.id`,
+    [userId],
+  );
+  if (!rows.length) return null;
+  return { status: rows[0].status, roles: rows[0].roles || [] };
 }
 
 export async function registerCustomer({ email, password, displayName }) {
@@ -88,8 +105,8 @@ export async function sendLoginOtp({ mobile }) {
     success: true,
     mobile: number,
     message: 'OTP sent on WhatsApp',
-    // Local development convenience; the gateway hides this in production.
-    devOtp: env.NODE_ENV === 'production' ? undefined : data.devOtp,
+    // Local development convenience; only an explicit opt-in exposes this.
+    devOtp: env.NODE_ENV !== 'production' && env.EXPOSE_DEV_OTP ? data.devOtp : undefined,
   };
 }
 
@@ -125,13 +142,21 @@ export async function verifyLoginOtp({ mobile, otp }) {
   if (user.status !== 'active') throw unauthorized('account inactive');
   const roles = await getUserRoles(user.id);
   return {
-    ...issueSession(user, roles),
+    ...(await issueSession(user, roles)),
     youpiCustomerToken: data.token,
     mobile: number,
   };
 }
 
-function issueSession(user, roles) {
+function ttlMs(value) {
+  const match = /^(\d+)([smhd])$/.exec(String(value || ''));
+  if (!match) return 30 * 24 * 60 * 60 * 1000;
+  const amount = Number(match[1]);
+  const unit = { s: 1000, m: 60_000, h: 3_600_000, d: 86_400_000 }[match[2]];
+  return amount * unit;
+}
+
+async function issueSession(user, roles, { rotateSessionId = null } = {}) {
   const accessToken = jwt.sign(
     { sub: user.id, roles, type: 'access' },
     env.JWT_SECRET,
@@ -142,6 +167,19 @@ function issueSession(user, roles) {
     env.JWT_REFRESH_SECRET,
     { expiresIn: env.JWT_REFRESH_TTL }
   );
+  const tokenHash = sha256(refreshToken);
+  const expiresAt = new Date(Date.now() + ttlMs(env.JWT_REFRESH_TTL)).toISOString();
+  if (rotateSessionId) {
+    await pool.query(
+      'UPDATE sessions SET token_hash=$2, expires_at=$3, revoked_at=NULL WHERE id=$1',
+      [rotateSessionId, tokenHash, expiresAt],
+    );
+  } else {
+    await pool.query(
+      'INSERT INTO sessions (user_id, token_hash, expires_at) VALUES ($1,$2,$3)',
+      [user.id, tokenHash, expiresAt],
+    );
+  }
   return {
     // `token` is kept for older clients; new clients use accessToken/refreshToken.
     token: accessToken,
@@ -160,6 +198,13 @@ export async function refreshSession(refreshToken) {
     throw unauthorized('invalid or expired refresh token');
   }
   if (payload.type !== 'refresh') throw unauthorized('invalid refresh token');
+  const { rows: sessions } = await pool.query(
+    `SELECT * FROM sessions
+      WHERE token_hash=$1 AND revoked_at IS NULL AND expires_at > now()`,
+    [sha256(refreshToken)],
+  );
+  if (!sessions.length) throw unauthorized('session expired');
+  if (sessions[0].user_id !== payload.sub) throw unauthorized('session mismatch');
   const { rows } = await pool.query(
     'SELECT id,email,mobile,display_name,status FROM users WHERE id=$1',
     [payload.sub]
@@ -168,7 +213,17 @@ export async function refreshSession(refreshToken) {
   const user = rows[0];
   if (user.status !== 'active') throw unauthorized('account inactive');
   const roles = await getUserRoles(user.id);
-  return issueSession(user, roles);
+  return issueSession(user, roles, { rotateSessionId: sessions[0].id });
+}
+
+/** Revoke one refresh token (logout, or a lost device). */
+export async function revokeSession(refreshToken) {
+  if (!refreshToken) return { revoked: false };
+  await pool.query(
+    'UPDATE sessions SET revoked_at=now() WHERE token_hash=$1 AND revoked_at IS NULL',
+    [sha256(refreshToken)],
+  );
+  return { revoked: true };
 }
 
 export function verifyToken(token) {

@@ -36,9 +36,14 @@ export function usingHyperdrive() {
  */
 function sslFor(connectionString) {
   if (!connectionString) return undefined;
-  const wantsSsl = /[?&]sslmode=(require|prefer|verify-ca|verify-full|no-verify)\b/.test(connectionString);
   const managed = /@[^/]*\b(neon\.tech|supabase\.co)\b/.test(connectionString);
-  return wantsSsl || managed ? { rejectUnauthorized: false } : undefined;
+  // Let an explicit sslmode be handled by pg-connection-string (the pinned version
+  // verifies the chain and hostname). For managed hosts with no ssl parameter,
+  // require verification instead of disabling it.
+  if (managed && !/[?&]ssl(mode)?=/.test(connectionString)) {
+    return { rejectUnauthorized: true };
+  }
+  return undefined;
 }
 
 function getNodePool() {

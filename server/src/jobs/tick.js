@@ -208,9 +208,44 @@ export async function queueMembershipRenewalReminders() {
   return queued;
 }
 
+/** Expire orphaned session/checkout rows so they cannot accumulate forever. */
+async function cleanupStaleRecords() {
+  const released = await pool.query(
+    `WITH released AS (
+       UPDATE seat_holds SET status='released', released_at=now()
+        WHERE status='active' AND owner_user_id IS NULL AND session_ref IS NULL
+        RETURNING id
+     )
+     UPDATE show_seats SET status='available', hold_id=NULL, updated_at=now()
+      WHERE hold_id IN (SELECT id FROM released)`,
+  );
+  const orders = await pool.query(
+    `UPDATE community_ticket_orders
+        SET status='failed', updated_at=now()
+      WHERE (status='creating' AND created_at < now() - interval '10 minutes')
+         OR (status='created' AND created_at < now() - interval '24 hours')`,
+  );
+  const memberships = await pool.query(
+    `UPDATE community_membership_orders
+        SET status='failed', updated_at=now()
+      WHERE status='created' AND created_at < now() - interval '24 hours'`,
+  );
+  const sessions = await pool.query(
+    `UPDATE sessions SET revoked_at=now()
+      WHERE revoked_at IS NULL AND expires_at < now()`,
+  );
+  return {
+    releasedHolds: released.rowCount || 0,
+    failedOrders: orders.rowCount || 0,
+    failedMemberships: memberships.rowCount || 0,
+    expiredSessions: sessions.rowCount || 0,
+  };
+}
+
 /** One maintenance tick: release stale holds, publish movies, flush email. */
 export async function runTick() {
   const expired = await expireHolds();
+  const cleanup = await cleanupStaleRecords();
   const published = await publishDueMovies();
   const renewals = await queueMembershipRenewalReminders();
   const sent = await processOutbox();
@@ -223,5 +258,5 @@ export async function runTick() {
       console.error('[cleanup] error', e);
     }
   }
-  return { expired, sent, published, renewals };
+  return { expired, sent, published, renewals, cleanup };
 }

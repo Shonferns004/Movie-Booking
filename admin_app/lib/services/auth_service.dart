@@ -138,6 +138,20 @@ class AuthService {
 
   static Future<void> logout() async {
     await init();
+    final refresh = _refreshToken;
+    if (refresh != null && refresh.isNotEmpty) {
+      try {
+        await http
+            .post(
+              Uri.parse('$apiBaseUrl/auth/logout'),
+              headers: {'Content-Type': 'application/json'},
+              body: jsonEncode({'refreshToken': refresh}),
+            )
+            .timeout(const Duration(seconds: 5));
+      } catch (_) {
+        // Clear local state even if the server is unreachable.
+      }
+    }
     _accessToken = null;
     _refreshToken = null;
     final prefs = _prefs;

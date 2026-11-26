@@ -28,14 +28,33 @@ export const env = {
 
   // --- API ------------------------------------------------------------------
   API_PORT: Number(process.env.PORT || process.env.API_PORT || 4000),
+  NODE_ENV: process.env.NODE_ENV || "development",
+  // Set to 1 when the Node host is behind a trusted reverse proxy so Express
+  // derives req.ip from the proxy chain instead of trusting caller headers.
+  TRUST_PROXY: process.env.TRUST_PROXY || "",
   JWT_SECRET: process.env.JWT_SECRET,
   JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET,
-  JWT_ACCESS_TTL: process.env.JWT_ACCESS_TTL || "7d",
+  // Short access tokens; refresh tokens are rotated and revocable in `sessions`.
+  JWT_ACCESS_TTL: process.env.JWT_ACCESS_TTL || "1h",
   JWT_REFRESH_TTL: process.env.JWT_REFRESH_TTL || "30d",
   APP_BASE_URL: process.env.APP_BASE_URL || "http://localhost:5173",
 
+  // Explicit opt-in for returning a gateway development OTP. Never enable this
+  // in production; the API no longer infers it from an undefined NODE_ENV.
+  EXPOSE_DEV_OTP: process.env.EXPOSE_DEV_OTP === "true",
+  // Mock payment completion is a local-development aid only.
+  ALLOW_MOCK_PAYMENTS: process.env.ALLOW_MOCK_PAYMENTS === "true",
+  // Optional shared secret for the generic provider webhook. Unset = route off.
+  GENERIC_WEBHOOK_SECRET: process.env.GENERIC_WEBHOOK_SECRET || "",
+  // HMAC key for signed guest booking links. Falls back to JWT_SECRET.
+  GUEST_ACCESS_SECRET:
+    process.env.GUEST_ACCESS_SECRET || process.env.JWT_SECRET || "",
+
   // --- Payments -------------------------------------------------------------
   PAYMENT_PROVIDER: process.env.PAYMENT_PROVIDER || "mock",
+  // Allow the request body to select a payment provider. Off by default: the
+  // provider is a server configuration, not caller input.
+  ALLOW_PROVIDER_OVERRIDE: process.env.ALLOW_PROVIDER_OVERRIDE === "true",
   // Gates both the embedded gateway (Node) and its cleanup job (cron).
   YOUPI_ENABLED: process.env.YOUPI_ENABLED !== "false",
   // Base URL for server-to-server calls. On Workers point this at the Node host,
@@ -54,6 +73,9 @@ export const env = {
   YOUPI_UPI_ID: process.env.YOUPI_UPI_ID || "",
   YOUPI_PAYEE_NAME: process.env.YOUPI_PAYEE_NAME || "",
   YOUPI_WEBHOOK_SECRET: process.env.YOUPI_WEBHOOK_SECRET || "",
+  // How long a payable amount stays reserved. Longer than the gateway's active
+  // window so a queued session cannot have its amount reissued.
+  YOUPI_AMOUNT_HOLD_MINUTES: Number(process.env.YOUPI_AMOUNT_HOLD_MINUTES || 60),
   // Also used by the API's CORS allow-list. When it is not set, allow the customer
   // app (APP_BASE_URL) and the local dev origins to embed the checkout page.
   YOUPI_FRAME_ANCESTORS:
@@ -99,12 +121,10 @@ export const env = {
     "https://br-twilight-term-bdc6qrfo.storage.c-8.us-east-2.aws.neon.tech",
   NEON_STORAGE_REGION: process.env.NEON_STORAGE_REGION || "us-east-2",
   NEON_STORAGE_BUCKET: process.env.NEON_STORAGE_BUCKET || "movies",
-  NEON_STORAGE_ACCESS_KEY_ID:
-    process.env.NEON_STORAGE_ACCESS_KEY_ID ||
-    "nak_live_701fcac6e37a46c4b270dfbe379f2ed8",
-  NEON_STORAGE_SECRET_ACCESS_KEY:
-    process.env.NEON_STORAGE_SECRET_ACCESS_KEY ||
-    "nsk_live_db672a45c1ddfa6711f1068de6a9a3a4c7adf60b8e252b02b5723a99900877f7",
+  // Never ship real object-storage credentials as source defaults. Uploads
+  // stay disabled until the operator supplies these values.
+  NEON_STORAGE_ACCESS_KEY_ID: process.env.NEON_STORAGE_ACCESS_KEY_ID || "",
+  NEON_STORAGE_SECRET_ACCESS_KEY: process.env.NEON_STORAGE_SECRET_ACCESS_KEY || "",
   NEON_STORAGE_PUBLIC_URL: process.env.NEON_STORAGE_PUBLIC_URL || "",
 
   // --- Neon Realtime (live queries) ---

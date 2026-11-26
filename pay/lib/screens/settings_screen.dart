@@ -327,9 +327,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     final qrBase = _serverFromPairingPayload(secret);
     if (qrBase.isNotEmpty) {
-      _url.text = _normalizeUrl(qrBase);
+      final next = _normalizeUrl(qrBase);
+      final uri = Uri.tryParse(next);
+      final loopback = uri?.host == 'localhost' || uri?.host == '127.0.0.1';
+      if (uri == null || (uri.scheme != 'https' && !(uri.scheme == 'http' && loopback))) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Pairing requires an HTTPS gateway URL (HTTP is allowed only for localhost).'),
+            ),
+          );
+        }
+        return;
+      }
+      final current = _normalizeUrl(_url.text);
+      if (current.isNotEmpty && current != next) {
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: const Color(0xFF262C33),
+            title: const Text('Change gateway?'),
+            content: Text(
+              'This QR points to a different server:\n\n${uri.host}\n\n'
+              'Only continue if you generated it yourself.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Use this gateway'),
+              ),
+            ],
+          ),
+        );
+        if (confirmed != true) return;
+      }
+      _url.text = next;
       _markDirty();
     }
+    if (!mounted) return;
     if (_normalizeUrl(_url.text).isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -446,11 +485,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       final text = value?.trim() ?? '';
                       if (text.isEmpty) return 'Required';
                       final uri = Uri.tryParse(text);
+                      final loopback = uri?.host == 'localhost' || uri?.host == '127.0.0.1';
                       if (uri == null ||
                           !uri.hasScheme ||
-                          !(uri.scheme == 'http' || uri.scheme == 'https') ||
+                          !(uri.scheme == 'https' || (uri.scheme == 'http' && loopback)) ||
                           uri.host.isEmpty) {
-                        return 'Enter a full http:// or https:// URL';
+                        return 'Use an https:// URL (http:// only for localhost)';
                       }
                       return null;
                     },

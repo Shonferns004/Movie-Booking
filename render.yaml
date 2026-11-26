@@ -40,9 +40,15 @@ services:
       - key: JWT_REFRESH_SECRET
         generateValue: true
       - key: JWT_ACCESS_TTL
-        value: 7d
+        value: 1h
       - key: JWT_REFRESH_TTL
         value: 30d
+      - key: TRUST_PROXY
+        value: 1
+      - key: EXPOSE_DEV_OTP
+        value: false
+      - key: ALLOW_MOCK_PAYMENTS
+        value: false
       # Public origin of the customer web app (used in emails / return links).
       - key: APP_BASE_URL
         sync: false

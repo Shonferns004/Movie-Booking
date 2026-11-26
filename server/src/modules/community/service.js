@@ -1,5 +1,5 @@
 import { pool } from '../../db/pool.js';
-import { badRequest, notFound } from '../../utils/errors.js';
+import { badRequest, notFound, conflict } from '../../utils/errors.js';
 import { env } from '../../config/env.js';
 import { randomToken } from '../../utils/crypto.js';
 import { createYoupiSession, getYoupiStatus } from '../payments/service.js';
@@ -453,7 +453,8 @@ export async function createMembershipCheckout({ userId, name, phone, gender, ag
   if (!profile) throw notFound('account not found');
 
   const buyerName = String(name || profile.display_name || '').trim() || 'Member';
-  const buyerPhone = String(phone || profile.mobile || '').trim();
+  // Prefer the verified account number over a caller-supplied one.
+  const buyerPhone = String(profile.mobile || phone || '').trim();
   if (!buyerPhone) throw badRequest('a contact number is required');
 
   // Age is computed from the birthday when the visitor does not type it.
@@ -476,16 +477,17 @@ export async function createMembershipCheckout({ userId, name, phone, gender, ag
   const baseMinor = plan.amountMinor;
   const { rows: open } = await pool.query(
     `SELECT amount_minor FROM community_membership_orders
-      WHERE status='created' AND created_at > now() - interval '15 minutes'`,
+      WHERE status='created' AND created_at > now() - interval '60 minutes'`,
   );
   const used = new Set(open.map((row) => Number(row.amount_minor)));
-  let payableMinor = baseMinor;
+  let payableMinor = null;
   for (let offset = 1; offset <= 99; offset += 1) {
     if (!used.has(baseMinor + offset)) {
       payableMinor = baseMinor + offset;
       break;
     }
   }
+  if (!payableMinor) throw conflict('too many open membership checkouts; retry shortly');
 
   const orderId = `member_${randomToken(8)}`;
   const appOrigin = (env.APP_BASE_URL || publicBase || '').replace(/\/$/, '');
@@ -497,6 +499,7 @@ export async function createMembershipCheckout({ userId, name, phone, gender, ag
     returnUrl: `${appOrigin}/?membership=${orderId}`,
     metadata: { membershipOrderId: orderId, userId },
     customer: { fullName: buyerName, phone: buyerPhone, email: profile.email || undefined },
+    verifiedCustomer: true,
   });
 
   const { rows } = await pool.query(
@@ -650,11 +653,8 @@ function ticketOrderRow(row) {
     baseAmountMinor: row.base_amount_minor,
     currency: row.currency,
     buyerName: row.buyer_name,
-    phone: row.phone,
     status: row.status,
-    utr: row.utr,
     orderId: row.provider_order_id,
-    paymentId: row.provider_payment_id,
     createdAt: row.created_at,
   };
 }
@@ -673,7 +673,10 @@ async function findTicketOrder(orderId) {
  * offset, exactly like movie bookings, so two identical orders never collide.
  */
 export async function createTicketCheckout({ eventId, tierId, quantity, name, phone, userId, publicBase }) {
-  const { rows } = await pool.query('SELECT * FROM community_events WHERE id=$1', [eventId]);
+  const { rows } = await pool.query(
+    'SELECT * FROM community_events WHERE id=$1 AND published=TRUE',
+    [eventId],
+  );
   if (!rows.length) throw notFound('event not found');
 
   // A signed-in visitor should never be asked for details again.
@@ -685,11 +688,15 @@ export async function createTicketCheckout({ eventId, tierId, quantity, name, ph
     );
     profile = people[0] || null;
   }
-  const buyerName = String(name || profile?.display_name || '').trim() || null;
-  const buyerPhone = String(phone || profile?.mobile || '').trim() || null;
+  const buyerName = String(name || profile?.display_name || '').trim().slice(0, 120) || null;
+  // Prefer the verified account number over a caller-supplied one.
+  const buyerPhone = String(profile?.mobile || phone || '').trim().slice(0, 20) || null;
   const buyerEmail = profile?.email || null;
 
   const event = eventRow(rows[0]);
+  if (event.startsAt && new Date(event.startsAt).getTime() < Date.now()) {
+    throw badRequest('this event has already started');
+  }
   const tiers = asTiers(event.tiers);
   const tier = tiers.find((item) => String(item.id) === String(tierId)) || tiers[0];
   if (!tier) throw badRequest('this event has no ticket tiers');
@@ -698,57 +705,94 @@ export async function createTicketCheckout({ eventId, tierId, quantity, name, ph
   const price = Number(tier.price);
   if (!Number.isFinite(price) || price <= 0) throw badRequest('this event has no valid price');
   const baseMinor = Math.round(price * 100) * qty;
+  const orderId = `event_${randomToken(8)}`;
 
-  const { rows: open } = await pool.query(
-    `SELECT amount_minor FROM community_ticket_orders
-      WHERE status='created' AND created_at > now() - interval '15 minutes'`,
-  );
-  const used = new Set(open.map((row) => Number(row.amount_minor)));
-  let payableMinor = baseMinor;
-  for (let offset = 1; offset <= 99; offset += 1) {
-    if (!used.has(baseMinor + offset)) {
-      payableMinor = baseMinor + offset;
-      break;
+  // Reserve the amount with a placeholder row before calling the gateway. The
+  // advisory lock serialises concurrent allocations and the row makes the amount
+  // durable if the process dies mid-call.
+  const client = await pool.connect();
+  let payableMinor;
+  try {
+    await client.query('BEGIN');
+    await client.query("SELECT pg_advisory_xact_lock(hashtext('community-payable-amount'))");
+    await client.query(
+      `UPDATE community_ticket_orders
+          SET status='failed', updated_at=now()
+        WHERE status='creating' AND created_at < now() - interval '10 minutes'`,
+    );
+    const { rows: open } = await client.query(
+      `SELECT amount_minor FROM community_ticket_orders
+        WHERE status IN ('creating','created')`,
+    );
+    const used = new Set(open.map((row) => Number(row.amount_minor)));
+    payableMinor = null;
+    for (let offset = 1; offset <= 99; offset += 1) {
+      if (!used.has(baseMinor + offset)) {
+        payableMinor = baseMinor + offset;
+        break;
+      }
     }
+    if (!payableMinor) throw conflict('too many open checkouts for this total; retry shortly');
+
+    await client.query(
+      `INSERT INTO community_ticket_orders
+         (event_id, event_title, event_date, event_time, venue, event_starts_at, user_id,
+          tier_id, tier_name, quantity, amount_minor, base_amount_minor, currency, buyer_name, phone,
+          provider_order_id, status)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'INR',$13,$14,$15,'creating')`,
+      [
+        event.id,
+        event.title,
+        event.dateLabel,
+        event.timeLabel,
+        event.venue,
+        event.startsAt || null,
+        userId || null,
+        String(tier.id || ''),
+        tier.name || 'Entry',
+        qty,
+        payableMinor,
+        baseMinor,
+        buyerName,
+        buyerPhone,
+        orderId,
+      ],
+    );
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK').catch(() => {});
+    throw error;
+  } finally {
+    client.release();
   }
 
-  const orderId = `event_${randomToken(8)}`;
   const appOrigin = (env.APP_BASE_URL || publicBase || '').replace(/\/$/, '');
-  const session = await createYoupiSession({
-    orderId,
-    amountMinor: payableMinor,
-    currency: 'INR',
-    description: `${event.title} · ${tier.name || 'Entry'} × ${qty}`,
-    returnUrl: `${appOrigin}/?paid=${orderId}`,
-    metadata: { communityOrderId: orderId, eventId: event.id, tierId: tier.id, quantity: qty },
-    customer: { fullName: buyerName, phone: buyerPhone, email: buyerEmail },
-  });
+  let session;
+  try {
+    session = await createYoupiSession({
+      orderId,
+      amountMinor: payableMinor,
+      currency: 'INR',
+      description: `${event.title} · ${tier.name || 'Entry'} × ${qty}`,
+      returnUrl: `${appOrigin}/?paid=${orderId}`,
+      metadata: { communityOrderId: orderId, eventId: event.id, tierId: tier.id, quantity: qty },
+      customer: { fullName: buyerName, phone: buyerPhone, email: buyerEmail },
+      verifiedCustomer: Boolean(userId),
+    });
+  } catch (error) {
+    await pool.query(
+      "UPDATE community_ticket_orders SET status='failed', updated_at=now() WHERE provider_order_id=$1",
+      [orderId],
+    );
+    throw error;
+  }
 
   const { rows: saved } = await pool.query(
-    `INSERT INTO community_ticket_orders
-       (event_id, event_title, event_date, event_time, venue, event_starts_at, user_id,
-        tier_id, tier_name, quantity, amount_minor, base_amount_minor, currency, buyer_name, phone,
-        provider_order_id, provider_payment_id, status)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'INR',$13,$14,$15,$16,'created')
-     RETURNING *`,
-    [
-      event.id,
-      event.title,
-      event.dateLabel,
-      event.timeLabel,
-      event.venue,
-      event.startsAt || null,
-      userId || null,
-      String(tier.id || ''),
-      tier.name || 'Entry',
-      qty,
-      payableMinor,
-      baseMinor,
-      buyerName,
-      buyerPhone,
-      orderId,
-      session.paymentId || null,
-    ],
+    `UPDATE community_ticket_orders
+        SET status='created', provider_payment_id=$2, updated_at=now()
+      WHERE provider_order_id=$1
+      RETURNING *`,
+    [orderId, session.paymentId || null],
   );
 
   const base = (publicBase || '').replace(/\/$/, '');
@@ -772,7 +816,7 @@ export async function createTicketCheckout({ eventId, tierId, quantity, name, ph
   };
 }
 
-/** Ask the gateway whether an event checkout has been paid yet. */
+/** Ask the gateway whether an event checkout has been paid yet. Read-only. */
 export async function getTicketCheckout(orderId) {
   const row = await findTicketOrder(orderId);
   let status = row.status;
@@ -782,21 +826,8 @@ export async function getTicketCheckout(orderId) {
     try {
       const provider = await getYoupiStatus(row.provider_payment_id);
       providerStatus = String(provider.status || '').toUpperCase();
-      if (providerStatus === 'SUCCESS') {
-        await pool.query(
-          "UPDATE community_ticket_orders SET status='paid', updated_at=now() WHERE id=$1",
-          [row.id],
-        );
-        status = 'paid';
-      } else if (providerStatus === 'FAILED' || providerStatus === 'EXPIRED') {
-        status = providerStatus.toLowerCase();
-        await pool.query(
-          'UPDATE community_ticket_orders SET status=$2, updated_at=now() WHERE id=$1',
-          [row.id, status],
-        );
-      }
     } catch {
-      // Keep the row as "created" and let the client poll again.
+      // Keep the stored status and let the client poll again.
     }
   }
 
@@ -819,7 +850,7 @@ export async function listUserTicketOrders(userId) {
 }
 
 /** Client-side success callback: re-check with the gateway before marking paid. */
-export async function confirmTicketCheckout(orderId, { utr } = {}) {
+export async function confirmTicketCheckout(orderId) {
   const row = await findTicketOrder(orderId);
   if (row.status === 'paid') return { success: true, order: ticketOrderRow(row) };
   if (!row.provider_payment_id) throw badRequest('this checkout has no payment session');
@@ -828,7 +859,7 @@ export async function confirmTicketCheckout(orderId, { utr } = {}) {
   if (String(provider.status || '').toUpperCase() !== 'SUCCESS') {
     return { success: false, status: provider.status };
   }
-  if (provider.amountPaise && Number(provider.amountPaise) !== Number(row.amount_minor)) {
+  if (!provider.amountPaise || Number(provider.amountPaise) !== Number(row.amount_minor)) {
     throw badRequest('payment amount mismatch');
   }
 
@@ -837,7 +868,7 @@ export async function confirmTicketCheckout(orderId, { utr } = {}) {
         SET status='paid', utr=coalesce($2, utr), updated_at=now()
       WHERE id=$1
       RETURNING *`,
-    [row.id, utr || null],
+    [row.id, provider.utr || null],
   );
   return { success: true, order: ticketOrderRow(rows[0]) };
 }

@@ -5,6 +5,7 @@ import { env } from '../../config/env.js';
 export async function createHold({ showId, seatIds, userId, sessionRef, guestEmail }) {
   if (!Array.isArray(seatIds) || seatIds.length === 0) throw badRequest('seatIds required');
   if (seatIds.length > env.MAX_SEATS_PER_BOOKING) throw badRequest('too many seats');
+  if (!userId && !sessionRef) throw badRequest('sessionRef is required for guest holds');
   const unique = [...new Set(seatIds)];
   if (unique.length !== seatIds.length) throw badRequest('duplicate seats');
 
@@ -71,7 +72,8 @@ export async function releaseHold({ holdId, userId, sessionRef }) {
     if (!rows.length) throw notFound('hold not found');
     const hold = rows[0];
     if (hold.status !== 'active') return { released: true };
-    // ownership
+    // Fail closed: a hold with neither binding may not be released by anyone.
+    if (!hold.owner_user_id && !hold.session_ref) throw forbidden('hold has no owner');
     if (hold.owner_user_id && hold.owner_user_id !== userId) throw forbidden('not owner');
     if (!hold.owner_user_id && hold.session_ref && hold.session_ref !== sessionRef) throw forbidden('not owner');
 

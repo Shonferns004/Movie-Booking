@@ -37,19 +37,15 @@ export function loadYoupiScript(scriptUrl, merchantKey, { apiUrl, portalUrl } = 
  * when the SDK cannot open (popup blockers, very old browser).
  */
 export async function openYoupiCheckout(order, { name, phone, email, description, onSuccess, onFailed, onCancelled } = {}) {
-  // If the visitor signed in with WhatsApp OTP, hand the verified YouPI customer
-  // session to the checkout page so it does not ask for the number again.
+  // Never put the customer token or contact PII in the checkout URL: query strings
+  // leak through browser history, logs, and referrer headers. The SDK receives the
+  // customer fields in its request body, and the server marks a verified signed-in
+  // caller with skipCustomerAuth in gateway metadata.
   let checkoutUrl = order.checkoutUrl;
   try {
-    if (checkoutUrl) {
+    if (checkoutUrl && typeof window !== 'undefined') {
       const url = new URL(checkoutUrl);
-      const customerToken = typeof window !== 'undefined' ? localStorage.getItem('youpiCustomerToken') : null;
-      if (customerToken) url.searchParams.set('customerToken', customerToken);
-      if (name) url.searchParams.set('customerName', name);
-      if (phone) url.searchParams.set('customerPhone', phone);
-      if (email) url.searchParams.set('customerEmail', email);
-      url.searchParams.set('skipAuth', '1');
-      if (typeof window !== 'undefined') url.searchParams.set('youpiParentOrigin', window.location.origin);
+      url.searchParams.set('youpiParentOrigin', window.location.origin);
       checkoutUrl = url.toString();
     }
   } catch {
