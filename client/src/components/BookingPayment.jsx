@@ -48,7 +48,7 @@ export default function BookingPayment({
       let activeOrder = order;
 
       if (!activeBooking) {
-        setStatus('Reserving your booking…');
+        setStatus('Reserving seats…');
         const sessionRef = localStorage.getItem('sessionRef') || undefined;
         const bookingResponse = await api.post('/bookings', {
           holdId: hold.holdId,
@@ -64,7 +64,7 @@ export default function BookingPayment({
       }
 
       if (!activeOrder) {
-        setStatus('Starting secure payment…');
+        setStatus('Starting payment…');
         const sessionRef = localStorage.getItem('sessionRef') || undefined;
         const orderResponse = await api.post('/payments/youpi/orders', {
           bookingReference: activeBooking.booking_reference,
@@ -163,7 +163,6 @@ export default function BookingPayment({
               Seats held until {new Date(hold.expiresAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}.
             </p>
           )}
-          {status && <p className="text-xs text-[#C8FF1F]">{status}</p>}
           {error && <p className="text-xs text-[#F08A80]">{error}</p>}
           <div className="flex flex-col gap-3 pt-1 sm:flex-row">
             <button
@@ -180,9 +179,9 @@ export default function BookingPayment({
               className="flex-1 rounded-lg bg-[#C8FF1F] px-5 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#1E2227] transition-colors hover:bg-[#B5AFA6] disabled:opacity-50"
             >
               {loading ? (
-                <span className="inline-flex items-center justify-center gap-2">
+                <span className="inline-flex items-center justify-center gap-2 text-[11px] font-semibold normal-case tracking-normal">
                   <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#1E2227]/25 border-t-[#1E2227]" aria-hidden="true" />
-                  Opening payment…
+                  {status || 'Opening payment…'}
                 </span>
               ) : (
                 'Pay'
