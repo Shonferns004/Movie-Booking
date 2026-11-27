@@ -2608,26 +2608,30 @@
     function launchUpiApp(app) {
       const uri = buildUpiUri();
       if (!uri) return;
-      const packages = {
-        gpay: 'com.google.android.apps.nbu.paisa.user',
-        phonepe: 'com.phonepe.app',
-        paytm: 'net.one97.paytm',
-        navi: 'com.navi.android',
+      const params = uri.split('?')[1] || '';
+      const schemes = {
+        gpay: 'tez://upi/pay',
+        phonepe: 'phonepe://pay',
+        paytm: 'paytmmp://pay',
+        navi: 'upi://pay',
+        other: 'upi://pay',
       };
-      const pkg = packages[app];
       const isAndroid = /Android/i.test(navigator.userAgent);
-      let target = uri;
-      if (isAndroid && pkg) {
-        const params = uri.split('?')[1] || '';
-        target = `intent://pay?${params}#Intent;scheme=upi;package=${pkg};end`;
-      }
-      // The checkout runs inside an iframe. Intent URLs are often blocked from
-      // an iframe, so hand the deep link to the parent app to open it.
+      const base = isAndroid ? (schemes[app] || 'upi://pay') : 'upi://pay';
+      const target = `${base}?${params}`;
+      // Keep the user gesture: launching a UPI scheme from the iframe itself is
+      // often blocked, so navigate the top window (our app) directly. Fall back
+      // to a postMessage if top navigation is not allowed.
       if (window.parent && window.parent !== window) {
-        window.parent.postMessage({ event: 'youpi.open_upi_app', url: target }, '*');
-      } else {
-        window.location.href = target;
+        try {
+          window.top.location.href = target;
+          return;
+        } catch (error) {
+          window.parent.postMessage({ event: 'youpi.open_upi_app', url: target }, '*');
+          return;
+        }
       }
+      window.location.href = target;
     }
 
     // --- PURE QR SVG LOADER (ALWAYS LOADS & SHOWS QR CODE REGARDLESS OF SERVER STATUS) ---
