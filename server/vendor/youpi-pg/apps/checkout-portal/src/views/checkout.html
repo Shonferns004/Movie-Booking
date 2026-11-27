@@ -1795,6 +1795,10 @@
     function renderState(data) {
       state = data;
       initUpiAppLaunch();
+      const stateStatus = String(data?.status || '').toUpperCase();
+      if (['SUCCESS', 'FAILED', 'EXPIRED', 'CANCELLED'].includes(stateStatus)) {
+        hideCoinOverlay();
+      }
       const b = data.branding || {};
       const appName = b.appName || 'YouPI PG';
       const hideAppName = Boolean(b.hideAppName);
@@ -2571,6 +2575,8 @@
     }
 
     // --- MOBILE UPI APP LAUNCHERS ---
+    let selectedUpiApp = '';
+
     function initUpiAppLaunch() {
       const row = document.getElementById('upiAppLaunchRow');
       const hint = document.getElementById('upiAppLaunchHint');
@@ -2586,9 +2592,34 @@
       if (hint) hint.style.display = 'block';
       if (row.dataset.bound === '1') return;
       row.dataset.bound = '1';
+
+      const continueBtn = document.getElementById('upiContinueBtn');
       row.querySelectorAll('[data-upi-app]').forEach((btn) => {
-        btn.addEventListener('click', () => launchUpiApp(btn.getAttribute('data-upi-app')));
+        btn.addEventListener('click', () => {
+          selectedUpiApp = btn.getAttribute('data-upi-app') || '';
+          row.querySelectorAll('[data-upi-app]').forEach((other) => {
+            other.classList.toggle('is-selected', other === btn);
+          });
+          if (continueBtn) continueBtn.disabled = !selectedUpiApp;
+        });
       });
+      if (continueBtn) {
+        continueBtn.addEventListener('click', () => {
+          if (!selectedUpiApp) return;
+          showCoinOverlay();
+          window.setTimeout(() => launchUpiApp(selectedUpiApp), 30);
+        });
+      }
+    }
+
+    function showCoinOverlay() {
+      const overlay = document.getElementById('upiCoinOverlay');
+      if (overlay) overlay.hidden = false;
+    }
+
+    function hideCoinOverlay() {
+      const overlay = document.getElementById('upiCoinOverlay');
+      if (overlay) overlay.hidden = true;
     }
 
     function buildUpiUri() {

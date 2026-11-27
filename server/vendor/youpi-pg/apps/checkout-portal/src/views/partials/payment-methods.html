@@ -189,13 +189,31 @@
                     </div>
 
                     <div class="ypg-mobile-upi-apps" id="upiAppLaunchRow">
-                      <button type="button" class="ypg-upi-app-btn" data-upi-app="gpay">GPay</button>
-                      <button type="button" class="ypg-upi-app-btn" data-upi-app="phonepe">PhonePe</button>
-                      <button type="button" class="ypg-upi-app-btn" data-upi-app="paytm">Paytm</button>
-                      <button type="button" class="ypg-upi-app-btn" data-upi-app="navi">Navi</button>
-                      <button type="button" class="ypg-upi-app-btn" data-upi-app="other">Other UPI</button>
+                      <button type="button" class="ypg-upi-app-btn" data-upi-app="gpay">
+                        <img src="/icons/gpay.png" alt="" onerror="this.style.display='none'"> GPay
+                      </button>
+                      <button type="button" class="ypg-upi-app-btn" data-upi-app="phonepe">
+                        <img src="/icons/phonepe.png" alt="" onerror="this.style.display='none'"> PhonePe
+                      </button>
+                      <button type="button" class="ypg-upi-app-btn" data-upi-app="paytm">
+                        <img src="/icons/paytm.png" alt="" onerror="this.style.display='none'"> Paytm
+                      </button>
+                      <button type="button" class="ypg-upi-app-btn" data-upi-app="navi">
+                        <img src="/icons/navi.png" alt="" onerror="this.src='/icons/upi.svg'"> Navi
+                      </button>
+                      <button type="button" class="ypg-upi-app-btn" data-upi-app="other">
+                        <img src="/icons/upi.svg" alt="" onerror="this.style.display='none'"> Other UPI
+                      </button>
                     </div>
-                    <div class="ypg-mobile-upi-hint" id="upiAppLaunchHint">Tap your UPI app — you'll come back here for confirmation.</div>
+                    <button type="button" class="ypg-upi-continue" id="upiContinueBtn" disabled>
+                      Continue
+                    </button>
+                    <div class="ypg-mobile-upi-hint" id="upiAppLaunchHint">Pick an app, then tap Continue. You'll come back here for confirmation.</div>
+
+                    <div class="ypg-coin-overlay" id="upiCoinOverlay" hidden>
+                      <div class="ypg-coin" aria-hidden="true"><span>₹</span></div>
+                      <p>Confirming your payment…</p>
+                    </div>
 
                     <div style="font-size:12px; color:#64748b; line-height:1.4;">
                       Open any UPI app on your phone to scan and pay directly.
