@@ -11,7 +11,7 @@ const LOGO = `data:image/svg+xml;utf8,${encodeURIComponent(
   `<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="0 0 72 72">
      <circle cx="36" cy="36" r="34" fill="#C8FF1F"/>
      <circle cx="36" cy="36" r="30" fill="none" stroke="#1E2227" stroke-opacity=".22" stroke-width="2"/>
-     <text x="36" y="45" font-family="Georgia, 'Times New Roman', serif" font-size="26" font-weight="700" text-anchor="middle" fill="#1E2227">KS</text>
+     <text x="36" y="45" font-family="Tempting, Georgia, serif" font-size="26" font-weight="700" text-anchor="middle" fill="#1E2227">KS</text>
    </svg>`,
 )}`;
 

@@ -54,8 +54,8 @@ function shortDate(value) {
 }
 
 const STYLES = `
-.kk-seat-body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
-.kk-display { font-family: 'Playfair Display', Georgia, serif; }
+.kk-seat-body { font-family: 'Inter', system-ui, sans-serif; }
+.kk-display { font-family: 'Tempting', Georgia, serif; }
 
 .kk-seat {
   display: flex; align-items: center; justify-content: center;

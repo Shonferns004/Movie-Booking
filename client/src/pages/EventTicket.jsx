@@ -97,7 +97,7 @@ export default function EventTicket() {
               <span className="h-px w-8 bg-[#C8FF1F]/60" />
               Your ticket
             </p>
-            <h1 className="mt-3 font-['Playfair Display',Georgia,serif] text-[32px] font-bold leading-none tracking-[-0.03em] sm:text-[42px]">
+            <h1 className="mt-3 font-['Tempting',Georgia,serif] text-[32px] font-bold leading-none tracking-[-0.03em] sm:text-[42px]">
               Event pass
             </h1>
           </div>
@@ -130,7 +130,7 @@ export default function EventTicket() {
         {!loading && !error && !paid && (
           <div className="border border-[#C8FF1F]/25 bg-[#242A30]/70 p-10 text-center">
             <UiIcon name="hourglass_top" className="text-[36px] text-[#C8FF1F]/70" />
-            <h2 className="mt-3 font-['Playfair Display',Georgia,serif] text-[24px] font-bold">Confirming your payment</h2>
+            <h2 className="mt-3 font-['Tempting',Georgia,serif] text-[24px] font-bold">Confirming your payment</h2>
             <p className="mx-auto mt-2 max-w-md text-[12px] leading-relaxed text-[#F2F0EC]/55">
               This page refreshes automatically as soon as the committee’s gateway confirms the
               payment.

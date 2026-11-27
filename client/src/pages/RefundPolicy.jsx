@@ -76,7 +76,7 @@ export default function RefundPolicy() {
     <main className="min-h-screen w-full pb-20 pt-10" style={{ background: C.ink, color: C.shell }}>
       <div className="mx-auto w-full max-w-4xl px-4 sm:px-6 lg:px-8">
         <header className="mb-10">
-          <h1 className="font-['Playfair Display',Georgia,serif] text-4xl font-bold leading-tight sm:text-5xl">
+          <h1 className="font-['Tempting',Georgia,serif] text-4xl font-bold leading-tight sm:text-5xl">
             Cancellation &amp; refunds
           </h1>
           <p className="mt-4 max-w-2xl text-sm leading-7" style={{ color: `${C.shell}B8` }}>
@@ -87,7 +87,7 @@ export default function RefundPolicy() {
 
         <section className="border border-[#F2F0EC]/10 p-5 sm:p-7" style={{ background: C.tide }}>
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-            <h2 className="font-['Playfair Display',Georgia,serif] text-2xl font-bold">Refund windows</h2>
+            <h2 className="font-['Tempting',Georgia,serif] text-2xl font-bold">Refund windows</h2>
             <span className="border px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em]" style={{ borderColor: `${C.shell}26`, color: `${C.shell}B8` }}>
               {policy?.enabled === false ? 'Currently closed' : 'Self-service'}
             </span>
@@ -146,7 +146,7 @@ export default function RefundPolicy() {
         </section>
 
         <section className="mt-6 border border-[#F2F0EC]/10 p-5 sm:p-7" style={{ background: C.tide }}>
-          <h2 className="font-['Playfair Display',Georgia,serif] text-2xl font-bold">Common questions</h2>
+          <h2 className="font-['Tempting',Georgia,serif] text-2xl font-bold">Common questions</h2>
           <div className="mt-4 divide-y" style={{ borderColor: `${C.shell}14` }}>
             {[
               {

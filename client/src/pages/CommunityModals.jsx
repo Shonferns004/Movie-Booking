@@ -204,7 +204,7 @@ function TicketModal({ event, onClose }) {
             <p className="text-[9px] font-bold uppercase tracking-[0.2em]" style={{ color: event.accent }}>
               {event.date}
             </p>
-            <h3 className="mt-1.5 font-['Playfair Display',Georgia,serif] text-[26px] font-bold leading-[1.02] tracking-[-0.02em]">
+            <h3 className="mt-1.5 font-['Tempting',Georgia,serif] text-[26px] font-bold leading-[1.02] tracking-[-0.02em]">
               {event.title}
             </h3>
             <p className="mt-1.5 text-[11px] text-[#F2F0EC]/50">{event.venue}</p>
@@ -222,11 +222,11 @@ function TicketModal({ event, onClose }) {
         {stage === 'paid' ? (
           <div className="mt-8 text-center">
             <UiIcon name="check_circle" className="text-[46px] text-[#B6E36A]" />
-            <h4 className="mt-3 font-['Playfair Display',Georgia,serif] text-[24px] font-bold">You're in.</h4>
+            <h4 className="mt-3 font-['Tempting',Georgia,serif] text-[24px] font-bold">You're in.</h4>
             <p className="mt-2 text-[12px] leading-relaxed text-[#F2F0EC]/65">
               {order?.quantity || quantity} × {order?.tierName || tier.name} · {event.title}
             </p>
-            <p className="mt-1 font-['Playfair Display',Georgia,serif] text-[22px] font-bold text-[#C8FF1F]">
+            <p className="mt-1 font-['Tempting',Georgia,serif] text-[22px] font-bold text-[#C8FF1F]">
               ₹{order?.amount || total}
             </p>
             {order?.orderId && (
@@ -288,7 +288,7 @@ function TicketModal({ event, onClose }) {
                       <span className="block text-[13px] font-semibold text-[#F2F0EC]">{option.name}</span>
                       {option.note && <span className="block text-[10px] text-[#F2F0EC]/45">{option.note}</span>}
                     </span>
-                    <span className="font-['Playfair Display',Georgia,serif] text-lg font-bold text-[#C8FF1F]">
+                    <span className="font-['Tempting',Georgia,serif] text-lg font-bold text-[#C8FF1F]">
                       {rupees(option.price)}
                     </span>
                   </button>
@@ -379,7 +379,7 @@ function TicketModal({ event, onClose }) {
                 <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#F2F0EC]/45">
                   Payable
                 </span>
-                <span className="font-['Playfair Display',Georgia,serif] text-[24px] font-bold text-[#C8FF1F]">
+                <span className="font-['Tempting',Georgia,serif] text-[24px] font-bold text-[#C8FF1F]">
                   ₹{order ? order.amount : total}
                 </span>
               </div>
@@ -656,7 +656,7 @@ function MembershipModal({ onClose, plan: initialPlan, onMemberChange }) {
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-[9px] font-bold uppercase tracking-[0.24em] text-[#C8FF1F]">Membership</p>
-              <h3 className="mt-1.5 font-['Playfair Display',Georgia,serif] text-[26px] font-bold leading-[1.02] tracking-[-0.02em]">
+              <h3 className="mt-1.5 font-['Tempting',Georgia,serif] text-[26px] font-bold leading-[1.02] tracking-[-0.02em]">
                 {stage === 'paid' || member ? 'Your membership' : 'Join Konkani Samudai'}
               </h3>
             </div>
@@ -690,7 +690,7 @@ function MembershipModal({ onClose, plan: initialPlan, onMemberChange }) {
           ) : stage === 'paid' || member ? (
             <div className="mt-8 text-center">
               <UiIcon name="verified" className="mx-auto text-[44px] text-[#C8FF1F]" />
-              <h4 className="mt-3 font-['Playfair Display',Georgia,serif] text-[24px] font-bold">You're a member</h4>
+              <h4 className="mt-3 font-['Tempting',Georgia,serif] text-[24px] font-bold">You're a member</h4>
               <p className="mt-2 text-[12px] leading-relaxed text-[#F2F0EC]/65">
                 {member?.name || name} · {rupees(Math.round(Number(member?.amountMinor || plan.amountMinor) / 100))} a year
               </p>
@@ -719,7 +719,7 @@ function MembershipModal({ onClose, plan: initialPlan, onMemberChange }) {
                     </p>
                     <p className="mt-0.5 text-[10px] text-[#F2F0EC]/50">One plan · renews yearly</p>
                   </div>
-                  <p className="font-['Playfair Display',Georgia,serif] text-[30px] font-bold leading-none text-[#C8FF1F]">
+                  <p className="font-['Tempting',Georgia,serif] text-[30px] font-bold leading-none text-[#C8FF1F]">
                     {rupees(total)}
                     <span className="ml-1 text-[9px] font-semibold uppercase tracking-[0.1em] text-[#F2F0EC]/40">/ yr</span>
                   </p>

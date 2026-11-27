@@ -105,7 +105,7 @@ export default function TicketArtwork({ booking }) {
               )}
             </div>
 
-            <h2 className="mt-3 line-clamp-3 font-['Bebas_Neue',Impact,'Arial_Narrow',sans-serif] text-[38px] font-normal uppercase leading-[0.94] tracking-[0.015em] sm:text-[54px]">
+            <h2 className="mt-3 line-clamp-3 font-['Tempting',Georgia,serif] text-[38px] font-normal uppercase leading-[0.94] tracking-[0.015em] sm:text-[54px]">
               {booking?.title || 'Movie night'}
             </h2>
 

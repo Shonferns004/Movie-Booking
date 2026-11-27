@@ -1,8 +1,19 @@
 /* ==========================================================================
    Konkani Samudai · customer site
-   Midnight charcoal, warm titanium and ultra lime. Playfair Display for the voice,
-   Plus Jakarta Sans for the small print.
+   Midnight charcoal, warm titanium and ultra lime. Tempting for the voice,
+   Inter for the small print.
    ========================================================================== */
+
+@font-face {
+  font-family: 'Tempting';
+  src:
+    url('/fonts/Tempting.woff2') format('woff2'),
+    url('/fonts/Tempting.woff') format('woff'),
+    url('/fonts/Tempting.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
 
 :root {
   --ink: #1E2227;
@@ -26,9 +37,9 @@
   --ok: #B6E36A;
   --danger: #F08A80;
   --radius: 3px;
-  --font-display: 'Playfair Display', Georgia, 'Times New Roman', serif;
-  --font-text: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+  --font-display: 'Tempting', Georgia, 'Times New Roman', serif;
+  --font-text: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
   --shadow: 0 24px 70px -36px rgba(0, 0, 0, 0.9);
   --wrap: 1220px;
   --gutter: clamp(18px, 4vw, 44px);

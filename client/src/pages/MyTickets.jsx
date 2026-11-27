@@ -125,7 +125,7 @@ function TicketPassModal({ booking, onClose, onDownload, onUpdated }) {
               <p className="text-[9px] font-bold uppercase tracking-[0.24em] text-[#1E2227]/70">
                 Booking confirmed
               </p>
-              <h2 className="mt-1 truncate font-['Playfair Display',Georgia,serif] text-[25px] font-bold leading-tight sm:text-[30px]">
+              <h2 className="mt-1 truncate font-['Tempting',Georgia,serif] text-[25px] font-bold leading-tight sm:text-[30px]">
                 {booking.title}
               </h2>
               <p className="mt-1 text-[10px] uppercase tracking-[0.12em] text-[#1E2227]/70">
@@ -572,7 +572,7 @@ export default function MyTickets() {
     <main ref={pageRef} className="min-h-screen w-full pb-16" style={{ background: COLORS.ink, color: COLORS.shell }}>
       <style>{`
         .kk-wallet-card{background:${COLORS.tide}}
-        .kk-ticket-display{font-family:'Playfair Display',Georgia,serif}
+        .kk-ticket-display{font-family:'Tempting',Georgia,serif}
         .kk-print-root{display:none}
         .kk-pass-sheet{animation:kkSheetUp .34s cubic-bezier(.22,1,.36,1)}
         @keyframes kkSheetUp{from{transform:translateY(100%)}to{transform:translateY(0)}}

@@ -54,7 +54,7 @@ export default function EventTicketArtwork({ ticket, backgroundUrl }) {
           <p className="text-[9px] font-bold uppercase tracking-[0.28em] text-[#1E2227]/80">
             Konkani Samudai · Event pass
           </p>
-          <h2 className="mt-3 line-clamp-3 font-['Playfair Display',Georgia,serif] text-[36px] font-bold uppercase leading-[0.98] tracking-[-0.01em] sm:text-[50px]">
+          <h2 className="mt-3 line-clamp-3 font-['Tempting',Georgia,serif] text-[36px] font-bold uppercase leading-[0.98] tracking-[-0.01em] sm:text-[50px]">
             {title}
           </h2>
 

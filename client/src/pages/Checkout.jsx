@@ -41,8 +41,8 @@ function formatExpiry(value) {
 }
 
 const STYLES = `
-.kk-checkout { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
-.kk-display { font-family: 'Playfair Display', Georgia, serif; }
+.kk-checkout { font-family: 'Inter', system-ui, sans-serif; }
+.kk-display { font-family: 'Tempting', Georgia, serif; }
 .kk-pay { transition: background-color .2s ease, transform .2s ease, opacity .2s ease; }
 .kk-pay:not(:disabled):hover { background-color: #A8D819; transform: translateY(-1px); }
 .kk-row { transition: background-color .16s ease; }
