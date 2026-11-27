@@ -3,11 +3,14 @@ import { QRCodeSVG } from 'qrcode.react';
 import api from '../services/api.js';
 
 const UPI_APPS = [
-  { id: 'gpay', label: 'GPay', icon: '/icons/gpay.png', scheme: 'tez://upi/pay' },
-  { id: 'phonepe', label: 'PhonePe', icon: '/icons/phonepe.png', scheme: 'phonepe://pay' },
-  { id: 'paytm', label: 'Paytm', icon: '/icons/paytm.png', scheme: 'paytmmp://pay' },
-  { id: 'other', label: 'Other UPI', icon: '/icons/upi.svg', scheme: 'upi://pay' },
+  { id: 'gpay', label: 'GPay', icon: '/icons/gpay.png', scheme: 'tez://upi/pay', pkg: 'com.google.android.apps.nbu.paisa.user' },
+  { id: 'phonepe', label: 'PhonePe', icon: '/icons/phonepe.png', scheme: 'phonepe://pay', pkg: 'com.phonepe.app' },
+  { id: 'paytm', label: 'Paytm', icon: '/icons/paytm.png', scheme: 'paytmmp://pay', pkg: 'net.one97.paytm' },
+  { id: 'other', label: 'Other UPI', icon: '/icons/upi.svg', scheme: 'upi://pay', pkg: null },
 ];
+
+const isAndroidDevice = () =>
+  typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent || '');
 
 const COIN_CSS = `
   @keyframes kk-coin-flip {
@@ -131,15 +134,33 @@ export default function YoupiCheckout({ order, booking, onSuccess, onBack }) {
     return () => window.clearInterval(timer);
   }, [mode]);
 
-  function launchApp(app) {
+  /**
+   * Build the app launch target. On Android an `intent:` URL with an explicit
+   * package opens the app directly instead of showing Chrome's "Open in app?"
+   * prompt; iOS keeps using each app's own scheme.
+   */
+  function appTarget(app, query) {
+    if (isAndroidDevice()) {
+      return `intent://pay?${query}#Intent;scheme=upi;${app.pkg ? `package=${app.pkg};` : ''}end`;
+    }
+    return `${app.scheme}?${query}`;
+  }
+
+  function handleLaunch(event, app) {
     if (!upiUri) {
+      event.preventDefault();
       setError('Payment details are still loading. Please wait a second.');
       return;
     }
     setError('');
-    setMode('confirming');
-    const params = upiUri.split('?')[1] || '';
-    window.location.href = `${app.scheme}?${params}`;
+    // Let the anchor's own navigation open the app (a real link is not blocked
+    // by browser popup rules); only show the waiting overlay if we stay here.
+    window.setTimeout(() => setMode('confirming'), 900);
+  }
+
+  function appHref(app) {
+    if (!upiUri) return undefined;
+    return appTarget(app, upiUri.split('?')[1] || '');
   }
 
   async function cancelPayment() {
@@ -209,30 +230,30 @@ export default function YoupiCheckout({ order, booking, onSuccess, onBack }) {
 
           <div className="mt-4 space-y-2 sm:hidden">
             {UPI_APPS.map((app) => (
-              <button
+              <a
                 key={app.id}
-                type="button"
-                onClick={() => launchApp(app)}
+                href={appHref(app)}
+                onClick={(event) => handleLaunch(event, app)}
                 className="flex h-12 w-full items-center gap-3 rounded-xl border border-[#B5AFA6]/18 bg-[#1E2227] px-3 text-left text-sm font-semibold transition-colors hover:border-[#C8FF1F]"
               >
                 <img src={app.icon} alt="" className="h-6 w-6 rounded" onError={(event) => { event.currentTarget.style.visibility = 'hidden'; }} />
                 <span>{app.label}</span>
                 <span className="ml-auto text-[#B5AFA6]">›</span>
-              </button>
+              </a>
             ))}
           </div>
 
           <div className="mt-4 space-y-2 sm:flex sm:items-center sm:gap-2">
             {UPI_APPS.slice(0, 3).map((app) => (
-              <button
+              <a
                 key={app.id}
-                type="button"
-                onClick={() => launchApp(app)}
+                href={appHref(app)}
+                onClick={(event) => handleLaunch(event, app)}
                 className="hidden h-10 flex-1 items-center justify-center gap-2 rounded-lg border border-[#B5AFA6]/18 bg-[#1E2227] text-xs font-semibold transition-colors hover:border-[#C8FF1F] sm:flex"
               >
                 <img src={app.icon} alt="" className="h-5 w-5 rounded" onError={(event) => { event.currentTarget.style.visibility = 'hidden'; }} />
                 {app.label}
-              </button>
+              </a>
             ))}
           </div>
 
