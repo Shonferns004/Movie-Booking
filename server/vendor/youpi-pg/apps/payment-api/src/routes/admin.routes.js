@@ -259,19 +259,32 @@ export function registerAdminRoutes(server, ctx) {
     const payments = ctx.sessionRepo.findByMerchantId(merchantId, limit);
 
     HttpServer.json(res, 200, {
-      payments: payments.map(p => ({
-        id: p.id,
-        orderId: p.orderId,
-        amountPaise: p.amountPaise.toString(),
-        currency: p.currency,
-        method: p.method,
-        status: p.status,
-        verificationLevel: p.verificationLevel || 0,
-        verificationSources: p.verificationSources || [],
-        verificationTag: p.verificationTag || 'UNVERIFIED',
-        createdAt: p.createdAt,
-        completedAt: p.completedAt
-      }))
+      payments: payments.map(p => {
+        let customer = null;
+        if (p.customerId && ctx.customerRepo) {
+          try {
+            customer = ctx.customerRepo.findById(p.customerId);
+          } catch {
+            customer = null;
+          }
+        }
+        return {
+          id: p.id,
+          orderId: p.orderId,
+          amountPaise: p.amountPaise.toString(),
+          currency: p.currency,
+          method: p.method,
+          status: p.status,
+          verificationLevel: p.verificationLevel || 0,
+          verificationSources: p.verificationSources || [],
+          verificationTag: p.verificationTag || 'UNVERIFIED',
+          customerName: customer?.name || '',
+          customerPhone: customer?.mobileNumber || customer?.mobile || '',
+          customerEmail: customer?.email || '',
+          createdAt: p.createdAt,
+          completedAt: p.completedAt
+        };
+      })
     });
   });
 

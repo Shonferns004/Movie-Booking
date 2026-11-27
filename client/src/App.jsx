@@ -26,42 +26,88 @@ export default function App() {
     const main = pageRef.current;
     if (!main || prefersReducedMotion() || isBookingPage) return undefined;
 
+    const seen = new WeakSet();
+    let observer;
+    let scanTimer;
+
     const context = gsap.context(() => {
-      // Every visible block eases in on its own beat: headings, copy, cards,
-      // links, buttons and images. Elements already handled by a scroll reveal
-      // are skipped so nothing animates twice.
-      const targets = gsap.utils
-        .toArray('h1,h2,h3,h4,p,article,button,a,img,li,label,blockquote', main)
-        .filter((element) => {
-          if (element.closest('[data-no-enter]')) return false;
-          if (element.closest('[data-reveal]')) return false;
-          if (element.closest('[role="dialog"]')) return false;
-          if (element.closest('[aria-hidden="true"]')) return false;
+      const selector = 'h1,h2,h3,h4,p,article,button,a,img,li,label,blockquote,figure';
+
+      const shouldAnimate = (element) => {
+        if (seen.has(element)) return false;
+        if (element.closest('[data-no-enter]')) return false;
+        if (element.closest('[data-reveal]')) return false;
+        if (element.closest('[data-seat-enter]')) return false;
+        if (element.closest('[role="dialog"]')) return false;
+        if (element.closest('[aria-hidden="true"]')) return false;
+        const rect = element.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0;
+      };
+
+      const reveal = () => {
+        const targets = gsap.utils.toArray(selector, main).filter(shouldAnimate);
+        if (!targets.length) return;
+
+        const viewportHeight = window.innerHeight;
+        const onScreen = [];
+        const below = [];
+        targets.forEach((element) => {
+          seen.add(element);
           const rect = element.getBoundingClientRect();
-          return rect.top < window.innerHeight * 1.02 && rect.bottom > 0;
-        })
-        .slice(0, 90);
+          if (rect.top < viewportHeight * 1.02 && rect.bottom > 0) onScreen.push(element);
+          else below.push(element);
+        });
 
-      if (!targets.length) return;
+        if (onScreen.length) {
+          gsap.from(onScreen, {
+            autoAlpha: 0,
+            y: 16,
+            duration: 0.55,
+            ease: 'power3.out',
+            stagger: { amount: Math.min(0.6, onScreen.length * 0.018) },
+            clearProps: 'transform',
+          });
+        }
 
-      gsap.fromTo(
-        targets,
-        { autoAlpha: 0, y: 16 },
-        {
-          autoAlpha: 1,
-          y: 0,
-          duration: 0.55,
-          ease: 'power3.out',
-          stagger: { amount: Math.min(0.65, targets.length * 0.018) },
-          overwrite: 'auto',
-          clearProps: 'transform',
-        },
-      );
+        if (below.length) {
+          gsap.set(below, { autoAlpha: 0, y: 16 });
+          ScrollTrigger.batch(below, {
+            start: 'top 94%',
+            once: true,
+            onEnter: (batch) =>
+              gsap.to(batch, {
+                autoAlpha: 1,
+                y: 0,
+                duration: 0.55,
+                ease: 'power3.out',
+                stagger: 0.06,
+                overwrite: true,
+              }),
+          });
+        }
+      };
+
+      const scheduleReveal = () => {
+        window.clearTimeout(scanTimer);
+        scanTimer = window.setTimeout(() => {
+          reveal();
+          ScrollTrigger.refresh();
+        }, 140);
+      };
+
+      reveal();
+
+      // Pages load their cards after mount (films, tickets, passes). Watch for
+      // new nodes and give each one the same staggered ease-in.
+      observer = new MutationObserver((mutations) => {
+        if (mutations.some((mutation) => mutation.addedNodes.length)) scheduleReveal();
+      });
+      observer.observe(main, { childList: true, subtree: true });
     }, main);
 
-    const refresh = window.setTimeout(() => ScrollTrigger.refresh(), 140);
     return () => {
-      window.clearTimeout(refresh);
+      window.clearTimeout(scanTimer);
+      if (observer) observer.disconnect();
       context.revert();
     };
   }, [pathname, isBookingPage]);

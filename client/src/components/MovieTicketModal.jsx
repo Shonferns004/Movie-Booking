@@ -149,7 +149,7 @@ export default function MovieTicketModal({ booking, onClose, onManage, onDownloa
           <button
             type="button"
             onClick={onManage}
-            className="font-medium text-[#B5AFA6] underline decoration-[#B5AFA6]/40 underline-offset-4 transition-colors hover:text-[#C8FF1F]"
+            className="rounded-lg border border-[#B5AFA6]/30 px-3 py-2 text-[10px] font-semibold text-[#F2F0EB] transition-colors hover:border-[#C8FF1F] hover:text-[#C8FF1F]"
           >
             Cancellations &amp; refunds
           </button>

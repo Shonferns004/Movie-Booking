@@ -35,12 +35,19 @@ export default function BookingPayment({
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
   const pollRef = useRef(null);
+  const youpiRef = useRef(null);
 
   const seats = selectedSeats.map((seat) => `${seat.row_label}-${seat.seat_number}`);
   const seatTotal = totalMinor || Number(hold?.totalMinor) || 0;
 
   useEffect(() => () => {
     if (pollRef.current) clearInterval(pollRef.current);
+    try {
+      youpiRef.current?.close?.();
+    } catch {
+      // Ignore.
+    }
+    youpiRef.current = null;
   }, []);
 
   function startPolling(activeOrder, activeBooking) {
@@ -67,12 +74,24 @@ export default function BookingPayment({
           }
           localStorage.removeItem('currentHold');
           localStorage.removeItem('currentHoldContext');
+          try {
+            youpiRef.current?.close?.();
+          } catch {
+            // The SDK may already have closed itself.
+          }
+          youpiRef.current = null;
           onPaid({ reference, booking: activeBooking });
           return;
         }
         if (state === 'FAILED' || state === 'EXPIRED') {
           clearInterval(pollRef.current);
           pollRef.current = null;
+          try {
+            youpiRef.current?.close?.();
+          } catch {
+            // Ignore.
+          }
+          youpiRef.current = null;
           setStatus('');
           setError(state === 'EXPIRED' ? 'The payment window expired. Please try again.' : 'The payment did not go through. Please try again.');
         }
@@ -136,9 +155,11 @@ export default function BookingPayment({
       apiUrl: activeOrder.apiUrl,
       portalUrl: activeOrder.portalUrl,
     });
-    if (typeof Youpi?.pay === 'function') await Youpi.pay(options);
-    else if (typeof Youpi?.open === 'function') Youpi.open(options);
+    let instance = null;
+    if (typeof Youpi?.pay === 'function') instance = await Youpi.pay(options);
+    else if (typeof Youpi?.open === 'function') instance = Youpi.open(options);
     else throw new Error('Payment SDK did not initialise');
+    youpiRef.current = instance || null;
   }
 
   async function pay() {
@@ -221,7 +242,19 @@ export default function BookingPayment({
         {status && <p className="text-xs text-[#C8FF1F]">{status}</p>}
         {error && <p className="text-xs text-[#F08A80]">{error}</p>}
         <div className="flex flex-col gap-3 pt-1 sm:flex-row">
-          <button type="button" onClick={onBack} className="rounded-lg border border-[#B5AFA6]/30 px-5 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#B5AFA6] transition-colors hover:border-[#C8FF1F] hover:text-[#C8FF1F]">
+          <button
+            type="button"
+            onClick={() => {
+              try {
+                youpiRef.current?.close?.();
+              } catch {
+                // Ignore.
+              }
+              youpiRef.current = null;
+              onBack();
+            }}
+            className="rounded-lg border border-[#B5AFA6]/30 px-5 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#B5AFA6] transition-colors hover:border-[#C8FF1F] hover:text-[#C8FF1F]"
+          >
             Back to seats
           </button>
           <button type="button" onClick={pay} disabled={loading} className="flex-1 rounded-lg bg-[#C8FF1F] px-5 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#1E2227] transition-colors hover:bg-[#B5AFA6] disabled:opacity-50">

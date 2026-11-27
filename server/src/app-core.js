@@ -66,6 +66,7 @@ export function createApp({
   const allowedOrigins = new Set(
     [
       env.APP_BASE_URL,
+      env.CORS_ORIGINS,
       env.YOUPI_FRAME_ANCESTORS,
       'http://localhost:5173',
       'http://localhost:5175',

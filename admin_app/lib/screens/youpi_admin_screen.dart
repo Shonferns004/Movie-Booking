@@ -444,6 +444,8 @@ class _AllPaymentsPageState extends State<_AllPaymentsPage> {
         : _payments.where((p) {
             final haystack = [
               p['orderId'],
+              p['customerName'],
+              p['customerPhone'],
               p['status'],
               p['method'],
               p['verificationTag'],
@@ -536,21 +538,36 @@ class _AllPaymentsPageState extends State<_AllPaymentsPage> {
   Widget _paymentTile(Map<String, dynamic> p) {
     final status = '${p['status'] ?? '-'}';
     final tag = '${p['verificationTag'] ?? ''}';
+    final customerName = '${p['customerName'] ?? ''}'.trim();
+    final customerPhone = '${p['customerPhone'] ?? ''}'.trim();
+    final customerLine = [customerName, customerPhone]
+        .where((value) => value.isNotEmpty)
+        .join(' · ');
     final sources =
         (p['verificationSources'] as List?)?.join(' + ') ?? '';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: Text(
-                'Order #${p['orderId'] ?? '-'}',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: KkSurface.onSurface,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Order #${p['orderId'] ?? '-'}',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: KkSurface.onSurface,
+                    ),
+                  ),
+                  if (customerLine.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(customerLine, style: _muted()),
+                  ],
+                ],
               ),
             ),
             Text(
@@ -2164,12 +2181,33 @@ class _GatewayTabState extends State<_GatewayTab> {
 
 Widget _paymentRow(Map<String, dynamic> p) {
   final status = '${p['status'] ?? '-'}';
+  final customerName = '${p['customerName'] ?? ''}'.trim();
+  final customerPhone = '${p['customerPhone'] ?? ''}'.trim();
+  final customerLine = [customerName, customerPhone]
+      .where((value) => value.isNotEmpty)
+      .join(' · ');
   return Padding(
     padding: const EdgeInsets.only(bottom: 8),
-    child: _KeyValue(
-      'Order #${p['orderId'] ?? '-'}',
-      _money(p['amountPaise']),
-      trailing: _Pill(status, color: _statusColor(status)),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Order #${p['orderId'] ?? '-'}', style: _body()),
+              if (customerLine.isNotEmpty) ...[
+                const SizedBox(height: 2),
+                Text(customerLine, style: _muted()),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(_money(p['amountPaise']), style: _body(bold: true)),
+        const SizedBox(width: 8),
+        _Pill(status, color: _statusColor(status)),
+      ],
     ),
   );
 }
@@ -2239,38 +2277,6 @@ class _Kpi extends StatelessWidget {
               color: KkSurface.onSurface,
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _KeyValue extends StatelessWidget {
-  const _KeyValue(this.label, this.value, {this.trailing});
-
-  final String label;
-  final String value;
-  final Widget? trailing;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Expanded(child: Text(label, style: _body())),
-          if (trailing != null) ...[
-            Text(value, style: _body()),
-            const SizedBox(width: 8),
-            trailing!,
-          ] else
-            Flexible(
-              child: Text(
-                value,
-                textAlign: TextAlign.right,
-                style: _body(bold: true),
-              ),
-            ),
         ],
       ),
     );

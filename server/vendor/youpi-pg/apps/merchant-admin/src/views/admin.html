@@ -1352,6 +1352,7 @@
               <thead>
                 <tr>
                   <th>Order ID</th>
+                  <th>Customer</th>
                   <th>Payment ID</th>
                   <th>Amount</th>
                   <th>Method</th>
@@ -1364,7 +1365,7 @@
               </thead>
               <tbody id="paymentsLedgerTbody">
                 <tr>
-                  <td colspan="9" style="text-align:center; padding:1.5rem;">Loading transactions...</td>
+                  <td colspan="10" style="text-align:center; padding:1.5rem;">Loading transactions...</td>
                 </tr>
               </tbody>
             </table>
@@ -3197,6 +3198,10 @@
           return `
           <tr>
             <td><strong>Order #${escapeHtml(p.orderId)}</strong></td>
+            <td>
+              ${p.customerName ? `<span style="display:block; font-weight:600;">${escapeHtml(p.customerName)}</span>` : ''}
+              ${p.customerPhone ? `<span style="display:block; font-family:monospace; font-size:0.75rem; color:var(--text-muted);">${escapeHtml(p.customerPhone)}</span>` : (p.customerName ? '' : '<span style="color:var(--text-muted); font-size:0.75rem;">-</span>')}
+            </td>
             <td><code>${p.id}</code></td>
             <td>₹${(Number(p.amountPaise) / 100).toFixed(2)}</td>
             <td>${escapeHtmlValue(p.method)}</td>

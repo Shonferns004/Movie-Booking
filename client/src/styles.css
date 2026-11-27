@@ -1480,3 +1480,38 @@ pre {
     animation: none;
   }
 }
+
+/* --------------------------- YouPI checkout modal -------------------------- */
+body .youpi-checkout-backdrop {
+  background: rgba(11, 12, 13, 0.86) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+}
+
+body .youpi-checkout-container {
+  background: #1e2227 !important;
+  border: 1px solid rgba(181, 175, 166, 0.18) !important;
+  border-radius: 24px !important;
+  box-shadow: 0 40px 110px -30px rgba(0, 0, 0, 0.9) !important;
+}
+
+body .youpi-checkout-iframe {
+  background: #1e2227 !important;
+}
+
+body .youpi-checkout-close-btn {
+  background: rgba(200, 255, 31, 0.16) !important;
+  color: #c8ff1f !important;
+  font-weight: 700 !important;
+}
+
+body .youpi-checkout-close-btn:hover {
+  background: rgba(200, 255, 31, 0.3) !important;
+}
+
+@media (max-width: 767px) {
+  body .youpi-checkout-container {
+    border-top-left-radius: 24px !important;
+    border-top-right-radius: 24px !important;
+  }
+}

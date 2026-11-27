@@ -38,6 +38,8 @@ export const env = {
   JWT_ACCESS_TTL: process.env.JWT_ACCESS_TTL || "1h",
   JWT_REFRESH_TTL: process.env.JWT_REFRESH_TTL || "30d",
   APP_BASE_URL: process.env.APP_BASE_URL || "http://localhost:5173",
+  // Extra comma-separated browser origins allowed by the API's CORS allow-list.
+  CORS_ORIGINS: process.env.CORS_ORIGINS || "",
 
   // Explicit opt-in for returning a gateway development OTP. Never enable this
   // in production; the API no longer infers it from an undefined NODE_ENV.

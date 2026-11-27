@@ -18,6 +18,8 @@ export function loadYoupiScript(scriptUrl, merchantKey, { apiUrl, portalUrl } = 
     if (apiUrl) script.setAttribute('data-api-url', apiUrl);
     if (portalUrl) script.setAttribute('data-portal-url', portalUrl);
     script.setAttribute('data-currency', 'INR');
+    script.setAttribute('data-name', 'Konkani Samudai');
+    script.setAttribute('data-theme-color', '#C8FF1F');
     script.onload = () => {
       if (window.Youpi) resolve(window.Youpi);
       else reject(new Error('Youpi SDK unavailable'));
