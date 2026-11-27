@@ -2,9 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, Navigate } from 'react-router-dom';
 import { gsap } from 'gsap';
-import api from '../services/api.js';
+import api, { assetUrl } from '../services/api.js';
+import { QRCodeSVG } from 'qrcode.react';
 import { useSileoNotice } from '../hooks/useSileoNotice.js';
 import TicketArtwork from '../components/TicketArtwork.jsx';
+import MovieTicketModal from '../components/MovieTicketModal.jsx';
 import EventTicketArtwork from '../components/EventTicketArtwork.jsx';
 import StyledQr from '../components/StyledQr.jsx';
 import UiIcon from '../components/UiIcon.jsx';
@@ -25,11 +27,8 @@ const REFUND_STATUS = {
   failed: { label: 'Refund failed', tone: 'text-[#A23B32]' },
 };
 
-const inr = (minor = 0) => new Intl.NumberFormat('en-IN', {
-  style: 'currency',
-  currency: 'INR',
-  maximumFractionDigits: 2,
-}).format((Number(minor) || 0) / 100);
+const inr = (minor = 0) =>
+  `₹${Number((Number(minor) || 0) / 100).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
 
 function TicketPassModal({ booking, onClose, onDownload, onUpdated }) {
   const seats = Array.isArray(booking.seats) ? booking.seats : [];
@@ -126,7 +125,7 @@ function TicketPassModal({ booking, onClose, onDownload, onUpdated }) {
               <p className="text-[9px] font-bold uppercase tracking-[0.24em] text-[#1E2227]/70">
                 Booking confirmed
               </p>
-              <h2 className="mt-1 truncate font-['Fraunces',Georgia,serif] text-[25px] font-bold leading-tight sm:text-[30px]">
+              <h2 className="mt-1 truncate font-['Playfair Display',Georgia,serif] text-[25px] font-bold leading-tight sm:text-[30px]">
                 {booking.title}
               </h2>
               <p className="mt-1 text-[10px] uppercase tracking-[0.12em] text-[#1E2227]/70">
@@ -408,6 +407,7 @@ export default function MyTickets() {
   const [now] = useState(() => Date.now());
   const [printBooking, setPrintBooking] = useState(null);
   const [previewBooking, setPreviewBooking] = useState(null);
+  const [ticketPreview, setTicketPreview] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const pageRef = useRef(null);
   const token = localStorage.getItem('token');
@@ -526,17 +526,35 @@ export default function MyTickets() {
     return <Navigate to="/login" replace />;
   }
 
+  const account = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('user') || 'null');
+    } catch {
+      return null;
+    }
+  })();
+  const email = account?.email || '';
+  const movieRows = [...bookings].sort((a, b) => new Date(a.starts_at || 0) - new Date(b.starts_at || 0));
+  const formatFor = (name = '') => {
+    if (/dolby/i.test(name)) return 'Dolby Atmos';
+    if (/2k|laser/i.test(name)) return '2K Laser';
+    return name.split('·').pop()?.trim() || 'Cinema';
+  };
+  const whenFor = (value) => {
+    const date = new Date(value || '');
+    if (Number.isNaN(date.getTime())) return 'Date TBA';
+    return `${date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })} · ${date
+      .toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
+      .toLowerCase()}`;
+  };
+  const qrFor = (booking) =>
+    booking?.seats?.find((seat) => seat?.ticket_reference)?.ticket_reference || booking?.booking_reference;
+
   return (
-    <main ref={pageRef} className="kk-wallet min-h-screen w-full pb-16 pt-24" style={{ background: COLORS.ink, color: COLORS.shell }}>
+    <main ref={pageRef} className="min-h-screen w-full pb-16" style={{ background: COLORS.ink, color: COLORS.shell }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Public+Sans:wght@400;500;600;700&display=swap');
-        .kk-wallet{font-family:'Public Sans',system-ui,sans-serif}
-        .kk-ticket-display{font-family:'Fraunces',Georgia,serif}
-        .kk-wallet-card{background:${COLORS.tide};border:1px solid rgba(242,240,236,.1);box-shadow:0 12px 36px rgba(0,0,0,.15)}
-        .kk-wallet-tab{transition:background .2s ease,color .2s ease,transform .2s ease}
-        .kk-wallet-tab:focus-visible{outline:2px solid ${COLORS.mango};outline-offset:2px}
-        .kk-ticket-art{transition:transform .25s ease,box-shadow .25s ease;print-color-adjust:exact;-webkit-print-color-adjust:exact}
-        .kk-ticket-art:hover{transform:translateY(-2px);box-shadow:0 34px 80px -38px rgba(0,0,0,.95)}
+        .kk-wallet-card{background:${COLORS.tide}}
+        .kk-ticket-display{font-family:'Playfair Display',Georgia,serif}
         .kk-print-root{display:none}
         .kk-pass-sheet{animation:kkSheetUp .34s cubic-bezier(.22,1,.36,1)}
         @keyframes kkSheetUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
@@ -551,126 +569,256 @@ export default function MyTickets() {
           .kk-print-root .kk-ticket-art{box-shadow:none}
           @page{size:A4 landscape;margin:0}
         }
-        @media(prefers-reduced-motion:reduce){.kk-ticket-art,.kk-wallet-tab{transition:none}}
       `}</style>
 
-      <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden="true">
-        <div className="kk-blob absolute -top-48 left-1/2 h-[440px] w-[720px] -translate-x-1/2 rounded-full blur-[140px]" style={{ background: `${COLORS.tide}90` }} />
-        <div className="kk-blob absolute right-[-100px] top-[40%] h-64 w-64 rounded-full blur-[110px]" style={{ background: `${COLORS.kokum}12` }} />
+      <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 pt-9">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-[#C8FF1F]">
+              Konkani Samudai · Box Office
+            </p>
+            <h1 className="mt-2 font-editorial text-4xl sm:text-5xl font-semibold leading-none text-[#F2F0EB]">
+              My tickets
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[#B5AFA6]">
+              Present your digital pass at Samudai Cineplex or Samudai Grounds, Margao.
+              Cancellations and refunds release seats immediately.
+            </p>
+          </div>
+          <Link
+            to="/movies"
+            className="shrink-0 self-start rounded-xl bg-[#C8FF1F] px-5 py-3 text-sm font-semibold text-[#1E2227] transition-colors hover:bg-[#B5AFA6]"
+          >
+            Films and showtimes
+          </Link>
+        </div>
       </div>
 
-      <div className="relative z-10 mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-        <header className="mb-8">
-          <div className="mb-7 flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl" style={{ background: COLORS.mango, color: COLORS.ink }}>
-                <span className="text-2xl" aria-hidden="true">▣</span>
-              </div>
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[.2em]" style={{ color: COLORS.mango }}>Samudai member wallet</p>
-                <p className="kk-ticket-display text-2xl font-bold">My tickets</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 rounded-full border px-3 py-2 text-xs" style={{ borderColor: `${COLORS.shell}24`, background: `${COLORS.tide}80`, color: `${COLORS.shell}C9` }}>
-              <span className="h-2 w-2 rounded-full" style={{ background: '#B6E36A' }} />
-              Digital QR entry
-            </div>
-          </div>
-        </header>
-
-        <section className="mb-6 rounded-2xl p-2" style={{ background: COLORS.tide }}>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" role="tablist" aria-label="Filter tickets">
-            {filters.map((item) => {
-              const active = filter === item.key;
-              return (
-                <button
-                  key={item.key}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => setFilter(item.key)}
-                  className="kk-wallet-tab rounded-xl px-3 py-3 text-xs font-bold sm:text-sm"
-                  style={{ background: active ? COLORS.mango : 'transparent', color: active ? COLORS.ink : `${COLORS.shell}B8` }}
-                >
-                  {item.label}
-                </button>
-              );
-            })}
-          </div>
-        </section>
-
+      <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 pt-8 space-y-5">
         {error && (
-          <div className="mb-5 rounded-xl border px-4 py-3 text-sm" style={{ borderColor: `${COLORS.kokum}80`, background: `${COLORS.kokum}18`, color: COLORS.shell }}>
-            <span className="mr-2" aria-hidden="true">!</span>{error}
+          <div className="rounded-xl bg-[#1E2227] px-4 py-3 text-sm text-[#F0B0A6]">{error}</div>
+        )}
+
+        {loading && (
+          <div className="space-y-5">
+            <span className="sr-only" role="status">Loading your tickets</span>
+            {[0, 1].map((item) => (
+              <div key={item} className="overflow-hidden rounded-[20px] bg-[#252A30] animate-pulse">
+                <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:gap-6">
+                  <div className="h-24 w-24 shrink-0 rounded-xl bg-[#16191D]" />
+                  <div className="min-w-0 flex-1 space-y-3">
+                    <div className="h-3 w-44 rounded bg-[#2A3037]" />
+                    <div className="h-7 w-64 max-w-full rounded bg-[#2A3037]" />
+                    <div className="h-3 w-80 max-w-full rounded bg-[#1E2227]" />
+                    <div className="h-3 w-56 max-w-full rounded bg-[#1E2227]" />
+                  </div>
+                  <div className="flex items-center justify-between gap-5 sm:flex-col sm:items-end">
+                    <div className="space-y-2 text-right">
+                      <div className="h-3 w-16 rounded bg-[#1E2227]" />
+                      <div className="h-7 w-24 rounded bg-[#2A3037]" />
+                      <div className="h-3 w-14 rounded bg-[#1E2227]" />
+                    </div>
+                    <div className="h-[92px] w-[92px] rounded-lg bg-[#2A3037]" />
+                  </div>
+                </div>
+                <div className="flex items-center justify-between gap-3 bg-[#1E2227]/40 px-5 py-3">
+                  <div className="h-3 w-44 rounded bg-[#2A3037]" />
+                  <div className="h-3 w-36 rounded bg-[#2A3037]" />
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
-        <section className="flex flex-col gap-6">
-          {loading && (
-            <div className="kk-wallet-card flex items-center justify-center gap-3 rounded-2xl p-12 text-sm" style={{ color: `${COLORS.shell}B8` }}>
-              <span className="h-5 w-5 animate-spin rounded-full border-2 border-dashed" style={{ borderColor: COLORS.mango, borderTopColor: 'transparent' }} />
-              Loading your passes…
-            </div>
-          )}
+        {!loading && movieRows.length === 0 && eventPasses.length === 0 && (
+          <div className="kk-wallet-card flex flex-col items-center rounded-[20px] px-6 py-14 text-center">
+            <h2 className="kk-ticket-display text-3xl text-[#F2F0EB]">No passes issued yet</h2>
+            <p className="mt-3 max-w-md text-sm leading-6 text-[#B5AFA6]">
+              Book seats at Samudai Cineplex or pick up festival tickets to see your QR passes here.
+            </p>
+            <Link to="/movies" className="mt-6 rounded-xl bg-[#C8FF1F] px-5 py-3 text-xs font-semibold text-[#1E2227]">
+              Browse Movies
+            </Link>
+          </div>
+        )}
 
-          {!loading && filtered.length === 0 && filteredEvents.length === 0 && (
-            <div className="kk-wallet-card flex flex-col items-center rounded-3xl px-6 py-14 text-center">
-              <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl text-3xl" style={{ background: COLORS.mango, color: COLORS.ink }}>▣</div>
-              <h2 className="kk-ticket-display text-3xl font-bold">
-                {bookings.length || eventPasses.length ? 'Nothing in this filter' : 'Your wallet is waiting'}
-              </h2>
-              <p className="mt-3 max-w-md text-sm leading-6" style={{ color: `${COLORS.shell}A8` }}>
-                {bookings.length || eventPasses.length
-                  ? 'Try another filter to see your other Konkani Samudai passes.'
-                  : 'Book a show and your digital pass with individual gate QR codes will appear here.'}
-              </p>
-              <Link to="/movies" className="mt-6 rounded-xl px-5 py-3 text-sm font-bold text-[#1E2227]" style={{ background: COLORS.kokum }}>
-                Browse movies →
-              </Link>
-            </div>
-          )}
-
-          {filtered.map((booking) => (
-            <div
+        {!loading && movieRows.map((booking) => {
+          const seats = Array.isArray(booking.seats) ? booking.seats : [];
+          const when = whenFor(booking.starts_at);
+          const cancelled = booking.status === 'cancelled';
+          const total = booking.paid_minor || booking.total_minor || 0;
+          return (
+            <article
               key={booking.id}
               role="button"
               tabIndex={0}
-              onClick={() => setPreviewBooking(booking)}
+              onClick={() => setTicketPreview(booking)}
               onKeyDown={(event) => {
                 if (event.key === 'Enter' || event.key === ' ') {
                   event.preventDefault();
-                  setPreviewBooking(booking);
+                  setTicketPreview(booking);
                 }
               }}
-              className="min-w-0 cursor-pointer rounded-[22px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#C8FF1F]"
+              className="group cursor-pointer overflow-hidden rounded-[20px] bg-[#252A30] transition-colors duration-200 hover:bg-[#2A3037] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#C8FF1F]"
             >
-              <TicketArtwork booking={booking} />
+              <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:gap-6">
+                <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-[#16191D]">
+                  {booking.thumbnail_url ? (
+                    <img
+                      src={assetUrl(booking.thumbnail_url)}
+                      alt=""
+                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#2A3037] to-[#16191D]">
+                      <span className="font-editorial text-2xl text-[#C8FF1F]">KS</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2 font-mono text-xs font-semibold text-[#C8FF1F]">
+                    <span>{booking.booking_reference}</span>
+                    <span className="text-[#B5AFA6]/40">·</span>
+                    <span className="text-[#B5AFA6]">{formatFor(booking.auditorium_name)}</span>
+                    {cancelled && (
+                      <span className="rounded-full bg-[#F08A80]/15 px-2 py-0.5 text-[10px] uppercase tracking-wider text-[#F0B0A6]">
+                        Cancelled
+                      </span>
+                    )}
+                  </div>
+                  <h2 className="mt-1.5 font-editorial text-2xl font-semibold leading-tight text-[#F2F0EB]">
+                    {booking.title}
+                  </h2>
+                  <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-[#B5AFA6]">
+                    <span className="inline-flex items-center gap-2">
+                      <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+                        <rect x="3" y="4" width="18" height="17" rx="2" />
+                        <path d="M16 2v4M8 2v4M3 10h18" />
+                      </svg>
+                      {when}
+                    </span>
+                    <span className="inline-flex items-center gap-2">
+                      <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+                        <path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z" />
+                        <circle cx="12" cy="10" r="2.5" />
+                      </svg>
+                      {[booking.theatre_name, booking.auditorium_name].filter(Boolean).join(' · ')}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-xs text-[#B5AFA6]">
+                    Seats:{' '}
+                    <span className="font-semibold text-[#F2F0EB]">
+                      {seats.map((seat) => seat.seat_label).filter(Boolean).join(', ') || '—'}
+                    </span>
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between gap-5">
+                  <div className="text-left sm:text-right">
+                    <p className="text-[11px] text-[#B5AFA6]">Total Paid</p>
+                    <p className="font-mono text-2xl font-bold leading-tight text-[#C8FF1F] tabular-nums">
+                      {inr(total)}
+                    </p>
+                    <p className="text-[10px] text-[#B5AFA6]">YouPI · Paid</p>
+                  </div>
+                  <div className="rounded-lg bg-white p-1.5">
+                    <QRCodeSVG
+                      value={qrFor(booking) || booking.booking_reference}
+                      size={84}
+                      level="M"
+                      bgColor="#ffffff"
+                      fgColor="#16191D"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-3 bg-[#1E2227]/40 px-5 py-3 text-[11px] text-[#B5AFA6]">
+                <span>Issued to {booking.contact_email || email || 'member'}</span>
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setTicketPreview(booking);
+                  }}
+                  className="inline-flex items-center gap-2 font-medium transition-colors hover:text-[#F2F0EB]"
+                >
+                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+                    <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v5M14 11v5" />
+                  </svg>
+                  Cancellations and refunds
+                </button>
+              </div>
+            </article>
+          );
+        })}
+
+        {!loading && eventPasses.map((pass) => (
+          <article
+            key={pass.id || pass.orderId}
+            className="overflow-hidden rounded-[20px] bg-[#252A30]"
+          >
+            <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:gap-6">
+              <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-[#16191D]">
+                {eventBackground ? (
+                  <img src={eventBackground} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#2A3037] to-[#16191D]">
+                    <span className="font-editorial text-2xl text-[#C8FF1F]">KS</span>
+                  </div>
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2 font-mono text-xs font-semibold text-[#C8FF1F]">
+                  <span>{pass.orderId}</span>
+                  <span className="text-[#B5AFA6]/40">·</span>
+                  <span className="text-[#B5AFA6]">Event pass</span>
+                </div>
+                <h2 className="mt-1.5 font-editorial text-2xl font-semibold text-[#F2F0EB]">
+                  {pass.eventTitle}
+                </h2>
+                <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-[#B5AFA6]">
+                  <span>{[pass.eventDate, pass.eventTime].filter(Boolean).join(' · ') || 'Date TBA'}</span>
+                  {pass.venue && <span>{pass.venue}</span>}
+                </div>
+                <p className="mt-2 text-xs text-[#B5AFA6]">
+                  Passes: <span className="font-semibold text-[#F2F0EB]">{pass.quantity} × {pass.tierName}</span>
+                </p>
+              </div>
+              <div className="flex items-center justify-between gap-5">
+                <div className="text-left sm:text-right">
+                  <p className="text-[11px] text-[#B5AFA6]">Total Paid</p>
+                  <p className="font-mono text-2xl font-bold leading-tight text-[#C8FF1F] tabular-nums">
+                    {inr(pass.baseAmountMinor ?? pass.amountMinor ?? 0)}
+                  </p>
+                  <p className="text-[10px] text-[#B5AFA6]">YouPI · Paid</p>
+                </div>
+                <Link to={`/event-ticket/${pass.orderId}`} className="rounded-lg bg-white p-1.5">
+                  <QRCodeSVG value={pass.orderId} size={84} level="M" bgColor="#ffffff" fgColor="#16191D" />
+                </Link>
+              </div>
             </div>
-          ))}
-
-          {filteredEvents.map((pass) => (
-            <Link
-              key={pass.id}
-              to={`/event-ticket/${pass.orderId}`}
-              className="group block rounded-[22px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#C8FF1F]"
-            >
-              <EventTicketArtwork ticket={pass} backgroundUrl={eventBackground} />
-              <p className="mt-2 flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.14em] text-[#F2F0EC]/40">
-                <UiIcon name="confirmation_number" className="text-[14px] text-[#C8FF1F]" />
-                Event pass · tap to open &amp; download
-              </p>
-            </Link>
-          ))}
-        </section>
-
-        <footer className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 rounded-2xl border px-4 py-4 text-xs" style={{ borderColor: `${COLORS.shell}14`, background: `${COLORS.tide}80`, color: `${COLORS.shell}A8` }}>
-          <span>✓ Instant QR entry</span>
-          <span style={{ color: COLORS.mango }}>✦</span>
-          <span>8-minute seat hold</span>
-          <span style={{ color: COLORS.mango }}>✦</span>
-          <span>Konkani Samudai Theatres</span>
-        </footer>
+            <div className="flex flex-wrap items-center justify-between gap-3 bg-[#1E2227]/40 px-5 py-3 text-[11px] text-[#B5AFA6]">
+              <span>Issued to {pass.buyerName || email || 'member'}</span>
+              <Link to={`/event-ticket/${pass.orderId}`} className="font-medium transition-colors hover:text-[#F2F0EB]">
+                Open pass &amp; download
+              </Link>
+            </div>
+          </article>
+        ))}
       </div>
+
+      {ticketPreview && (
+        <MovieTicketModal
+          booking={ticketPreview}
+          onClose={() => setTicketPreview(null)}
+          onManage={() => {
+            setPreviewBooking(ticketPreview);
+            setTicketPreview(null);
+          }}
+        />
+      )}
 
       {previewBooking && (
         <TicketPassModal

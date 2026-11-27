@@ -20,7 +20,7 @@ function statusStyles(status = '') {
   if (['pending', 'processing', 'created'].includes(value)) {
     return { label: status, dot: 'bg-[#C8FF1F] animate-pulse', panel: 'border-[#C8FF1F]/25 bg-[#C8FF1F]/10', text: 'text-[#C8FF1F]' };
   }
-  return { label: status || 'Unknown', dot: 'bg-[#C8FF1F]', panel: 'border-[#C8FF1F]/30 bg-[#C8FF1F]/10', text: 'text-[#E8A7A0]' };
+  return { label: status || 'Unknown', dot: 'bg-[#C8FF1F]', panel: 'border-[#C8FF1F]/30 bg-[#C8FF1F]/10', text: 'text-[#F0B0A6]' };
 }
 
 export default function BookingConfirmation() {
@@ -95,7 +95,7 @@ export default function BookingConfirmation() {
     return (
       <main className="min-h-screen bg-[#1E2227] px-4 py-16 text-[#F2F0EC]">
         <div className="mx-auto max-w-md rounded-3xl border border-[#C8FF1F]/30 bg-[#262C33] p-8 text-center shadow-2xl">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#C8FF1F]/15 text-2xl text-[#E8A7A0]">!</div>
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#C8FF1F]/15 text-2xl text-[#F0B0A6]">!</div>
           <h1 className="mt-4 font-serif text-2xl">Booking unavailable</h1>
           <p className="mt-3 text-sm leading-6 text-[#F2F0EC]/65">{error}</p>
           <button onClick={() => window.location.reload()} className="mt-6 rounded-xl bg-[#C8FF1F] px-5 py-3 text-sm font-bold text-[#1E2227] transition hover:bg-[#D6FF5C]">Try again</button>
@@ -111,18 +111,7 @@ export default function BookingConfirmation() {
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#1E2227] px-4 py-8 text-[#F2F0EC] sm:px-6 sm:py-12">
-      <div className="pointer-events-none fixed inset-x-0 top-0 h-80 bg-[radial-gradient(ellipse_at_top,rgba(200,255,31,0.14),transparent_65%)]" />
-      <div className="relative mx-auto max-w-5xl">
-        <header className="mb-8 flex items-center justify-between gap-4">
-          <Link to="/" className="flex items-center gap-3 group">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#262C33] text-[#C8FF1F] transition group-hover:bg-[#2E353D]">✦</span>
-            <span>
-              <span className="block text-sm font-extrabold tracking-[0.14em]">KONKANI SAMUDAI</span>
-              <span className="mt-0.5 block text-[10px] uppercase tracking-[0.2em] text-[#F2F0EC]/45">Your cinema, your community</span>
-            </span>
-          </Link>
-          <Link to="/movies" className="rounded-full border border-[#F2F0EC]/15 px-4 py-2 text-xs font-semibold text-[#F2F0EC]/75 transition hover:border-[#C8FF1F]/50 hover:text-[#C8FF1F]">Back to movies</Link>
-        </header>
+      <div className="relative mx-auto max-w-[1100px]">
 
         <section className="overflow-hidden rounded-[28px] border border-[#F2F0EC]/10 bg-[#262C33] shadow-[0_24px_80px_rgba(0,0,0,0.24)]">
           <div className="relative border-b border-dashed border-[#F2F0EC]/15 px-6 py-8 sm:px-10 sm:py-10">
@@ -198,7 +187,7 @@ export default function BookingConfirmation() {
               </div>
             )}
 
-            {error ? <p role="status" className="mt-5 rounded-xl border border-[#C8FF1F]/30 bg-[#C8FF1F]/10 px-4 py-3 text-sm text-[#E8A7A0]">Could not refresh booking status: {error}</p> : null}
+            {error ? <p role="status" className="mt-5 rounded-xl border border-[#C8FF1F]/30 bg-[#C8FF1F]/10 px-4 py-3 text-sm text-[#F0B0A6]">Could not refresh booking status: {error}</p> : null}
 
             <div className="mt-8 flex flex-col gap-3 rounded-2xl border border-[#C8FF1F]/20 bg-[#C8FF1F]/[0.06] p-5 sm:flex-row sm:items-center sm:justify-between">
               <div>

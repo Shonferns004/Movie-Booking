@@ -5,8 +5,8 @@ import api from '../services/api.js';
 import UiIcon from '../components/UiIcon.jsx';
 
 /**
- * Public gallery: the photos managed from the admin app's Gallery screen
- * (`hero_images`). Clicking a photo opens a keyboard-navigable lightbox.
+ * Public gallery: photographs managed from the admin app's Gallery screen.
+ * Clicking a photograph opens a keyboard-navigable lightbox.
  */
 export default function Gallery() {
   const [images, setImages] = useState([]);
@@ -20,7 +20,13 @@ export default function Gallery() {
       .then((response) => {
         if (stop) return;
         const data = response.data || {};
-        setImages(Array.isArray(data.gallery) && data.gallery.length ? data.gallery : Array.isArray(data.hero) ? data.hero : []);
+        setImages(
+          Array.isArray(data.gallery) && data.gallery.length
+            ? data.gallery
+            : Array.isArray(data.hero)
+              ? data.hero
+              : [],
+        );
       })
       .catch(() => {
         if (!stop) setImages([]);
@@ -54,86 +60,75 @@ export default function Gallery() {
   const current = active != null ? images[active] : null;
 
   return (
-    <main className="min-h-screen bg-[#1A1E23] text-[#F2F0EC]">
+    <main className="gallery-page">
       <style>{CSS}</style>
 
-      {/* Header */}
-      <section className="relative overflow-hidden border-b border-[#F2F0EC]/10">
-        <div aria-hidden="true" className="kk-gallery-glow absolute inset-0" />
-        <div className="relative mx-auto max-w-[1240px] px-5 pb-12 pt-16 sm:px-8 lg:pt-20">
-          <p className="flex items-center gap-3 text-[9px] font-bold uppercase tracking-[0.3em] text-[#C8FF1F]">
-            <span className="h-px w-8 bg-[#C8FF1F]/60" />
-            Our gallery
-          </p>
-          <div className="mt-4 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-            <h1 className="max-w-[620px] font-['Fraunces',Georgia,serif] text-[36px] font-bold leading-[1.02] tracking-[-0.035em] sm:text-[46px] lg:text-[54px]">
-              Moments from the <em className="not-italic text-[#C8FF1F]">Samudai</em>.
+      <header className="g-head">
+        <div className="kk-wrap">
+          <div className="g-head__grid">
+            <h1 className="kk-h1">
+              Moments from
+              <br />
+              the Samudai<span>.</span>
             </h1>
-            <p className="max-w-[360px] text-[13px] leading-[1.7] text-[#F2F0EC]/60">
-              Festivals, film nights, the food festival and the faces that make them. The committee
-              adds new photographs from the admin app.
+            <p className="kk-lede">
+              Festivals, film nights, the food festival and the faces that make them. The
+              committee adds new photographs from the admin room after every gathering.
             </p>
           </div>
-          <div className="mt-7 flex flex-wrap items-center gap-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#F2F0EC]/45">
-            <span className="inline-flex items-center gap-2 rounded-full border border-[#F2F0EC]/12 bg-[#171B1F]/50 px-3 py-1.5">
-              <UiIcon name="photo_library" className="text-[14px] text-[#C8FF1F]" />
-              {loading ? 'Loading…' : `${images.length} photograph${images.length === 1 ? '' : 's'}`}
-            </span>
-            <span className="inline-flex items-center gap-2 rounded-full border border-[#F2F0EC]/12 bg-[#171B1F]/50 px-3 py-1.5">
-              <UiIcon name="verified" className="text-[14px] text-[#B6E36A]" />
-              Shot at our events
-            </span>
+          <div className="g-meta">
+            <span>{loading ? 'Loading photographs' : `${images.length} photographs`}</span>
+            <span className="g-meta__dot" aria-hidden="true" />
+            <span>Shot at our events</span>
+            <Link to="/" className="kk-link g-meta__link">
+              Back to the house
+              <UiIcon name="arrow_forward" className="text-[13px]" />
+            </Link>
           </div>
         </div>
-      </section>
+      </header>
 
-      {/* Grid */}
-      <section className="mx-auto max-w-[1240px] px-5 py-12 sm:px-8 lg:py-16">
+      <section className="kk-wrap g-body">
         {loading ? (
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, index) => (
+          <div className="g-grid">
+            {Array.from({ length: 7 }).map((_, index) => (
               <div
                 key={index}
-                className="kk-gallery-skeleton aspect-[4/3] rounded-2xl"
+                className={`g-skeleton${index === 0 ? ' g-skeleton--lead' : ''}`}
               />
             ))}
           </div>
         ) : images.length === 0 ? (
-          <div className="rounded-3xl border border-[#F2F0EC]/10 bg-[#242A30]/50 px-6 py-16 text-center">
-            <UiIcon name="add_photo_alternate" className="text-[40px] text-[#C8FF1F]/60" />
-            <h2 className="mt-4 font-['Fraunces',Georgia,serif] text-[26px] font-bold">No photographs yet</h2>
-            <p className="mx-auto mt-2 max-w-md text-[13px] leading-relaxed text-[#F2F0EC]/55">
-              The committee adds gallery pictures from the admin app. Check back after the next event.
+          <div className="g-empty">
+            <p className="kk-eyebrow">A quiet archive</p>
+            <h2 className="kk-h2">No photographs yet.</h2>
+            <p className="kk-lede">
+              The committee adds pictures from the admin room. Check back after the next event.
             </p>
-            <Link
-              to="/"
-              className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#B5AFA6] px-5 py-2.5 text-[11px] font-bold uppercase tracking-[0.1em] text-[#1A1E23] transition-transform hover:-translate-y-0.5"
-            >
-              Back to the community
-              <UiIcon name="arrow_forward" className="text-[15px]" />
+            <Link to="/" className="btn ghost">
+              Back to the house
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+          <div className="g-grid">
             {images.map((image, index) => (
               <button
                 key={image.id}
                 type="button"
                 onClick={() => setActive(index)}
-                className="group relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-[#F2F0EC]/10 bg-[#242A30] text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#C8FF1F]"
+                className={`g-photo g-photo--${index + 1}`}
+                aria-label={`Open photograph ${index + 1} of ${images.length}`}
               >
                 <img
                   src={image.url}
-                  alt={image.caption || `Samudai photograph ${index + 1}`}
+                  alt={image.caption || `Konkani Samudai photograph ${index + 1}`}
                   loading="lazy"
-                  className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.05]"
                 />
-                <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#14181B]/85 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                <span className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-4 opacity-0 transition-all duration-300 group-hover:opacity-100">
-                  <span className="line-clamp-2 text-[11px] font-semibold leading-snug text-[#F2F0EC]">
-                    {image.caption || 'Konkani Samudai'}
-                  </span>
-                  <UiIcon name="open_in_full" className="shrink-0 text-[18px] text-[#C8FF1F]" />
+                <span className="g-photo__index" aria-hidden="true">
+                  {String(index + 1).padStart(2, '0')}
+                </span>
+                <span className="g-photo__hint" aria-hidden="true">
+                  <UiIcon name="open_in_full" className="text-[16px]" />
                 </span>
               </button>
             ))}
@@ -141,88 +136,68 @@ export default function Gallery() {
         )}
       </section>
 
-      {/* Join banner */}
-      <section className="mx-auto max-w-[1240px] px-5 pb-20 sm:px-8">
-        <div className="flex flex-col gap-5 rounded-[24px] border border-[#C8FF1F]/25 bg-gradient-to-r from-[#C8FF1F]/[0.09] to-transparent p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
-          <div>
-            <h2 className="font-['Fraunces',Georgia,serif] text-[24px] font-bold tracking-[-0.02em]">
-              Be in the next set of photographs
-            </h2>
-            <p className="mt-1 text-[12px] text-[#F2F0EC]/60">
-              Members get event discounts, priority seats and a place in everything we do.
-            </p>
-          </div>
-          <Link
-            to="/#join"
-            className="inline-flex shrink-0 items-center gap-2 self-start rounded-full bg-[#C8FF1F] px-5 py-2.5 text-[11px] font-bold uppercase tracking-[0.1em] text-[#1E2227] transition-transform hover:-translate-y-0.5"
-          >
-            Become a member
-            <UiIcon name="arrow_forward" className="text-[15px]" />
-          </Link>
+      <section className="kk-wrap g-join">
+        <div>
+          <h2 className="kk-h2">Be in the next set of photographs.</h2>
+          <p className="kk-lede">
+            Members get event discounts, priority film-night seats and a place in everything the
+            Samudai does.
+          </p>
         </div>
+        <Link to="/#join" className="btn">
+          Become a member
+          <UiIcon name="arrow_forward" className="text-[14px]" />
+        </Link>
       </section>
 
-      {/* Lightbox */}
       {current && (
         <div
-          className="fixed inset-0 z-[80] flex flex-col bg-[#14181B]/95 p-4 backdrop-blur-md sm:p-8"
+          className="g-lightbox"
           role="dialog"
           aria-modal="true"
           aria-label="Gallery photograph"
           onClick={() => setActive(null)}
         >
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-[#C8FF1F]">
-                Konkani Samudai · Gallery
-              </p>
-              <p className="mt-1 truncate font-['Fraunces',Georgia,serif] text-[20px] font-bold">
-                {current.caption || 'Photograph'}
-              </p>
+          <div className="g-lightbox__bar">
+            <div>
+              <p>The archive · Konkani Samudai</p>
+              <strong>{String(active + 1).padStart(2, '0')} / {String(images.length).padStart(2, '0')}</strong>
             </div>
             <button
               type="button"
               onClick={() => setActive(null)}
               aria-label="Close gallery"
-              className="shrink-0 rounded-full border border-[#F2F0EC]/15 p-2.5 text-[#F2F0EC]/70 transition-colors hover:text-[#F2F0EC]"
+              className="nav-icon"
             >
               <UiIcon name="close" className="text-[20px]" />
             </button>
           </div>
 
-          <div className="relative flex min-h-0 flex-1 items-center justify-center py-4" onClick={(event) => event.stopPropagation()}>
+          <div className="g-lightbox__stage" onClick={(event) => event.stopPropagation()}>
             {images.length > 1 && (
               <button
                 type="button"
                 onClick={() => setActive((index) => (index - 1 + images.length) % images.length)}
                 aria-label="Previous photograph"
-                className="absolute left-0 z-10 rounded-full border border-[#F2F0EC]/15 bg-[#171B1F]/70 p-3 text-[#F2F0EC]/80 backdrop-blur transition-colors hover:text-[#C8FF1F]"
+                className="g-lightbox__nav g-lightbox__nav--prev"
               >
-                <UiIcon name="chevron_left" className="text-[20px]" />
+                <UiIcon name="chevron_left" className="text-[22px]" />
               </button>
             )}
 
-            <img
-              src={current.url}
-              alt={current.caption || 'Gallery photograph'}
-              className="max-h-full max-w-full rounded-2xl object-contain shadow-[0_30px_80px_-30px_rgba(0,0,0,0.9)]"
-            />
+            <img src={current.url} alt={current.caption || 'Gallery photograph'} />
 
             {images.length > 1 && (
               <button
                 type="button"
                 onClick={() => setActive((index) => (index + 1) % images.length)}
                 aria-label="Next photograph"
-                className="absolute right-0 z-10 rounded-full border border-[#F2F0EC]/15 bg-[#171B1F]/70 p-3 text-[#F2F0EC]/80 backdrop-blur transition-colors hover:text-[#C8FF1F]"
+                className="g-lightbox__nav g-lightbox__nav--next"
               >
-                <UiIcon name="chevron_right" className="text-[20px]" />
+                <UiIcon name="chevron_right" className="text-[22px]" />
               </button>
             )}
           </div>
-
-          <p className="text-center text-[10px] font-semibold uppercase tracking-[0.18em] text-[#F2F0EC]/35">
-            {active + 1} / {images.length}
-          </p>
         </div>
       )}
     </main>
@@ -230,21 +205,184 @@ export default function Gallery() {
 }
 
 const CSS = `
-.kk-gallery-glow {
-  background:
-    radial-gradient(700px 320px at 18% 0%, rgba(200,255,31,0.16), transparent 70%),
-    radial-gradient(620px 300px at 88% 10%, rgba(200,255,31,0.18), transparent 72%);
+.gallery-page { min-height: 100vh; background: var(--ink); color: var(--text); }
+
+.g-head { border-bottom: 1px solid var(--line); }
+.g-head > .kk-wrap { padding-block: clamp(40px, 5vw, 72px) clamp(26px, 3vw, 40px); }
+.g-head__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  gap: clamp(28px, 5vw, 70px);
+  align-items: end;
+  margin-top: 22px;
 }
-.kk-gallery-skeleton {
-  background: linear-gradient(110deg, rgba(38,44,51,0.35) 8%, rgba(38,44,51,0.6) 18%, rgba(38,44,51,0.35) 33%);
-  background-size: 220% 100%;
-  animation: kkGalleryShimmer 1.6s linear infinite;
-  border: 1px solid rgba(242,240,236,0.06);
+.g-head h1 span { color: var(--brass); }
+.g-head__grid .kk-lede { padding-bottom: 6px; }
+.g-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted-2);
 }
-@keyframes kkGalleryShimmer {
-  to { background-position-x: -220%; }
+.g-meta__dot { width: 3px; height: 3px; border-radius: 50%; background: var(--brass); }
+.g-meta__link { margin-left: auto; }
+
+.g-body { padding-block: clamp(30px, 4vw, 54px); }
+.g-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-rows: clamp(150px, 15.5vw, 214px);
+  gap: 10px;
+}
+.g-photo {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid transparent;
+  background: var(--ink-3);
+  transition: border-color 0.25s ease;
+}
+.g-photo--1 { grid-column: span 2; grid-row: span 2; }
+.g-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(0.92);
+  transition: transform 0.8s cubic-bezier(0.22, 0.61, 0.36, 1), filter 0.3s ease;
+}
+.g-photo:hover { border-color: rgba(200, 255, 31, 0.55); }
+.g-photo:hover img { transform: scale(1.035); filter: saturate(1); }
+.g-photo__index {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  display: grid;
+  place-items: center;
+  min-width: 30px;
+  height: 26px;
+  padding-inline: 7px;
+  background: rgba(20, 24, 27, 0.78);
+  font-family: var(--font-display);
+  font-size: 11px;
+  color: var(--brass);
+}
+.g-photo__hint {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 26px;
+  background: rgba(20, 24, 27, 0.78);
+  color: var(--text);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.g-photo:hover .g-photo__hint { opacity: 1; }
+
+.g-skeleton {
+  background: var(--ink-3);
+  border: 1px solid var(--line);
+  animation: g-pulse 1.5s ease-in-out infinite;
+}
+.g-skeleton--lead { grid-column: span 2; grid-row: span 2; }
+@keyframes g-pulse { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
+
+.g-empty {
+  display: grid;
+  justify-items: start;
+  gap: 14px;
+  padding-block: clamp(50px, 8vw, 100px);
+  border-block: 1px solid var(--line);
+}
+
+.g-join {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 30px;
+  padding-block: clamp(36px, 4.5vw, 60px);
+  border-top: 1px solid var(--line);
+}
+.g-join .kk-lede { margin-top: 12px; max-width: 46ch; }
+
+.g-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  background: #14181B;
+}
+.g-lightbox__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px var(--gutter);
+  border-bottom: 1px solid var(--line);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.g-lightbox__bar strong { color: var(--brass); font-weight: 700; }
+.g-lightbox__stage {
+  position: relative;
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(16px, 4vw, 44px);
+}
+.g-lightbox__stage img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.g-lightbox__nav {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--line-strong);
+  background: rgba(20, 24, 27, 0.8);
+  color: var(--text);
+  transform: translateY(-50%);
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+.g-lightbox__nav:hover { border-color: var(--brass); color: var(--brass); }
+.g-lightbox__nav--prev { left: clamp(10px, 3vw, 30px); }
+.g-lightbox__nav--next { right: clamp(10px, 3vw, 30px); }
+
+@media (max-width: 900px) {
+  .g-head__grid { grid-template-columns: 1fr; align-items: start; gap: 20px; }
+  .g-meta__link { margin-left: 0; }
+  .g-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .g-join { flex-direction: column; align-items: flex-start; }
+}
+@media (max-width: 640px) {
+  .g-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 136px; gap: 8px; }
+  .g-photo--1 { grid-column: span 2; grid-row: span 2; }
+  .g-lightbox__nav { width: 38px; height: 38px; }
+  .g-lightbox__stage { padding: 10px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .kk-gallery-skeleton { animation: none; }
+  .g-photo img { transition: none; }
+  .g-photo:hover img { transform: none; }
+  .g-skeleton { animation: none; }
 }
 `;

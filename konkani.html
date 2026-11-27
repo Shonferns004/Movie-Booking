@@ -1,0 +1,1588 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Konkani Samudai — Standalone Single HTML Page · Margao, Goa</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              editorial: ['"Playfair Display"', 'Georgia', 'serif'],
+              sans: ['"Plus Jakarta Sans"', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+              mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      html {
+        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        scroll-behavior: smooth;
+        background-color: #1e2227;
+        color: #f2f0eb;
+      }
+      h1,
+      h2,
+      .font-editorial {
+        font-family: 'Playfair Display', Georgia, serif;
+      }
+      .tabular-nums {
+        font-variant-numeric: tabular-nums;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+          scroll-behavior: auto !important;
+        }
+      }
+    </style>
+  </head>
+  <body class="bg-[#1E2227] text-[#F2F0EB] antialiased selection:bg-[#C8FF1F]/30 selection:text-[#F2F0EB] min-h-screen flex flex-col">
+    <!-- TOP SUB-PAGE NAVBAR (Shown on Tickets, Login, or Seat Checkout) -->
+    <header id="sub-navbar" class="hidden sticky top-0 z-40 pt-4 px-4 sm:px-6 bg-[#1E2227]/90 backdrop-blur-md">
+      <div class="max-w-7xl mx-auto rounded-full bg-[#252A30] border border-[#B5AFA6]/20 px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4 shadow-sm">
+        <div class="flex items-center gap-3">
+          <div class="inline-flex items-center bg-[#1E2227] border border-[#B5AFA6]/20 rounded-full p-1">
+            <button
+              type="button"
+              data-nav="house"
+              class="nav-pill-house px-4 py-1.5 rounded-full text-xs font-medium text-[#B5AFA6] hover:text-[#F2F0EB] transition-colors cursor-pointer"
+            >
+              The House
+            </button>
+            <button
+              type="button"
+              data-nav="movies"
+              class="nav-pill-movies px-4 py-1.5 rounded-full text-xs font-medium text-[#B5AFA6] hover:text-[#F2F0EB] transition-colors cursor-pointer"
+            >
+              Movies
+            </button>
+          </div>
+          <span class="hidden md:inline-block text-xs font-medium text-[#B5AFA6]">
+            Konkani Samudai · Margao, Goa
+          </span>
+        </div>
+        <div class="flex items-center gap-2.5">
+          <button
+            type="button"
+            data-nav="movies"
+            title="Movies"
+            class="nav-btn-movies w-9 h-9 rounded-full bg-[#1E2227] border border-[#B5AFA6]/25 text-[#F2F0EB] hover:bg-[#C8FF1F] hover:text-[#1E2227] inline-flex items-center justify-center transition-colors cursor-pointer"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <rect x="2" y="2" width="20" height="20" rx="2.18" />
+              <path d="M7 2v20M17 2v20M2 12h20M2 7h5M2 17h5M17 17h5M17 7h5" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            data-nav="tickets"
+            title="My Tickets"
+            class="nav-btn-tickets relative w-9 h-9 rounded-full bg-[#1E2227] border border-[#B5AFA6]/25 text-[#F2F0EB] hover:bg-[#C8FF1F] hover:text-[#1E2227] inline-flex items-center justify-center transition-colors cursor-pointer"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z" />
+              <path d="M13 5v2M13 17v2M13 11v2" />
+            </svg>
+            <span class="ticket-count-badge hidden absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#C8FF1F] text-[#1E2227] font-mono text-[10px] font-bold flex items-center justify-center tabular-nums">0</span>
+          </button>
+          <button
+            type="button"
+            data-nav="login"
+            title="Sign in"
+            class="nav-btn-login w-9 h-9 rounded-full bg-[#1E2227] border border-[#B5AFA6]/25 text-[#F2F0EB] hover:bg-[#C8FF1F] hover:text-[#1E2227] inline-flex items-center justify-center transition-colors cursor-pointer"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main id="app-root" class="flex-1"></main>
+
+    <!-- FOOTER (Warm Titanium Contrast Surface) -->
+    <footer class="mt-20 bg-[#B5AFA6] text-[#1E2227] border-t border-[#1E2227]/15">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 py-12 grid grid-cols-1 md:grid-cols-12 gap-8">
+        <div class="md:col-span-5 space-y-3">
+          <div class="flex items-center gap-2.5">
+            <span class="font-editorial text-2xl font-semibold text-[#1E2227]">Konkani Samudai</span>
+            <span class="px-2 py-0.5 rounded-full bg-[#1E2227] text-[#C8FF1F] font-mono text-[10px] font-semibold">
+              EST. 1934
+            </span>
+          </div>
+          <p class="text-sm text-[#2C3138] leading-relaxed max-w-md">
+            A members’ house for Konkani film, food and community in Margao. Keeping the screen lit since 1934.
+          </p>
+        </div>
+
+        <div class="md:col-span-3 space-y-2 text-xs">
+          <p class="font-semibold uppercase tracking-wider text-[#2C3138]">Navigation</p>
+          <ul class="space-y-1.5 font-medium">
+            <li><button type="button" data-nav="house" class="hover:underline cursor-pointer">The House</button></li>
+            <li><button type="button" data-nav="movies" class="hover:underline cursor-pointer">Movies &amp; Showtimes</button></li>
+            <li><button type="button" data-nav="tickets" class="hover:underline cursor-pointer">My Tickets</button></li>
+            <li><button type="button" data-nav="login" class="hover:underline cursor-pointer">Household Login</button></li>
+          </ul>
+        </div>
+
+        <div class="md:col-span-4 space-y-2 text-xs">
+          <p class="font-semibold uppercase tracking-wider text-[#2C3138]">Samudai Cineplex · Margao</p>
+          <p class="text-[#2C3138]">Near Municipal Garden, Margao, Goa 403601</p>
+          <p class="font-mono text-[#1E2227] font-semibold tabular-nums">Committee Desk · 10:00 – 18:00 Daily</p>
+          <p class="text-[#2C3138]/80 pt-2">Standalone single HTML edition · Interactive offline preview</p>
+        </div>
+      </div>
+    </footer>
+
+    <!-- MODALS CONTAINER -->
+    <div id="modal-root"></div>
+
+    <script>
+      (function () {
+        const STORAGE_KEY = 'konkani_samudai_standalone_v1';
+
+        const MOVIES = [
+          {
+            id: 'konkani-nights',
+            title: 'Konkani Nights',
+            language: 'Konkani',
+            genres: 'Drama, Family',
+            certification: 'U',
+            synopsis:
+              'Across one monsoon week in Margao, three generations gather under a leaking ancestral roof to reconcile old family letters, heirloom recipes, and a long-postponed Konkani tiatr.',
+            director: 'Rohan Kamat',
+            runtime: '2h 14m',
+            posterUrl: '/src/assets/images/poster_konkani_nights_1795709776908.jpg',
+          },
+          {
+            id: 'ramayana-hindi',
+            title: 'Ramayana (Hindi)',
+            language: 'Hindi',
+            genres: 'Action, Adventure, Drama, Mythological',
+            certification: 'UA',
+            synopsis:
+              'A sweeping big-screen retelling of duty, exile, and devotion, presented with calibrated 2K laser projection and full-range Dolby Atmos sound at Samudai Cineplex.',
+            director: 'Nitesh Tiwari',
+            runtime: '2h 48m',
+            posterUrl: '/src/assets/images/poster_ramayana_hindi_1795709775896.jpg',
+          },
+          {
+            id: 'monsoon-run',
+            title: 'Monsoon Run',
+            language: 'Hindi',
+            genres: 'Thriller, Action',
+            certification: 'UA',
+            synopsis:
+              'When a coastal ferry dispatcher intercepts an unscheduled cargo convoy crossing the Western Ghats at midnight, he has until dawn to outrun the storm and the syndicate.',
+            director: 'Vikramaditya Sen',
+            runtime: '2h 06m',
+            posterUrl: '/src/assets/images/poster_monsoon_run_1795709777300.jpg',
+          },
+          {
+            id: 'midnight-harbor',
+            title: 'Midnight Harbor',
+            language: 'English',
+            genres: 'Noir, Mystery',
+            certification: 'UA',
+            synopsis:
+              'On a fogbound dock outside Mormugao, a retired harbour pilot investigates a ghost freighter that slips into port after midnight with no crew manifest.',
+            director: 'Devika Kamat',
+            runtime: '2h 12m',
+            posterUrl: '/src/assets/images/poster_midnight_harbor_1795707113166.jpg',
+          },
+          {
+            id: 'glass-orchard',
+            title: 'The Glass Orchard',
+            language: 'Hindi',
+            genres: 'Drama, Mystery',
+            certification: 'U',
+            synopsis:
+              'Inheriting an abandoned conservatory deep in the Western Ghats, a botanist pieces together her grandmother’s wartime notebooks and rare seed archive.',
+            director: 'Aarav Deshmukh',
+            runtime: '2h 08m',
+            posterUrl: '/src/assets/images/poster_glass_orchard_1795707114740.jpg',
+          },
+          {
+            id: 'solaris-drift',
+            title: 'Solaris Drift',
+            language: 'English',
+            genres: 'Sci-Fi, Adventure',
+            certification: 'UA',
+            synopsis:
+              'An orbital cartographer stranded above a ringed gas giant must decode an ancient acoustic beacon before the station’s solar sails decay.',
+            director: 'Kabir Alvares',
+            runtime: '2h 28m',
+            posterUrl: '/src/assets/images/poster_solaris_drift_1795707112834.jpg',
+          },
+        ];
+
+        const SHOWTIME_DATES = [
+          { date: '2026-11-27', label: '27 Nov' },
+          { date: '2026-11-28', label: '28 Nov' },
+          { date: '2026-11-29', label: '29 Nov' },
+        ];
+
+        const SCHEDULE_TEMPLATE = [
+          { movieId: 'konkani-nights', auditorium: 'Samudai Cineplex, Margao · Screen 1', format: '2K Laser', times: ['10:15 am', '02:30 pm', '06:45 pm'] },
+          { movieId: 'ramayana-hindi', auditorium: 'Samudai Cineplex, Margao · Screen 1', format: 'Dolby Atmos', times: ['12:45 pm', '04:30 pm', '08:45 pm'] },
+          { movieId: 'monsoon-run', auditorium: 'Samudai Cineplex, Margao · Screen 2', format: '2K Laser', times: ['11:30 am', '03:45 pm', '09:15 pm'] },
+          { movieId: 'midnight-harbor', auditorium: 'Samudai Cineplex, Margao · Screen 2', format: '35mm Archival', times: ['01:15 pm', '05:30 pm', '09:45 pm'] },
+          { movieId: 'glass-orchard', auditorium: 'Samudai Cineplex, Margao · Screen 1', format: '2K Laser', times: ['11:00 am', '03:00 pm', '07:15 pm'] },
+          { movieId: 'solaris-drift', auditorium: 'Samudai Cineplex, Margao · Screen 2', format: 'Dolby Atmos', times: ['12:00 pm', '04:15 pm', '08:30 pm'] },
+        ];
+
+        const ALL_SHOWTIMES = SHOWTIME_DATES.flatMap((d) =>
+          SCHEDULE_TEMPLATE.flatMap((tpl) =>
+            tpl.times.map((time) => ({
+              id: `${tpl.movieId}-${d.date}-${time.replace(/[:\s]/g, '')}`,
+              movieId: tpl.movieId,
+              date: d.date,
+              dateLabel: d.label,
+              time,
+              auditoriumName: tpl.auditorium,
+              format: tpl.format,
+            }))
+          )
+        );
+
+        const EVENTS = [
+          {
+            id: 'konkani-food-festival',
+            day: '22',
+            month: 'NOV',
+            fullDate: 'Sat, 22 Nov 2026',
+            category: 'Food · Family',
+            title: 'Konkani Food Festival',
+            description: 'Forty home kitchens, one afternoon. Solkath, bangda fry, patoleo and the sorpotel contest.',
+            doors: '11:00 AM – 9:00 PM',
+            where: 'Samudai Grounds, Margao',
+            price: 299,
+            memberPrice: 239,
+            imageUrl: '/src/assets/images/samudai_food_festival_1795709774976.jpg',
+          },
+          {
+            id: 'fugdi-night',
+            day: '06',
+            month: 'DEC',
+            fullDate: 'Sat, 6 Dec 2026',
+            category: 'Music · Dance',
+            title: 'Fugdi Night',
+            description: 'Live dhol, the youth wing troupe and an open floor till midnight. Bring the family.',
+            doors: '7:00 PM onwards',
+            where: 'Samudai Hall',
+            price: 199,
+            memberPrice: 159,
+            imageUrl: '/src/assets/images/samudai_fugdi_night_1795709775352.jpg',
+          },
+        ];
+
+        const NOTICES = [
+          { index: '01', date: '12 Nov 2026', category: 'Membership', title: 'Membership renewals are open', summary: 'Renew before 31 December to keep your voting rights and event discounts for 2027.', cta: 'Renew card' },
+          { index: '02', date: '10 Nov 2026', category: 'Events', title: 'Christmas market stalls', summary: 'Family stalls are open for booking. Speak to the office by 30 November.', cta: 'See programme' },
+          { index: '03', date: '05 Nov 2026', category: 'Classes', title: 'Sunday Konkani & youth choir term', summary: 'Enrolment is open for ages 6 to 16 every Sunday at 9:30 am in the Margao verandah hall.', cta: 'Join classes' },
+          { index: '04', date: '01 Nov 2026', category: 'Cineplex', title: 'Screen 1 2K Laser calibration complete', summary: 'Acoustic panels and projection alignment are ready ahead of the November festival slate.', cta: 'See showtimes' },
+        ];
+
+        const GALLERY = [
+          { id: 'm1', caption: 'Konkani Samudai community photograph 1 — Annual Music Convention in Margao', url: '/src/assets/images/samudai_music_convention_1795709775101.jpg' },
+          { id: 'm2', caption: 'Konkani Samudai community photograph 2 — Forty home kitchens at the Food Festival', url: '/src/assets/images/samudai_food_festival_1795709774976.jpg' },
+          { id: 'm3', caption: 'Konkani Samudai community photograph 3 — Fugdi troupe and live dhol evening', url: '/src/assets/images/samudai_fugdi_night_1795709775352.jpg' },
+          { id: 'm4', caption: 'Konkani Samudai community photograph 4 — Four generations on the Margao verandah', url: '/src/assets/images/samudai_gallery_heritage_1795709778377.jpg' },
+          { id: 'm5', caption: 'Konkani Samudai community photograph 5 — Sunday Konkani choir and youth wing', url: '/src/assets/images/samudai_gallery_choir_1795709779200.jpg' },
+          { id: 'm6', caption: 'Konkani Samudai community photograph 6 — Restored Screen 1 hall before evening show', url: '/src/assets/images/hero_cinema_auditorium_1795707111877.jpg' },
+          { id: 'm7', caption: 'Konkani Samudai community photograph 7 — Monsoon evening gathering in Margao', url: '/src/assets/images/poster_konkani_nights_1795709776908.jpg' },
+          { id: 'm8', caption: 'Konkani Samudai community photograph 8 — Classical recital at Samudai Hall', url: '/src/assets/images/poster_iron_symphony_1795707113169.jpg' },
+        ];
+
+        const HOUSE_SLIDES = [
+          {
+            kicker: 'Est. 1934 · Margao, Goa · Film · Music · Food',
+            title: 'Cinema, festivals and the Konkani community.',
+            subtitle: 'The house that has gathered here for four generations. Films every week, and a stage for everything else.',
+            image: '/src/assets/images/samudai_music_convention_1795709775101.jpg',
+          },
+          {
+            kicker: 'Four Generations · Margao Verandah',
+            title: 'A neighbourhood house built for every generation.',
+            subtitle: 'Sunday Konkani classes, the youth choir, scholarship drives, and afternoon tea beneath laterite arches.',
+            image: '/src/assets/images/samudai_gallery_heritage_1795709778377.jpg',
+          },
+          {
+            kicker: 'Samudai Cineplex · Screen 1 · 2K Laser',
+            title: 'Calibrated cinema every evening in Margao.',
+            subtitle: 'Weekly Konkani and Hindi premieres with reserved stalls and balcony seating. Book online via YouPI.',
+            image: '/src/assets/images/hero_cinema_auditorium_1795707111877.jpg',
+          },
+        ];
+
+        const CONCESSIONS = [
+          { id: 'solkadhi-glass', name: 'Chilled Kokum Solkadhi', price: 90 },
+          { id: 'cashew-fudge', name: 'Goan Cashew Caramel Popcorn', price: 180 },
+          { id: 'prawn-rissois', name: 'Warm Prawn Rissois (4 pcs)', price: 220 },
+          { id: 'bebinca-slice', name: 'Seven-Layer Bebinca', price: 160 },
+        ];
+
+        const SEAT_ROWS = [
+          { row: 'A', label: 'Stalls Standard', base: 600 },
+          { row: 'B', label: 'Stalls Standard', base: 600 },
+          { row: 'C', label: 'Stalls Standard', base: 600 },
+          { row: 'D', label: 'Stalls Standard', base: 600 },
+          { row: 'E', label: 'Dress Circle', base: 750 },
+          { row: 'F', label: 'Dress Circle', base: 750 },
+          { row: 'G', label: 'Samudai Balcony', base: 950 },
+          { row: 'H', label: 'Samudai Balcony', base: 950 },
+        ];
+
+        const SEEDED_OCCUPIED = {
+          'konkani-nights-2026-11-27-1015am': ['D5', 'D6', 'E5', 'E6', 'E7', 'F6', 'F7', 'G4', 'G5'],
+          'ramayana-hindi-2026-11-27-0430pm': ['C6', 'C7', 'E4', 'E5', 'E6', 'E7', 'F5', 'F6', 'G6', 'G7'],
+          'monsoon-run-2026-11-27-0915pm': ['C4', 'C5', 'D7', 'D8', 'E6', 'E7'],
+        };
+
+        function loadPersisted() {
+          try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (raw) return JSON.parse(raw);
+          } catch {}
+          return { user: null, membership: null, bookings: [] };
+        }
+
+        function savePersisted() {
+          try {
+            localStorage.setItem(
+              STORAGE_KEY,
+              JSON.stringify({ user: state.user, membership: state.membership, bookings: state.bookings })
+            );
+          } catch {}
+        }
+
+        const saved = loadPersisted();
+        const state = {
+          view: 'house',
+          houseHeroIdx: 0,
+          movieHeroIdx: 0,
+          selectedDate: '2026-11-27',
+          activeShowtime: null,
+          activeMovie: null,
+          selectedSeats: [],
+          concessions: {},
+          checkoutStep: 'browse',
+          user: saved.user || null,
+          membership: saved.membership || null,
+          bookings: Array.isArray(saved.bookings) ? saved.bookings : [],
+          modal: null, // { type: 'membership' | 'event' | 'gallery', ... }
+        };
+
+        function esc(str) {
+          return String(str ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+        }
+
+        function updateNavbar() {
+          const nav = document.getElementById('sub-navbar');
+          const showNav = state.view === 'tickets' || state.view === 'login' || (state.view === 'movies' && state.activeShowtime);
+          nav.classList.toggle('hidden', !showNav);
+
+          document.querySelectorAll('.ticket-count-badge').forEach((b) => {
+            b.textContent = String(state.bookings.length);
+            b.classList.toggle('hidden', state.bookings.length === 0);
+          });
+
+          const hp = document.querySelector('.nav-pill-house');
+          const mp = document.querySelector('.nav-pill-movies');
+          if (hp && mp) {
+            hp.className = `nav-pill-house px-4 py-1.5 rounded-full text-xs cursor-pointer transition-colors ${
+              state.view === 'house' ? 'font-semibold bg-[#C8FF1F] text-[#1E2227]' : 'font-medium text-[#B5AFA6] hover:text-[#F2F0EB]'
+            }`;
+            mp.className = `nav-pill-movies px-4 py-1.5 rounded-full text-xs cursor-pointer transition-colors ${
+              state.view === 'movies' ? 'font-semibold bg-[#C8FF1F] text-[#1E2227]' : 'font-medium text-[#B5AFA6] hover:text-[#F2F0EB]'
+            }`;
+          }
+        }
+
+        function heroHeaderHtml(activeTab) {
+          const countBadge =
+            state.bookings.length > 0
+              ? `<span class="ticket-count-badge absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#C8FF1F] text-[#1E2227] font-mono text-[10px] font-bold flex items-center justify-center tabular-nums">${state.bookings.length}</span>`
+              : '';
+          return `
+            <div class="relative z-10 flex items-center justify-between gap-4 px-5 sm:px-7 pt-5 sm:pt-6">
+              <div class="flex items-center gap-3 flex-wrap">
+                <div class="inline-flex items-center bg-[#1E2227]/85 backdrop-blur-md border border-[#B5AFA6]/25 rounded-full p-1">
+                  <button type="button" data-nav="house" class="px-4 py-1.5 rounded-full text-xs ${
+                    activeTab === 'house'
+                      ? 'font-semibold bg-[#C8FF1F] text-[#1E2227]'
+                      : 'font-medium text-[#B5AFA6] hover:text-[#F2F0EB]'
+                  } transition-colors cursor-pointer">The House</button>
+                  <button type="button" data-nav="movies" class="px-4 py-1.5 rounded-full text-xs ${
+                    activeTab === 'movies'
+                      ? 'font-semibold bg-[#C8FF1F] text-[#1E2227]'
+                      : 'font-medium text-[#B5AFA6] hover:text-[#F2F0EB]'
+                  } transition-colors cursor-pointer">Movies</button>
+                </div>
+                <span class="hidden md:inline-block text-xs font-medium text-[#B5AFA6]">Konkani Samudai · Margao, Goa</span>
+              </div>
+              <div class="flex items-center gap-2.5 shrink-0">
+                <button type="button" data-nav="movies" title="Movies" class="w-10 h-10 rounded-full ${
+                  activeTab === 'movies'
+                    ? 'bg-[#C8FF1F] text-[#1E2227] border border-[#C8FF1F]'
+                    : 'bg-[#1E2227]/85 backdrop-blur-md border border-[#B5AFA6]/25 text-[#F2F0EB] hover:bg-[#C8FF1F] hover:text-[#1E2227]'
+                } inline-flex items-center justify-center transition-colors cursor-pointer">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="2.18"/><path d="M7 2v20M17 2v20M2 12h20M2 7h5M2 17h5M17 17h5M17 7h5"/></svg>
+                </button>
+                <button type="button" data-nav="tickets" title="My Tickets" class="relative w-10 h-10 rounded-full bg-[#1E2227]/85 backdrop-blur-md border border-[#B5AFA6]/25 text-[#F2F0EB] hover:bg-[#C8FF1F] hover:text-[#1E2227] inline-flex items-center justify-center transition-colors cursor-pointer">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2M13 17v2M13 11v2"/></svg>
+                  ${countBadge}
+                </button>
+                <button type="button" data-nav="login" title="Sign in" class="w-10 h-10 rounded-full ${
+                  state.user
+                    ? 'bg-[#C8FF1F] text-[#1E2227] border-[#C8FF1F]'
+                    : 'bg-[#1E2227]/85 border-[#B5AFA6]/25 text-[#F2F0EB] hover:bg-[#C8FF1F] hover:text-[#1E2227]'
+                } backdrop-blur-md border inline-flex items-center justify-center transition-colors cursor-pointer">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </button>
+              </div>
+            </div>`;
+        }
+
+        function renderHouse() {
+          const slide = HOUSE_SLIDES[state.houseHeroIdx] || HOUSE_SLIDES[0];
+          const isMember = Boolean(state.membership);
+          const minMoviePrice = isMember ? 480 : 600;
+
+          return `
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 pt-3 pb-16 space-y-16">
+              <!-- ABOVE-THE-FOLD HERO + LOWER SPLIT -->
+              <section id="house-hero" class="space-y-5">
+                <div class="relative pb-5">
+                  <div class="relative rounded-[28px] bg-[#16191D] text-[#F2F0EB] overflow-hidden min-h-[340px] sm:min-h-[380px] lg:min-h-[395px] flex flex-col justify-between">
+                    <img src="${esc(slide.image)}" alt="${esc(slide.title)}" class="absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-500" />
+                    <div class="absolute inset-0 bg-gradient-to-r from-[#16191D]/95 via-[#1E2227]/72 to-[#1E2227]/35"></div>
+                    <div class="absolute inset-0 bg-gradient-to-t from-[#16191D]/92 via-transparent to-[#16191D]/65"></div>
+
+                    ${heroHeaderHtml('house')}
+
+                    <div class="relative z-10 flex items-end justify-between gap-6 px-5 sm:px-8 pb-8 sm:pb-9 pt-8">
+                      <div class="max-w-xl space-y-3">
+                        <p class="text-xs font-semibold tracking-wide text-[#C8FF1F]">${esc(slide.kicker)}</p>
+                        <h1 class="font-editorial text-3xl sm:text-[42px] font-semibold tracking-tight text-[#F2F0EB] leading-[1.08]">${esc(slide.title)}</h1>
+                        <p class="text-sm text-[#B5AFA6] leading-relaxed max-w-lg">${esc(slide.subtitle)}</p>
+                        <div class="flex flex-wrap items-center gap-3 pt-1">
+                          <button type="button" data-scroll="whats-on" class="px-5 py-2.5 rounded-xl text-sm font-semibold bg-[#C8FF1F] text-[#1E2227] hover:bg-[#B5AFA6] transition-colors cursor-pointer">See what’s on</button>
+                          <button type="button" data-open-membership class="px-5 py-2.5 rounded-xl text-sm font-medium bg-[#1E2227]/75 backdrop-blur-md text-[#F2F0EB] border border-[#B5AFA6]/30 hover:border-[#C8FF1F] hover:text-[#C8FF1F] transition-colors cursor-pointer">${
+                            isMember ? 'Samudai card active' : 'Start membership'
+                          }</button>
+                        </div>
+                      </div>
+
+                      <div class="flex flex-col items-center gap-2.5 pb-3 shrink-0">
+                        ${HOUSE_SLIDES.map(
+                          (s, idx) => `
+                            <button type="button" data-house-slide="${idx}" aria-label="${esc(s.title)}" class="w-3.5 rounded-full transition-all duration-200 cursor-pointer ${
+                              idx === state.houseHeroIdx ? 'h-9 bg-[#C8FF1F]' : 'h-6 bg-[#1E2227]/60 border border-[#B5AFA6]/45 hover:border-[#C8FF1F]'
+                            }"></button>`
+                        ).join('')}
+                      </div>
+                    </div>
+                  </div>
+
+                  <svg viewBox="0 0 160 46" class="pointer-events-none absolute bottom-[18px] left-1/2 -translate-x-1/2 w-[156px] h-[46px] z-20" aria-hidden="true">
+                    <path d="M 0 46 C 28 46, 38 4, 80 4 C 122 4, 132 46, 160 46 Z" fill="#1E2227" />
+                  </svg>
+                  <button type="button" data-scroll="whats-on" aria-label="Scroll down" class="absolute bottom-0 left-1/2 -translate-x-1/2 z-30 w-14 h-14 rounded-full bg-[#252A30] hover:bg-[#C8FF1F] text-[#F2F0EB] hover:text-[#1E2227] shadow-md flex items-center justify-center transition-colors cursor-pointer">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
+                  </button>
+                </div>
+
+                <!-- Lower Split Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+                  <div class="lg:col-span-5 grid grid-cols-2 gap-4">
+                    <div data-open-gallery="3" class="group relative rounded-[22px] overflow-hidden bg-[#252A30] border border-[#B5AFA6]/20 aspect-[3/3.35] flex flex-col justify-between p-3 cursor-pointer shadow-sm">
+                      <img src="/src/assets/images/samudai_gallery_heritage_1795709778377.jpg" alt="Heritage & Verandah" class="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
+                      <div class="absolute inset-0 bg-gradient-to-t from-[#16191D]/95 via-[#1E2227]/30 to-[#16191D]/45"></div>
+                      <div class="relative z-10"><span class="px-2.5 py-1 rounded-full bg-[#B5AFA6] text-[#1E2227] font-mono text-[11px] font-bold">EST. 1934</span></div>
+                      <div class="relative z-10 space-y-2">
+                        <span class="inline-block px-2.5 py-1 rounded-full bg-[#1E2227]/85 border border-[#B5AFA6]/20 text-[#B5AFA6] text-[11px] font-medium">Four generations</span>
+                        <div class="w-full rounded-xl bg-[#B5AFA6] group-hover:bg-[#C8FF1F] text-[#1E2227] px-3 py-2 flex items-center justify-between gap-2 transition-colors">
+                          <span class="text-xs font-semibold truncate">Heritage &amp; Verandah</span>
+                          <span>→</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div data-scroll="join-house" class="group relative rounded-[22px] overflow-hidden bg-[#252A30] border border-[#B5AFA6]/20 aspect-[3/3.35] flex flex-col justify-between p-3 cursor-pointer shadow-sm">
+                      <img src="/src/assets/images/samudai_gallery_choir_1795709779200.jpg" alt="Konkani Classes" class="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
+                      <div class="absolute inset-0 bg-gradient-to-t from-[#16191D]/95 via-[#1E2227]/30 to-[#16191D]/45"></div>
+                      <div class="relative z-10"><span class="px-2.5 py-1 rounded-full bg-[#B5AFA6] text-[#1E2227] font-mono text-[11px] font-bold">SUNDAYS</span></div>
+                      <div class="relative z-10 space-y-2">
+                        <span class="inline-block px-2.5 py-1 rounded-full bg-[#1E2227]/85 border border-[#B5AFA6]/20 text-[#B5AFA6] text-[11px] font-medium">Youth wing &amp; choir</span>
+                        <div class="w-full rounded-xl bg-[#B5AFA6] group-hover:bg-[#C8FF1F] text-[#1E2227] px-3 py-2 flex items-center justify-between gap-2 transition-colors">
+                          <span class="text-xs font-semibold truncate">Konkani Classes</span>
+                          <span>→</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="lg:col-span-7 flex flex-col justify-between gap-4 py-1 lg:pl-4">
+                    <div class="space-y-3 max-w-xl">
+                      <p class="text-xs font-semibold uppercase tracking-wider text-[#C8FF1F]">Next at the Samudai</p>
+                      <h2 class="font-editorial text-2xl sm:text-[28px] font-semibold text-[#F2F0EB] leading-snug">
+                        What’s on at the Samudai — Tickets online via UPI, or at the box office.
+                      </h2>
+                      <p class="text-sm text-[#B5AFA6] leading-relaxed">
+                        Members pay the member rate across every film screening, food festival, and folk evening. From forty home kitchens on 22 November to Konkani Nights in Screen 1.
+                      </p>
+                      <div class="flex flex-wrap items-center gap-4 pt-0.5">
+                        <button type="button" data-open-event="konkani-food-festival" class="text-sm font-semibold text-[#C8FF1F] underline underline-offset-4 hover:text-[#B5AFA6] cursor-pointer">Get tickets: Konkani Food Festival</button>
+                        <span class="text-[#B5AFA6]/50">·</span>
+                        <button type="button" data-nav="movies" class="text-sm font-semibold text-[#F2F0EB] underline underline-offset-4 hover:text-[#C8FF1F] cursor-pointer">All films and showtimes</button>
+                      </div>
+                    </div>
+
+                    <div class="flex items-end justify-between gap-6">
+                      <div class="grid grid-cols-3 gap-5 border-t border-[#B5AFA6]/15 pt-3 text-[#F2F0EB]">
+                        <div>
+                          <p class="text-[11px] text-[#B5AFA6]">Established</p>
+                          <p class="font-mono text-base font-semibold text-[#C8FF1F] tabular-nums">1934</p>
+                        </div>
+                        <div>
+                          <p class="text-[11px] text-[#B5AFA6]">Home</p>
+                          <p class="text-sm font-semibold mt-0.5">Margao, Goa</p>
+                        </div>
+                        <div>
+                          <p class="text-[11px] text-[#B5AFA6]">Programme</p>
+                          <p class="text-sm font-semibold mt-0.5">Film · Music · Food</p>
+                        </div>
+                      </div>
+
+                      <button type="button" data-open-gallery="0" class="group relative w-28 h-28 sm:w-32 sm:h-32 rounded-full overflow-hidden bg-[#252A30] border-4 border-[#B5AFA6]/40 hover:border-[#C8FF1F] shadow-md shrink-0 cursor-pointer transition-colors">
+                        <img src="/src/assets/images/samudai_music_convention_1795709775101.jpg" alt="Open gallery" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                        <div class="absolute inset-0 bg-[#16191D]/45 group-hover:bg-[#16191D]/30 transition-colors flex flex-col items-center justify-center p-2 text-center">
+                          <span class="font-mono text-[10px] font-semibold text-[#C8FF1F]">Est. 1934</span>
+                          <span class="text-xs font-semibold text-[#F2F0EB]">Open gallery</span>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <!-- WHAT'S ON AT THE SAMUDAI -->
+              <section id="whats-on" class="pt-8 border-t border-[#B5AFA6]/15 space-y-8">
+                <div class="space-y-1.5">
+                  <p class="text-xs font-semibold uppercase tracking-wider text-[#C8FF1F]">Festivals &amp; Evenings</p>
+                  <h2 class="font-editorial text-3xl sm:text-4xl font-semibold text-[#F2F0EB]">What’s on at the Samudai</h2>
+                  <p class="text-sm text-[#B5AFA6]">Tickets online via UPI, or at the box office. Members pay the member rate.</p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-7">
+                  ${EVENTS.map(
+                    (ev) => `
+                    <article class="bg-[#252A30] border border-[#B5AFA6]/15 text-[#F2F0EB] rounded-[24px] overflow-hidden grid grid-cols-1 sm:grid-cols-12 shadow-sm">
+                      <div class="sm:col-span-5 relative min-h-[240px] bg-[#16191D]">
+                        <img src="${esc(ev.imageUrl)}" alt="${esc(ev.title)}" class="w-full h-full object-cover sm:absolute sm:inset-0" />
+                      </div>
+                      <div class="sm:col-span-7 p-6 sm:p-7 flex flex-col justify-between space-y-5">
+                        <div class="space-y-3">
+                          <div class="flex items-center justify-between gap-2">
+                            <span class="font-mono text-xs text-[#C8FF1F] font-semibold">${ev.day} ${ev.month}</span>
+                            <span class="text-xs text-[#B5AFA6]">${ev.fullDate} · ${ev.category}</span>
+                          </div>
+                          <h3 class="font-editorial text-2xl font-semibold text-[#F2F0EB]">${esc(ev.title)}</h3>
+                          <p class="text-sm text-[#B5AFA6] leading-relaxed">${esc(ev.description)}</p>
+                        </div>
+                        <div class="space-y-4 pt-3 border-t border-[#B5AFA6]/15">
+                          <div class="grid grid-cols-2 gap-4 text-xs">
+                            <div><p class="text-[#B5AFA6]/80">Doors</p><p class="text-[#F2F0EB] font-medium mt-0.5">${ev.doors}</p></div>
+                            <div><p class="text-[#B5AFA6]/80">Where</p><p class="text-[#F2F0EB] font-medium mt-0.5">${ev.where}</p></div>
+                          </div>
+                          <div class="flex items-center justify-between gap-4 pt-1">
+                            <div>
+                              <span class="font-mono text-lg font-semibold text-[#C8FF1F] tabular-nums">from ₹${isMember ? ev.memberPrice : ev.price}</span>
+                              ${isMember ? '<span class="ml-2 text-xs text-[#C8FF1F]">Member rate</span>' : ''}
+                            </div>
+                            <button type="button" data-open-event="${ev.id}" class="px-5 py-2.5 rounded-xl text-xs font-semibold bg-[#C8FF1F] text-[#1E2227] hover:bg-[#B5AFA6] transition-colors cursor-pointer">Get tickets</button>
+                          </div>
+                        </div>
+                      </div>
+                    </article>`
+                  ).join('')}
+                </div>
+              </section>
+
+              <!-- NOW SHOWING -->
+              <section id="now-showing" class="pt-8 border-t border-[#B5AFA6]/15 space-y-8">
+                <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                  <div class="space-y-1.5">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-[#C8FF1F]">Now Showing</p>
+                    <h2 class="font-editorial text-3xl sm:text-4xl font-semibold text-[#F2F0EB]">All films and showtimes</h2>
+                  </div>
+                  <button type="button" data-nav="movies" class="inline-flex items-center gap-2 text-sm font-semibold text-[#C8FF1F] underline underline-offset-4 hover:text-[#B5AFA6] cursor-pointer">
+                    <span>Open full Movies schedule</span><span>→</span>
+                  </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  ${MOVIES.slice(0, 3)
+                    .map((movie) => {
+                      const shows = ALL_SHOWTIMES.filter((s) => s.movieId === movie.id && s.date === '2026-11-27').slice(0, 3);
+                      const first = shows[0];
+                      return `
+                      <article data-open-showtime="${first.id}" class="group bg-[#252A30] border border-[#B5AFA6]/18 text-[#F2F0EB] rounded-[22px] overflow-hidden shadow-sm cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:border-[#C8FF1F]/50 flex flex-col justify-between">
+                        <div>
+                          <div class="relative aspect-[16/11] bg-[#16191D] overflow-hidden">
+                            <img src="${esc(movie.posterUrl)}" alt="${esc(movie.title)}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.04]" />
+                            <div class="absolute inset-0 bg-gradient-to-t from-[#252A30] via-[#16191D]/20 to-[#16191D]/55"></div>
+                            <div class="absolute top-3.5 left-3.5 right-3.5 flex items-center justify-between gap-2">
+                              <span class="px-2.5 py-1 rounded-lg bg-[#1E2227]/85 border border-[#B5AFA6]/25 text-[#F2F0EB] font-mono text-[11px] font-semibold tabular-nums">${movie.certification} · ${movie.runtime}</span>
+                              <span class="px-2.5 py-1 rounded-lg bg-[#1E2227]/85 border border-[#C8FF1F]/30 text-[#C8FF1F] font-mono text-[11px] font-semibold">${first.format}</span>
+                            </div>
+                          </div>
+                          <div class="px-5 pt-4 pb-3 space-y-2">
+                            <p class="text-[11px] font-semibold uppercase tracking-wider text-[#B5AFA6]">${movie.language} · ${movie.genres}</p>
+                            <h3 class="font-editorial text-2xl font-semibold text-[#F2F0EB] group-hover:text-[#C8FF1F] transition-colors">${esc(movie.title)}</h3>
+                            <p class="text-xs text-[#B5AFA6] leading-relaxed line-clamp-2">${esc(movie.synopsis)}</p>
+                          </div>
+                        </div>
+                        <div class="px-5 pb-5 pt-2 space-y-4">
+                          <div class="flex flex-wrap items-center gap-1.5">
+                            ${shows
+                              .map(
+                                (st) => `<button type="button" data-open-showtime="${st.id}" class="px-2.5 py-1 rounded-lg bg-[#1E2227] border border-[#B5AFA6]/20 hover:border-[#C8FF1F] hover:text-[#C8FF1F] font-mono text-[11px] font-medium text-[#F2F0EB] tabular-nums transition-colors cursor-pointer">${st.time}</button>`
+                              )
+                              .join('')}
+                          </div>
+                          <div class="pt-3 border-t border-[#B5AFA6]/15 flex items-center justify-between gap-3">
+                            <div>
+                              <span class="font-mono text-base font-semibold text-[#C8FF1F] tabular-nums">from ₹${minMoviePrice}</span>
+                              <p class="text-[11px] text-[#B5AFA6] mt-0.5">${first.auditoriumName}</p>
+                            </div>
+                            <span class="px-4 py-2 rounded-xl bg-[#C8FF1F] group-hover:bg-[#B5AFA6] text-[#1E2227] text-xs font-semibold transition-colors whitespace-nowrap">Choose seats</span>
+                          </div>
+                        </div>
+                      </article>`;
+                    })
+                    .join('')}
+                </div>
+
+                <!-- Warm Titanium Featured Strip -->
+                <div class="p-6 sm:p-7 rounded-[22px] bg-[#B5AFA6] text-[#1E2227] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div class="space-y-1">
+                    <h3 class="font-editorial text-2xl font-semibold text-[#1E2227]">Konkani Nights</h3>
+                    <p class="text-sm text-[#2C3138]">27 Nov · 10:15 am · Samudai Cineplex, Margao · Screen 1 · 2K Laser</p>
+                  </div>
+                  <div class="flex items-center gap-5 shrink-0">
+                    <span class="font-mono text-lg font-semibold text-[#1E2227] tabular-nums">from ₹600</span>
+                    <button type="button" data-open-showtime="konkani-nights-2026-11-27-1015am" class="px-5 py-2.5 rounded-xl text-sm font-semibold bg-[#1E2227] text-[#C8FF1F] hover:bg-[#C8FF1F] hover:text-[#1E2227] transition-colors cursor-pointer">Choose seats</button>
+                  </div>
+                </div>
+              </section>
+
+              <!-- FROM THE COMMITTEE (COMPACT SEPARATE STICKY-STACKING TILES) -->
+              <section id="committee" class="pt-10 border-t border-[#B5AFA6]/15 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                <div class="lg:col-span-4 space-y-5 lg:sticky lg:top-12">
+                  <div class="space-y-2">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-[#C8FF1F]">House Announcements</p>
+                    <h2 class="font-editorial text-3xl sm:text-4xl font-semibold text-[#F2F0EB]">From the committee</h2>
+                    <p class="text-sm text-[#B5AFA6] leading-relaxed">
+                      Seasonal circulars, AGM notices, and household updates from the Margao managing committee.
+                    </p>
+                  </div>
+                  <div class="border-l-2 border-[#C8FF1F] pl-4 space-y-1">
+                    <p class="text-xs text-[#B5AFA6]">Committee Desk · Margao</p>
+                    <p class="font-mono text-xs font-semibold text-[#F2F0EB] tabular-nums">10:00 – 18:00 · Daily</p>
+                  </div>
+                </div>
+
+                <div class="lg:col-span-8 space-y-4 pb-2">
+                  ${NOTICES.map(
+                    (n, idx) => `
+                    <article data-notice-cat="${n.category.toLowerCase()}" style="top: ${48 + idx * 12}px; z-index: ${idx + 1};" class="sticky group rounded-[20px] bg-[#252A30] hover:bg-[#2A3037] border border-[#B5AFA6]/22 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-[0_-10px_24px_rgba(16,19,23,0.68)] transition-colors duration-200 cursor-pointer">
+                      <div class="flex items-start gap-4 sm:gap-5">
+                        <span class="font-mono text-xl sm:text-2xl font-semibold text-[#C8FF1F] tabular-nums leading-none pt-0.5 shrink-0">${n.index}</span>
+                        <div class="space-y-1">
+                          <div class="flex flex-wrap items-center gap-2 text-xs text-[#B5AFA6]">
+                            <span class="font-mono tabular-nums">${n.date}</span>
+                            <span class="text-[#B5AFA6]/40">·</span>
+                            <span class="font-semibold uppercase tracking-wider text-[11px] text-[#B5AFA6]">${n.category}</span>
+                          </div>
+                          <h3 class="font-editorial text-lg sm:text-xl font-semibold text-[#F2F0EB] group-hover:text-[#C8FF1F] transition-colors">${esc(n.title)}</h3>
+                          <p class="text-xs sm:text-sm text-[#B5AFA6] leading-snug max-w-xl">${esc(n.summary)}</p>
+                        </div>
+                      </div>
+                      <span class="self-start sm:self-center shrink-0 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#1E2227] border border-[#B5AFA6]/25 text-xs font-semibold text-[#F2F0EB] group-hover:bg-[#C8FF1F] group-hover:text-[#1E2227] group-hover:border-[#C8FF1F] transition-colors whitespace-nowrap">
+                        <span>${n.cta}</span><span>→</span>
+                      </span>
+                    </article>`
+                  ).join('')}
+                </div>
+              </section>
+
+              <!-- MOMENTS FROM THE SAMUDAI (8-PHOTO ARCHIVE GRID) -->
+              <section id="gallery" class="pt-8 border-t border-[#B5AFA6]/15 space-y-6">
+                <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                  <div class="space-y-1">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-[#C8FF1F]">The full archive</p>
+                    <h2 class="font-editorial text-3xl font-semibold text-[#F2F0EB]">Moments from the Samudai</h2>
+                  </div>
+                  <button type="button" data-open-gallery="0" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-[#B5AFA6] text-[#1E2227] hover:bg-[#C8FF1F] transition-colors cursor-pointer self-start sm:self-auto">
+                    <span>Open the gallery</span>
+                  </button>
+                </div>
+
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  ${GALLERY.map(
+                    (g, idx) => `
+                    <button type="button" data-open-gallery="${idx}" class="group relative aspect-[4/3] rounded-2xl overflow-hidden bg-[#252A30] text-left cursor-pointer">
+                      <img src="${esc(g.url)}" alt="${esc(g.caption)}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                    </button>`
+                  ).join('')}
+                </div>
+              </section>
+
+              <!-- JOIN THE HOUSE & SAMUDAI CARD -->
+              <section id="join-house" class="pt-8 border-t border-[#B5AFA6]/15 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                <div class="lg:col-span-6 space-y-5">
+                  <p class="text-xs font-semibold uppercase tracking-wider text-[#C8FF1F]">Join the house</p>
+                  <h2 class="font-editorial text-3xl sm:text-4xl font-semibold text-[#F2F0EB]">A card that stays with the family.</h2>
+                  <p class="text-sm text-[#B5AFA6] leading-relaxed">
+                    Since 1934, membership has covered a whole household at a nominal annual contribution — voting rights, member ticket rates, priority cinema booking, and Sunday Konkani classes.
+                  </p>
+                  <ul class="space-y-2.5 text-sm text-[#F2F0EB]">
+                    <li class="flex items-center gap-2.5"><span class="text-[#C8FF1F]">✓</span> Voting rights at the annual general meeting</li>
+                    <li class="flex items-center gap-2.5"><span class="text-[#C8FF1F]">✓</span> Member rates on every event and screening (20% off)</li>
+                    <li class="flex items-center gap-2.5"><span class="text-[#C8FF1F]">✓</span> Priority booking for film nights · Scholarships · Youth wing</li>
+                  </ul>
+                </div>
+
+                <div class="lg:col-span-6 rounded-[24px] bg-[#B5AFA6] text-[#1E2227] p-7 sm:p-8 flex flex-col justify-between gap-6 shadow-sm">
+                  <div class="flex items-start justify-between gap-4">
+                    <div>
+                      <p class="font-mono text-xs font-semibold text-[#2C3138]">KS · 1934 · MARGAO</p>
+                      <h3 class="font-editorial text-3xl font-semibold mt-1">The Samudai card</h3>
+                      <p class="text-xs text-[#2C3138] mt-1">Annual membership · one household · valid 31 Dec 2027</p>
+                    </div>
+                    <span class="font-mono text-3xl font-bold text-[#1E2227] tabular-nums">₹1</span>
+                  </div>
+                  <div class="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-[#1E2227]/15">
+                    <span class="text-xs font-medium text-[#2C3138]">${
+                      isMember ? `Active Card: ${esc(state.membership.cardNumber)}` : 'Sign in first. Secure UPI payment through YouPI.'
+                    }</span>
+                    <button type="button" data-open-membership class="px-5 py-2.5 rounded-xl bg-[#1E2227] text-[#C8FF1F] hover:bg-[#C8FF1F] hover:text-[#1E2227] text-xs font-semibold transition-colors cursor-pointer">${
+                      isMember ? 'View Samudai Card' : 'Start membership'
+                    }</button>
+                  </div>
+                </div>
+              </section>
+            </div>`;
+        }
+
+        function renderMovies() {
+          if (state.activeShowtime && state.activeMovie) {
+            return renderSeatBooking();
+          }
+
+          const heroSlides = MOVIES.slice(0, 5).map((movie, idx) => {
+            const st = ALL_SHOWTIMES.find((s) => s.movieId === movie.id && s.date === state.selectedDate) || ALL_SHOWTIMES[0];
+            return {
+              movie,
+              showtime: st,
+              kicker:
+                idx === 0
+                  ? 'Samudai Cineplex, Margao · Screen 1 · 2K Laser'
+                  : `${movie.language} · ${st.format} · ${st.auditoriumName.includes('Screen 2') ? 'Screen 2' : 'Screen 1'}`,
+              backdrop: idx === 0 ? '/src/assets/images/hero_cinema_auditorium_1795707111877.jpg' : movie.posterUrl,
+            };
+          });
+          const activeHero = heroSlides[state.movieHeroIdx] || heroSlides[0];
+          const spotlight = MOVIES.slice(1, 6);
+          const isMember = Boolean(state.membership);
+
+          return `
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 pt-3 pb-16 space-y-16">
+              <section class="space-y-5">
+                <div class="relative pb-5">
+                  <div class="relative rounded-[28px] bg-[#16191D] text-[#F2F0EB] overflow-hidden min-h-[340px] sm:min-h-[380px] lg:min-h-[395px] flex flex-col justify-between">
+                    <img src="${esc(activeHero.backdrop)}" alt="${esc(activeHero.movie.title)}" class="absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-500" />
+                    <div class="absolute inset-0 bg-gradient-to-r from-[#16191D]/95 via-[#1E2227]/72 to-[#1E2227]/35"></div>
+                    <div class="absolute inset-0 bg-gradient-to-t from-[#16191D]/92 via-transparent to-[#16191D]/65"></div>
+
+                    ${heroHeaderHtml('movies')}
+
+                    <div class="relative z-10 flex items-end justify-between gap-6 px-5 sm:px-8 pb-8 sm:pb-9 pt-8">
+                      <div class="max-w-xl space-y-3">
+                        <p class="text-xs font-semibold tracking-wide text-[#C8FF1F]">${esc(activeHero.kicker)}</p>
+                        <h1 class="font-editorial text-3xl sm:text-[42px] font-semibold tracking-tight text-[#F2F0EB] leading-[1.08]">${esc(activeHero.movie.title)}</h1>
+                        <p class="text-sm text-[#B5AFA6] leading-relaxed max-w-lg">
+                          ${activeHero.movie.language} · ${activeHero.movie.genres} · ${activeHero.movie.certification} · ${activeHero.movie.runtime}. Next show at
+                          <span class="font-mono text-[#F2F0EB] tabular-nums">${activeHero.showtime.time}</span>.
+                        </p>
+                        <div class="flex flex-wrap items-center gap-3 pt-1">
+                          <button type="button" data-open-showtime="${activeHero.showtime.id}" class="px-5 py-2.5 rounded-xl text-sm font-semibold bg-[#C8FF1F] text-[#1E2227] hover:bg-[#B5AFA6] transition-colors cursor-pointer">Choose seats · from ₹600</button>
+                          <button type="button" data-scroll="movies-schedule" class="px-5 py-2.5 rounded-xl text-sm font-medium bg-[#1E2227]/75 backdrop-blur-md text-[#F2F0EB] border border-[#B5AFA6]/30 hover:border-[#C8FF1F] hover:text-[#C8FF1F] transition-colors cursor-pointer">All showtimes</button>
+                        </div>
+                      </div>
+
+                      <!-- 5 Vertical Capsule Dots matching 5 films -->
+                      <div class="flex flex-col items-center gap-2 pb-2 shrink-0">
+                        ${heroSlides
+                          .map(
+                            (s, idx) => `
+                            <button type="button" data-movie-slide="${idx}" aria-label="${esc(s.movie.title)}" class="w-3.5 rounded-full transition-all duration-200 cursor-pointer ${
+                              idx === state.movieHeroIdx ? 'h-8 bg-[#C8FF1F]' : 'h-5 bg-[#1E2227]/60 border border-[#B5AFA6]/45 hover:border-[#C8FF1F]'
+                            }"></button>`
+                          )
+                          .join('')}
+                      </div>
+                    </div>
+                  </div>
+
+                  <svg viewBox="0 0 160 46" class="pointer-events-none absolute bottom-[18px] left-1/2 -translate-x-1/2 w-[156px] h-[46px] z-20" aria-hidden="true">
+                    <path d="M 0 46 C 28 46, 38 4, 80 4 C 122 4, 132 46, 160 46 Z" fill="#1E2227" />
+                  </svg>
+                  <button type="button" data-scroll="movies-schedule" aria-label="Scroll to schedule" class="absolute bottom-0 left-1/2 -translate-x-1/2 z-30 w-14 h-14 rounded-full bg-[#252A30] hover:bg-[#C8FF1F] text-[#F2F0EB] hover:text-[#1E2227] shadow-md flex items-center justify-center transition-colors cursor-pointer">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
+                  </button>
+                </div>
+
+                <!-- 5 Movie Cards Row Below Hero (No Text Block) -->
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                  ${spotlight
+                    .map((m) => {
+                      const firstShow = ALL_SHOWTIMES.find((s) => s.movieId === m.id && s.date === state.selectedDate) || ALL_SHOWTIMES[0];
+                      return `
+                      <div data-open-showtime="${firstShow.id}" class="group relative rounded-[22px] overflow-hidden bg-[#252A30] border border-[#B5AFA6]/20 aspect-[3/3.45] flex flex-col justify-between p-3 cursor-pointer shadow-sm">
+                        <img src="${esc(m.posterUrl)}" alt="${esc(m.title)}" class="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
+                        <div class="absolute inset-0 bg-gradient-to-t from-[#16191D]/95 via-[#1E2227]/30 to-[#16191D]/45"></div>
+                        <div class="relative z-10"><span class="px-2.5 py-1 rounded-full bg-[#B5AFA6] text-[#1E2227] font-mono text-[11px] font-bold tabular-nums">${firstShow.time}</span></div>
+                        <div class="relative z-10 space-y-2">
+                          <span class="inline-block px-2.5 py-1 rounded-full bg-[#1E2227]/85 border border-[#B5AFA6]/20 text-[#B5AFA6] font-mono text-[11px] font-medium tabular-nums">from ₹600</span>
+                          <div class="w-full rounded-xl bg-[#B5AFA6] group-hover:bg-[#C8FF1F] text-[#1E2227] px-3 py-2 flex items-center justify-between gap-2 transition-colors">
+                            <span class="text-xs font-semibold truncate">${esc(m.title)}</span>
+                            <span>→</span>
+                          </div>
+                        </div>
+                      </div>`;
+                    })
+                    .join('')}
+                </div>
+              </section>
+
+              <!-- ALL 6 FILMS AND SHOWTIMES -->
+              <section id="movies-schedule" class="pt-8 border-t border-[#B5AFA6]/15 space-y-8">
+                <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+                  <div class="space-y-1.5">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-[#C8FF1F]">Samudai Cineplex, Margao</p>
+                    <h2 class="font-editorial text-3xl sm:text-4xl font-semibold text-[#F2F0EB]">All films and showtimes</h2>
+                    <p class="text-sm text-[#B5AFA6]">Select a showtime to pick exact seats and pay online via YouPI or Card.</p>
+                  </div>
+
+                  <div class="flex items-center gap-1 p-1 bg-[#252A30] border border-[#B5AFA6]/20 rounded-xl self-start lg:self-auto">
+                    ${SHOWTIME_DATES.map(
+                      (d) => `<button type="button" data-select-date="${d.date}" class="px-4 py-2 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
+                        state.selectedDate === d.date ? 'bg-[#C8FF1F] text-[#1E2227] font-semibold' : 'text-[#B5AFA6] hover:text-[#F2F0EB]'
+                      }">${d.label}</button>`
+                    ).join('')}
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  ${MOVIES.map((m) => {
+                    const showtimes = ALL_SHOWTIMES.filter((s) => s.movieId === m.id && s.date === state.selectedDate);
+                    return `
+                      <article class="flex flex-col bg-[#252A30] border border-[#B5AFA6]/18 text-[#F2F0EB] rounded-[22px] overflow-hidden shadow-sm">
+                        <div class="relative aspect-[16/11] bg-[#16191D] overflow-hidden">
+                          <img src="${esc(m.posterUrl)}" alt="${esc(m.title)}" class="w-full h-full object-cover" />
+                          <div class="absolute inset-0 bg-gradient-to-t from-[#252A30] via-[#16191D]/20 to-[#16191D]/55"></div>
+                          <div class="absolute top-3.5 left-3.5 right-3.5 flex items-center justify-between gap-2">
+                            <span class="px-2.5 py-1 rounded-lg bg-[#1E2227]/85 border border-[#B5AFA6]/25 text-[#F2F0EB] font-mono text-[11px] font-semibold tabular-nums">${m.certification} · ${m.runtime}</span>
+                            <span class="px-2.5 py-1 rounded-lg bg-[#1E2227]/85 border border-[#C8FF1F]/30 text-[#C8FF1F] font-mono text-[11px] font-semibold">${showtimes[0]?.format || '2K Laser'}</span>
+                          </div>
+                        </div>
+                        <div class="p-5 flex-1 flex flex-col justify-between space-y-4">
+                          <div class="space-y-1.5">
+                            <p class="text-[11px] font-semibold uppercase tracking-wider text-[#B5AFA6]">${m.language} · ${m.genres}</p>
+                            <h3 class="font-editorial text-2xl font-semibold text-[#F2F0EB]">${esc(m.title)}</h3>
+                            <p class="text-xs text-[#B5AFA6]">Dir. ${m.director} · ${showtimes[0]?.auditoriumName || ''}</p>
+                            <p class="text-xs text-[#B5AFA6]/90 leading-relaxed line-clamp-2 pt-0.5">${esc(m.synopsis)}</p>
+                          </div>
+                          <div class="space-y-3 pt-3 border-t border-[#B5AFA6]/15">
+                            <div class="flex items-center justify-between text-xs text-[#B5AFA6]">
+                              <span>${showtimes[0]?.dateLabel || ''}</span>
+                              <span class="font-mono text-[#C8FF1F] font-semibold tabular-nums">from ₹${isMember ? 480 : 600}</span>
+                            </div>
+                            <div class="grid grid-cols-3 gap-2">
+                              ${showtimes
+                                .map(
+                                  (st) => `
+                                  <button type="button" data-open-showtime="${st.id}" class="flex flex-col items-center justify-center py-2 px-1.5 rounded-xl bg-[#1E2227] border border-[#B5AFA6]/20 hover:bg-[#C8FF1F] text-[#F2F0EB] hover:text-[#1E2227] hover:border-[#C8FF1F] transition-colors cursor-pointer">
+                                    <span class="font-mono text-xs font-semibold tabular-nums">${st.time}</span>
+                                    <span class="text-[10px] opacity-80 truncate max-w-full">${st.format}</span>
+                                  </button>`
+                                )
+                                .join('')}
+                            </div>
+                          </div>
+                        </div>
+                      </article>`;
+                  }).join('')}
+                </div>
+              </section>
+            </div>`;
+        }
+
+        function getOccupiedFor(showtimeId) {
+          const seeded = SEEDED_OCCUPIED[showtimeId] || ['E5', 'E6'];
+          const booked = state.bookings
+            .filter((b) => b.kind === 'movie' && b.showtimeId === showtimeId)
+            .flatMap((b) => b.seats.map((s) => s.id));
+          return new Set([...seeded, ...booked]);
+        }
+
+        function renderSeatBooking() {
+          const st = state.activeShowtime;
+          const mv = state.activeMovie;
+          const occupied = getOccupiedFor(st.id);
+          const surcharge = st.format === 'Dolby Atmos' ? 50 : 0;
+          const isMember = Boolean(state.membership);
+
+          const seatPrices = {};
+          SEAT_ROWS.forEach((r) => {
+            for (let n = 1; n <= 12; n++) seatPrices[`${r.row}${n}`] = r.base + surcharge;
+          });
+
+          const ticketsSubtotal = state.selectedSeats.reduce((s, id) => s + (seatPrices[id] || 600), 0);
+          const concessionsSubtotal = CONCESSIONS.reduce((s, c) => s + c.price * (state.concessions[c.id] || 0), 0);
+          const subtotal = ticketsSubtotal + concessionsSubtotal;
+          const discount = isMember ? Math.round(subtotal * 0.2) : 0;
+          const fee = state.selectedSeats.length === 0 || isMember ? 0 : state.selectedSeats.length * 25;
+          const total = Math.max(0, subtotal - discount + fee);
+
+          return `
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#B5AFA6]/15 pb-5">
+                <button type="button" id="back-to-movies" class="inline-flex items-center gap-2 text-sm font-medium text-[#B5AFA6] hover:text-[#C8FF1F] cursor-pointer">
+                  <span>← All films and showtimes</span>
+                </button>
+                <div class="text-xs font-medium text-[#C8FF1F]">${esc(mv.title)} · ${st.dateLabel} · ${st.time} · ${st.format}</div>
+              </div>
+
+              <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                <div class="lg:col-span-8 bg-[#252A30] border border-[#B5AFA6]/18 rounded-[24px] p-6 sm:p-8 space-y-6">
+                  <div class="text-center space-y-2">
+                    <div class="mx-auto max-w-md h-1.5 rounded-full bg-gradient-to-r from-transparent via-[#C8FF1F] to-transparent"></div>
+                    <p class="font-mono text-[11px] uppercase tracking-widest text-[#B5AFA6]">Screen 2K Laser · ${esc(st.auditoriumName)}</p>
+                  </div>
+
+                  <div class="space-y-2 overflow-x-auto pb-2">
+                    ${SEAT_ROWS.map(
+                      (r) => `
+                      <div class="flex items-center justify-center gap-2 min-w-[540px]">
+                        <span class="w-5 font-mono text-xs text-[#B5AFA6] text-right">${r.row}</span>
+                        <div class="flex items-center gap-1.5">
+                          ${Array.from({ length: 12 }, (_, i) => {
+                            const n = i + 1;
+                            const id = `${r.row}${n}`;
+                            const isOcc = occupied.has(id);
+                            const isSel = state.selectedSeats.includes(id);
+                            const gap = n === 6 ? 'mr-3' : '';
+                            return `<button type="button" ${isOcc ? 'disabled' : ''} data-toggle-seat="${id}" class="${gap} w-8 h-8 rounded-lg font-mono text-[11px] font-semibold tabular-nums transition-colors ${
+                              isOcc
+                                ? 'bg-[#16191D] text-[#B5AFA6]/30 cursor-not-allowed'
+                                : isSel
+                                ? 'bg-[#C8FF1F] text-[#1E2227] cursor-pointer'
+                                : 'bg-[#1E2227] text-[#F2F0EB] border border-[#B5AFA6]/25 hover:border-[#C8FF1F] cursor-pointer'
+                            }">${n}</button>`;
+                          }).join('')}
+                        </div>
+                        <span class="w-24 text-[10px] text-[#B5AFA6] pl-2 truncate">${r.label} ₹${r.base + surcharge}</span>
+                      </div>`
+                    ).join('')}
+                  </div>
+
+                  <!-- Samudai Kitchen Concessions -->
+                  <div class="pt-5 border-t border-[#B5AFA6]/15 space-y-3">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-[#C8FF1F]">Samudai Kitchen &amp; Interval Bar</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      ${CONCESSIONS.map((c) => {
+                        const qty = state.concessions[c.id] || 0;
+                        return `
+                          <div class="p-3.5 rounded-xl bg-[#1E2227] border border-[#B5AFA6]/20 flex items-center justify-between gap-3">
+                            <div>
+                              <p class="text-xs font-semibold text-[#F2F0EB]">${esc(c.name)}</p>
+                              <p class="font-mono text-xs text-[#C8FF1F] tabular-nums">₹${c.price}</p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                              <button type="button" data-conc-delta="${c.id}:-1" class="w-7 h-7 rounded-lg bg-[#252A30] text-[#F2F0EB] hover:bg-[#B5AFA6] hover:text-[#1E2227] font-mono cursor-pointer">-</button>
+                              <span class="w-5 text-center font-mono text-xs tabular-nums">${qty}</span>
+                              <button type="button" data-conc-delta="${c.id}:1" class="w-7 h-7 rounded-lg bg-[#252A30] text-[#F2F0EB] hover:bg-[#C8FF1F] hover:text-[#1E2227] font-mono cursor-pointer">+</button>
+                            </div>
+                          </div>`;
+                      }).join('')}
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Summary & Checkout Panel -->
+                <form id="movie-checkout-form" class="lg:col-span-4 bg-[#B5AFA6] text-[#1E2227] rounded-[24px] p-6 space-y-4">
+                  <div>
+                    <p class="font-mono text-xs font-semibold text-[#2C3138]">BOOKING SUMMARY</p>
+                    <h3 class="font-editorial text-2xl font-semibold mt-0.5">${esc(mv.title)}</h3>
+                    <p class="text-xs text-[#2C3138]">${st.dateLabel} · ${st.time} · ${st.format}</p>
+                  </div>
+
+                  <div class="pt-3 border-t border-[#1E2227]/15 space-y-1.5 text-xs">
+                    <div class="flex justify-between"><span>Seats (${state.selectedSeats.length})</span><span class="font-mono font-semibold tabular-nums">${state.selectedSeats.join(', ') || 'None'}</span></div>
+                    <div class="flex justify-between"><span>Tickets + Kitchen</span><span class="font-mono tabular-nums">₹${subtotal}</span></div>
+                    ${discount > 0 ? `<div class="flex justify-between font-semibold"><span>Samudai Member (20% Off)</span><span class="font-mono tabular-nums">-₹${discount}</span></div>` : ''}
+                    <div class="flex justify-between"><span>Booking fee</span><span class="font-mono tabular-nums">₹${fee}</span></div>
+                    <div class="flex justify-between pt-2 border-t border-[#1E2227]/15 text-base font-bold"><span>Total Due</span><span class="font-mono tabular-nums">₹${total}</span></div>
+                  </div>
+
+                  <div class="space-y-2.5 pt-2">
+                    <input name="customerName" required placeholder="Full Name" value="${esc(state.user?.name || '')}" class="w-full px-3.5 py-2 rounded-xl bg-[#1E2227] text-[#F2F0EB] placeholder:text-[#B5AFA6]/60 text-xs focus:outline-none" />
+                    <input name="customerEmail" type="email" required placeholder="Email Address" value="${esc(state.user?.email || '')}" class="w-full px-3.5 py-2 rounded-xl bg-[#1E2227] text-[#F2F0EB] placeholder:text-[#B5AFA6]/60 text-xs focus:outline-none" />
+                    <input name="upiId" required placeholder="YouPI / UPI ID (e.g. sunita@youpi)" class="w-full px-3.5 py-2 rounded-xl bg-[#1E2227] text-[#F2F0EB] placeholder:text-[#B5AFA6]/60 font-mono text-xs focus:outline-none" />
+                  </div>
+                  <p id="movie-checkout-err" class="hidden text-xs font-semibold text-red-900"></p>
+                  <button type="submit" class="w-full py-3 rounded-xl bg-[#1E2227] text-[#C8FF1F] hover:bg-[#C8FF1F] hover:text-[#1E2227] text-xs font-semibold transition-colors cursor-pointer">
+                    Pay ₹${total} via YouPI &amp; Issue Pass
+                  </button>
+                </form>
+              </div>
+            </div>`;
+        }
+
+        function renderTickets() {
+          return `
+            <div class="max-w-5xl mx-auto px-4 sm:px-6 py-10 space-y-8">
+              <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-[#B5AFA6]/15 pb-6">
+                <div>
+                  <p class="text-xs font-semibold uppercase tracking-wider text-[#C8FF1F]">Pass Wallet</p>
+                  <h1 class="font-editorial text-3xl sm:text-4xl font-semibold text-[#F2F0EB]">My Tickets</h1>
+                </div>
+                <button type="button" data-nav="movies" class="px-4 py-2 rounded-xl bg-[#C8FF1F] text-[#1E2227] text-xs font-semibold cursor-pointer">Book film tickets</button>
+              </div>
+
+              ${
+                state.bookings.length === 0
+                  ? `<div class="rounded-[24px] bg-[#252A30] border border-[#B5AFA6]/20 p-10 text-center space-y-4">
+                      <p class="font-editorial text-2xl text-[#F2F0EB]">No passes issued yet</p>
+                      <p class="text-sm text-[#B5AFA6]">Book seats at Samudai Cineplex or pick up festival tickets to see your QR passes here.</p>
+                      <button type="button" data-nav="movies" class="px-5 py-2.5 rounded-xl bg-[#C8FF1F] text-[#1E2227] text-xs font-semibold cursor-pointer">Browse Movies</button>
+                    </div>`
+                  : `<div class="space-y-5">
+                      ${state.bookings
+                        .map(
+                          (b) => `
+                          <article class="rounded-[24px] bg-[#252A30] border border-[#B5AFA6]/20 p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+                            <div class="space-y-2">
+                              <div class="flex items-center gap-2.5">
+                                <span class="px-2.5 py-0.5 rounded-full bg-[#C8FF1F] text-[#1E2227] font-mono text-[11px] font-bold">${esc(b.code)}</span>
+                                <span class="text-xs text-[#B5AFA6]">${esc(b.dateLabel)} · ${esc(b.time)}</span>
+                              </div>
+                              <h2 class="font-editorial text-2xl font-semibold text-[#F2F0EB]">${esc(b.title)}</h2>
+                              <p class="text-xs text-[#B5AFA6]">${esc(b.venueName)} · ${
+                                b.kind === 'movie' ? `Seats: ${b.seats.map((s) => s.id).join(', ')}` : `${b.quantity} Pass(es)`
+                              }</p>
+                            </div>
+                            <div class="flex items-center gap-4 shrink-0">
+                              <div class="text-right">
+                                <p class="font-mono text-lg font-semibold text-[#C8FF1F] tabular-nums">₹${b.totalPaid}</p>
+                                <p class="text-[11px] text-[#B5AFA6]">Paid via YouPI</p>
+                              </div>
+                              <button type="button" data-cancel-booking="${esc(b.id)}" class="px-4 py-2 rounded-xl bg-[#1E2227] border border-[#B5AFA6]/25 text-xs text-[#F2F0EB] hover:border-red-400 hover:text-red-300 cursor-pointer">Cancel &amp; Refund</button>
+                            </div>
+                          </article>`
+                        )
+                        .join('')}
+                    </div>`
+              }
+            </div>`;
+        }
+
+        function renderLogin() {
+          const isMember = Boolean(state.membership);
+          return `
+            <div class="max-w-5xl mx-auto px-4 sm:px-6 py-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+              <div class="lg:col-span-7 bg-[#252A30] border border-[#B5AFA6]/20 rounded-[24px] p-6 sm:p-8 space-y-6">
+                <div>
+                  <p class="text-xs font-semibold uppercase tracking-wider text-[#C8FF1F]">Household Account</p>
+                  <h1 class="font-editorial text-3xl font-semibold text-[#F2F0EB] mt-1">${
+                    state.user ? `Welcome, ${esc(state.user.name)}` : 'Sign in to Konkani Samudai'
+                  }</h1>
+                </div>
+
+                ${
+                  state.user
+                    ? `<div class="space-y-4 text-sm text-[#B5AFA6]">
+                        <div class="p-4 rounded-xl bg-[#1E2227] border border-[#B5AFA6]/20 space-y-1.5">
+                          <p><strong class="text-[#F2F0EB]">Email:</strong> ${esc(state.user.email)}</p>
+                          <p><strong class="text-[#F2F0EB]">Mobile:</strong> ${esc(state.user.phone || '—')}</p>
+                          ${state.user.gender ? `<p><strong class="text-[#F2F0EB]">Gender:</strong> ${esc(state.user.gender)}</p>` : ''}
+                          ${state.user.dob ? `<p><strong class="text-[#F2F0EB]">DOB:</strong> <span class="font-mono">${esc(state.user.dob)}</span></p>` : ''}
+                        </div>
+                        <button type="button" id="logout-btn" class="px-4 py-2 rounded-xl bg-[#1E2227] border border-[#B5AFA6]/25 text-xs font-semibold text-[#F2F0EB] hover:border-[#C8FF1F] cursor-pointer">Sign out</button>
+                      </div>`
+                    : `<form id="login-page-form" class="space-y-4">
+                        <input name="name" required placeholder="Full Name (e.g. Sunita Naik)" class="w-full px-4 py-3 rounded-xl bg-[#1E2227] border border-[#B5AFA6]/25 text-sm text-[#F2F0EB]" />
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <input name="email" type="email" required placeholder="Email Address" class="w-full px-4 py-3 rounded-xl bg-[#1E2227] border border-[#B5AFA6]/25 text-sm text-[#F2F0EB]" />
+                          <input name="phone" type="tel" placeholder="Mobile Number" class="w-full px-4 py-3 rounded-xl bg-[#1E2227] border border-[#B5AFA6]/25 font-mono text-sm text-[#F2F0EB]" />
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <select name="gender" required class="w-full px-4 py-3 rounded-xl bg-[#1E2227] border border-[#B5AFA6]/25 text-sm text-[#F2F0EB]">
+                            <option value="">Select Gender</option>
+                            <option value="Female">Female</option>
+                            <option value="Male">Male</option>
+                            <option value="Other">Other</option>
+                          </select>
+                          <input name="dob" type="date" required class="w-full px-4 py-3 rounded-xl bg-[#1E2227] border border-[#B5AFA6]/25 font-mono text-sm text-[#F2F0EB]" />
+                        </div>
+                        <button type="submit" class="px-6 py-3 rounded-xl bg-[#C8FF1F] text-[#1E2227] text-sm font-semibold cursor-pointer">Save &amp; Sign in</button>
+                      </form>`
+                }
+              </div>
+
+              <div class="lg:col-span-5 bg-[#B5AFA6] text-[#1E2227] rounded-[24px] p-6 sm:p-8 space-y-5">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <p class="font-mono text-xs font-semibold text-[#2C3138]">KS · 1934 · MARGAO</p>
+                    <h2 class="font-editorial text-2xl font-semibold mt-1">The Samudai card</h2>
+                  </div>
+                  <span class="font-mono text-2xl font-bold tabular-nums">₹1</span>
+                </div>
+                <p class="text-xs text-[#2C3138]">${
+                  isMember
+                    ? `Active Card ${esc(state.membership.cardNumber)} · Valid until 31 Dec 2027`
+                    : '20% off every film and festival · ₹0 booking fee · AGM voting rights.'
+                }</p>
+                <button type="button" data-open-membership class="w-full py-3 rounded-xl bg-[#1E2227] text-[#C8FF1F] text-xs font-semibold cursor-pointer">
+                  ${isMember ? 'View Samudai Card' : 'Activate ₹1 Samudai Card'}
+                </button>
+              </div>
+            </div>`;
+        }
+
+        function renderModal() {
+          const root = document.getElementById('modal-root');
+          if (!state.modal) {
+            root.innerHTML = '';
+            return;
+          }
+
+          if (state.modal.type === 'gallery') {
+            const idx = state.modal.index || 0;
+            const g = GALLERY[idx] || GALLERY[0];
+            root.innerHTML = `
+              <div class="fixed inset-0 z-50 bg-[#16191D]/95 backdrop-blur-sm flex flex-col justify-between p-4 sm:p-8">
+                <div class="flex items-center justify-between text-[#F2F0EB]">
+                  <span class="font-mono text-xs text-[#C8FF1F] tabular-nums">${idx + 1} / ${GALLERY.length}</span>
+                  <button type="button" data-close-modal class="w-10 h-10 rounded-full bg-[#252A30] border border-[#B5AFA6]/25 flex items-center justify-center cursor-pointer">✕</button>
+                </div>
+                <div class="flex-1 flex items-center justify-center gap-4 py-4">
+                  <button type="button" data-gallery-step="-1" class="w-10 h-10 rounded-full bg-[#252A30] border border-[#B5AFA6]/25 text-[#F2F0EB] hover:bg-[#C8FF1F] hover:text-[#1E2227] cursor-pointer">←</button>
+                  <img src="${esc(g.url)}" alt="${esc(g.caption)}" class="max-h-[72vh] max-w-[82vw] rounded-2xl object-contain" />
+                  <button type="button" data-gallery-step="1" class="w-10 h-10 rounded-full bg-[#252A30] border border-[#B5AFA6]/25 text-[#F2F0EB] hover:bg-[#C8FF1F] hover:text-[#1E2227] cursor-pointer">→</button>
+                </div>
+                <p class="text-center text-sm text-[#B5AFA6]">${esc(g.caption)}</p>
+              </div>`;
+            return;
+          }
+
+          if (state.modal.type === 'event') {
+            const ev = EVENTS.find((e) => e.id === state.modal.eventId) || EVENTS[0];
+            const isMember = Boolean(state.membership);
+            const qty = state.modal.qty || 2;
+            const unit = isMember ? ev.memberPrice : ev.price;
+            root.innerHTML = `
+              <div class="fixed inset-0 z-50 bg-[#16191D]/80 backdrop-blur-sm flex items-center justify-center p-4">
+                <form id="event-modal-form" class="w-full max-w-lg rounded-[24px] bg-[#252A30] border border-[#B5AFA6]/25 p-6 space-y-4">
+                  <div class="flex items-start justify-between">
+                    <div>
+                      <p class="font-mono text-xs text-[#C8FF1F]">${ev.fullDate}</p>
+                      <h3 class="font-editorial text-2xl font-semibold text-[#F2F0EB]">${esc(ev.title)}</h3>
+                    </div>
+                    <button type="button" data-close-modal class="w-8 h-8 rounded-full bg-[#1E2227] text-[#B5AFA6] cursor-pointer">✕</button>
+                  </div>
+                  <div class="flex items-center justify-between p-3 rounded-xl bg-[#1E2227]">
+                    <span class="text-xs text-[#B5AFA6]">Tickets (₹${unit} each)</span>
+                    <div class="flex items-center gap-3">
+                      <button type="button" data-ev-qty="-1" class="w-7 h-7 rounded-lg bg-[#252A30] text-[#F2F0EB] cursor-pointer">-</button>
+                      <span class="font-mono text-sm font-semibold tabular-nums">${qty}</span>
+                      <button type="button" data-ev-qty="1" class="w-7 h-7 rounded-lg bg-[#252A30] text-[#F2F0EB] cursor-pointer">+</button>
+                    </div>
+                  </div>
+                  <input name="name" required placeholder="Full Name" value="${esc(state.user?.name || '')}" class="w-full px-3.5 py-2.5 rounded-xl bg-[#1E2227] border border-[#B5AFA6]/25 text-xs text-[#F2F0EB]" />
+                  <input name="email" type="email" required placeholder="Email Address" value="${esc(state.user?.email || '')}" class="w-full px-3.5 py-2.5 rounded-xl bg-[#1E2227] border border-[#B5AFA6]/25 text-xs text-[#F2F0EB]" />
+                  <input name="upi" required placeholder="YouPI / UPI ID (e.g. sunita@youpi)" class="w-full px-3.5 py-2.5 rounded-xl bg-[#1E2227] border border-[#B5AFA6]/25 font-mono text-xs text-[#F2F0EB]" />
+                  <button type="submit" class="w-full py-3 rounded-xl bg-[#C8FF1F] text-[#1E2227] text-xs font-semibold cursor-pointer">Pay ₹${unit * qty} via YouPI</button>
+                </form>
+              </div>`;
+            return;
+          }
+
+          if (state.modal.type === 'membership') {
+            const isMember = Boolean(state.membership);
+            root.innerHTML = `
+              <div class="fixed inset-0 z-50 bg-[#16191D]/85 backdrop-blur-sm flex items-center justify-center p-4">
+                <div class="w-full max-w-3xl rounded-[26px] bg-[#252A30] border border-[#B5AFA6]/25 overflow-hidden grid grid-cols-1 md:grid-cols-12 shadow-xl">
+                  <div class="md:col-span-5 bg-[#B5AFA6] text-[#1E2227] p-6 sm:p-7 flex flex-col justify-between gap-6">
+                    <div class="space-y-2">
+                      <p class="font-mono text-xs font-semibold text-[#2C3138]">KS · 1934 · MARGAO</p>
+                      <h3 class="font-editorial text-3xl font-semibold">The Samudai card</h3>
+                      <p class="text-xs text-[#2C3138]">Annual membership · one household · ₹1</p>
+                    </div>
+                    <ul class="space-y-2 text-xs font-medium text-[#1E2227]">
+                      <li>✓ Voting rights at annual general meeting</li>
+                      <li>✓ 20% member rate on films &amp; events</li>
+                      <li>✓ ₹0 online booking fee via YouPI</li>
+                      <li>✓ Scholarships &amp; Sunday Konkani classes</li>
+                    </ul>
+                    <div class="pt-4 border-t border-[#1E2227]/15 flex items-baseline justify-between">
+                      <span class="text-xs font-semibold">Annual fee</span>
+                      <span class="font-mono text-3xl font-bold tabular-nums">₹1</span>
+                    </div>
+                  </div>
+                  <div class="md:col-span-7 p-6 sm:p-7 space-y-5 relative">
+                    <button type="button" data-close-modal class="absolute top-4 right-4 w-8 h-8 rounded-full bg-[#1E2227] text-[#B5AFA6] hover:text-[#F2F0EB] cursor-pointer">✕</button>
+                    ${
+                      isMember
+                        ? `<div class="space-y-4 pt-2">
+                            <span class="px-2.5 py-1 rounded-full bg-[#C8FF1F] text-[#1E2227] font-mono text-[11px] font-bold">ACTIVE CARD</span>
+                            <h4 class="font-editorial text-2xl font-semibold text-[#F2F0EB]">${esc(state.membership.memberName)}</h4>
+                            <p class="font-mono text-sm text-[#C8FF1F]">${esc(state.membership.cardNumber)} · Valid until 31 Dec 2027</p>
+                            <p class="text-xs text-[#B5AFA6]">Gender: ${esc(state.membership.gender || '—')} · DOB: ${esc(state.membership.dob || '—')}</p>
+                            <button type="button" data-close-modal class="px-5 py-2.5 rounded-xl bg-[#C8FF1F] text-[#1E2227] text-xs font-semibold cursor-pointer">Done</button>
+                          </div>`
+                        : `<form id="membership-modal-form" class="space-y-3 pt-1">
+                            <p class="text-xs font-semibold text-[#C8FF1F]">Household Details &amp; ₹1 YouPI Activation</p>
+                            <input name="name" required placeholder="Full Name (e.g. Sunita Naik)" value="${esc(state.user?.name || '')}" class="w-full px-3.5 py-2.5 rounded-xl bg-[#1E2227] border border-[#B5AFA6]/25 text-xs text-[#F2F0EB]" />
+                            <div class="grid grid-cols-2 gap-2.5">
+                              <input name="email" type="email" required placeholder="Email Address" value="${esc(state.user?.email || '')}" class="w-full px-3.5 py-2.5 rounded-xl bg-[#1E2227] border border-[#B5AFA6]/25 text-xs text-[#F2F0EB]" />
+                              <input name="phone" type="tel" placeholder="Mobile (Optional)" value="${esc(state.user?.phone || '')}" class="w-full px-3.5 py-2.5 rounded-xl bg-[#1E2227] border border-[#B5AFA6]/25 font-mono text-xs text-[#F2F0EB]" />
+                            </div>
+                            <div class="grid grid-cols-2 gap-2.5">
+                              <select name="gender" required class="w-full px-3.5 py-2.5 rounded-xl bg-[#1E2227] border border-[#B5AFA6]/25 text-xs text-[#F2F0EB]">
+                                <option value="">Gender</option>
+                                <option value="Female" ${state.user?.gender === 'Female' ? 'selected' : ''}>Female</option>
+                                <option value="Male" ${state.user?.gender === 'Male' ? 'selected' : ''}>Male</option>
+                                <option value="Other" ${state.user?.gender === 'Other' ? 'selected' : ''}>Other</option>
+                              </select>
+                              <input name="dob" type="date" required value="${esc(state.user?.dob || '')}" class="w-full px-3.5 py-2.5 rounded-xl bg-[#1E2227] border border-[#B5AFA6]/25 font-mono text-xs text-[#F2F0EB]" />
+                            </div>
+                            <input name="upi" required placeholder="YouPI / UPI ID (e.g. sunita@youpi)" class="w-full px-3.5 py-2.5 rounded-xl bg-[#1E2227] border border-[#B5AFA6]/25 font-mono text-xs text-[#F2F0EB]" />
+                            <button type="submit" class="w-full py-3 rounded-xl bg-[#C8FF1F] text-[#1E2227] text-xs font-semibold cursor-pointer">Pay ₹1 via YouPI &amp; Activate Card</button>
+                          </form>`
+                    }
+                  </div>
+                </div>
+              </div>`;
+          }
+        }
+
+        function render() {
+          const root = document.getElementById('app-root');
+          if (state.view === 'house') root.innerHTML = renderHouse();
+          else if (state.view === 'movies') root.innerHTML = renderMovies();
+          else if (state.view === 'tickets') root.innerHTML = renderTickets();
+          else if (state.view === 'login') root.innerHTML = renderLogin();
+          updateNavbar();
+          renderModal();
+        }
+
+        document.addEventListener('click', (e) => {
+          const navBtn = e.target.closest('[data-nav]');
+          if (navBtn) {
+            const target = navBtn.getAttribute('data-nav');
+            state.view = target;
+            if (target === 'movies') {
+              state.activeShowtime = null;
+              state.activeMovie = null;
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            render();
+            return;
+          }
+
+          const scrollBtn = e.target.closest('[data-scroll]');
+          if (scrollBtn) {
+            const id = scrollBtn.getAttribute('data-scroll');
+            const el = document.getElementById(id);
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            return;
+          }
+
+          const houseSlideBtn = e.target.closest('[data-house-slide]');
+          if (houseSlideBtn) {
+            state.houseHeroIdx = Number(houseSlideBtn.getAttribute('data-house-slide'));
+            render();
+            return;
+          }
+
+          const movieSlideBtn = e.target.closest('[data-movie-slide]');
+          if (movieSlideBtn) {
+            state.movieHeroIdx = Number(movieSlideBtn.getAttribute('data-movie-slide'));
+            render();
+            return;
+          }
+
+          const dateBtn = e.target.closest('[data-select-date]');
+          if (dateBtn) {
+            state.selectedDate = dateBtn.getAttribute('data-select-date');
+            render();
+            return;
+          }
+
+          const showBtn = e.target.closest('[data-open-showtime]');
+          if (showBtn) {
+            e.stopPropagation();
+            const showId = showBtn.getAttribute('data-open-showtime');
+            const st = ALL_SHOWTIMES.find((s) => s.id === showId);
+            if (st) {
+              state.activeShowtime = st;
+              state.activeMovie = MOVIES.find((m) => m.id === st.movieId) || MOVIES[0];
+              state.selectedSeats = [];
+              state.concessions = {};
+              state.view = 'movies';
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+              render();
+            }
+            return;
+          }
+
+          if (e.target.closest('#back-to-movies')) {
+            state.activeShowtime = null;
+            state.activeMovie = null;
+            render();
+            return;
+          }
+
+          const seatBtn = e.target.closest('[data-toggle-seat]');
+          if (seatBtn) {
+            const seatId = seatBtn.getAttribute('data-toggle-seat');
+            if (state.selectedSeats.includes(seatId)) {
+              state.selectedSeats = state.selectedSeats.filter((s) => s !== seatId);
+            } else if (state.selectedSeats.length < 8) {
+              state.selectedSeats.push(seatId);
+            }
+            render();
+            return;
+          }
+
+          const concBtn = e.target.closest('[data-conc-delta]');
+          if (concBtn) {
+            const [id, deltaStr] = concBtn.getAttribute('data-conc-delta').split(':');
+            const next = Math.max(0, Math.min(10, (state.concessions[id] || 0) + Number(deltaStr)));
+            state.concessions[id] = next;
+            render();
+            return;
+          }
+
+          const noticeEl = e.target.closest('[data-notice-cat]');
+          if (noticeEl) {
+            const cat = noticeEl.getAttribute('data-notice-cat');
+            if (cat === 'membership') state.modal = { type: 'membership' };
+            else if (cat === 'classes') document.getElementById('join-house')?.scrollIntoView({ behavior: 'smooth' });
+            else if (cat === 'cineplex') {
+              state.view = 'movies';
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            } else {
+              document.getElementById('whats-on')?.scrollIntoView({ behavior: 'smooth' });
+            }
+            render();
+            return;
+          }
+
+          if (e.target.closest('[data-open-membership]')) {
+            state.modal = { type: 'membership' };
+            render();
+            return;
+          }
+
+          const evBtn = e.target.closest('[data-open-event]');
+          if (evBtn) {
+            state.modal = { type: 'event', eventId: evBtn.getAttribute('data-open-event'), qty: 2 };
+            render();
+            return;
+          }
+
+          const evQtyBtn = e.target.closest('[data-ev-qty]');
+          if (evQtyBtn && state.modal?.type === 'event') {
+            state.modal.qty = Math.max(1, Math.min(10, (state.modal.qty || 2) + Number(evQtyBtn.getAttribute('data-ev-qty'))));
+            render();
+            return;
+          }
+
+          const galBtn = e.target.closest('[data-open-gallery]');
+          if (galBtn) {
+            state.modal = { type: 'gallery', index: Number(galBtn.getAttribute('data-open-gallery')) || 0 };
+            render();
+            return;
+          }
+
+          const galStepBtn = e.target.closest('[data-gallery-step]');
+          if (galStepBtn && state.modal?.type === 'gallery') {
+            const step = Number(galStepBtn.getAttribute('data-gallery-step'));
+            state.modal.index = (state.modal.index + step + GALLERY.length) % GALLERY.length;
+            render();
+            return;
+          }
+
+          if (e.target.closest('[data-close-modal]')) {
+            state.modal = null;
+            render();
+            return;
+          }
+
+          const cancelBtn = e.target.closest('[data-cancel-booking]');
+          if (cancelBtn) {
+            const id = cancelBtn.getAttribute('data-cancel-booking');
+            state.bookings = state.bookings.filter((b) => b.id !== id);
+            savePersisted();
+            render();
+            return;
+          }
+
+          if (e.target.closest('#logout-btn')) {
+            state.user = null;
+            savePersisted();
+            render();
+            return;
+          }
+        });
+
+        document.addEventListener('submit', (e) => {
+          if (e.target.id === 'movie-checkout-form') {
+            e.preventDefault();
+            if (state.selectedSeats.length === 0) {
+              const err = document.getElementById('movie-checkout-err');
+              if (err) {
+                err.textContent = 'Please select at least one seat.';
+                err.classList.remove('hidden');
+              }
+              return;
+            }
+            const fd = new FormData(e.target);
+            const st = state.activeShowtime;
+            const mv = state.activeMovie;
+            const surcharge = st.format === 'Dolby Atmos' ? 50 : 0;
+            const seatPrices = {};
+            SEAT_ROWS.forEach((r) => {
+              for (let n = 1; n <= 12; n++) seatPrices[`${r.row}${n}`] = r.base + surcharge;
+            });
+            const sub =
+              state.selectedSeats.reduce((s, id) => s + (seatPrices[id] || 600), 0) +
+              CONCESSIONS.reduce((s, c) => s + c.price * (state.concessions[c.id] || 0), 0);
+            const disc = state.membership ? Math.round(sub * 0.2) : 0;
+            const fee = state.membership ? 0 : state.selectedSeats.length * 25;
+            state.bookings.unshift({
+              id: `bk_${Date.now()}`,
+              kind: 'movie',
+              code: `KS-${Math.floor(1000 + Math.random() * 8999)}`,
+              showtimeId: st.id,
+              title: mv.title,
+              dateLabel: st.dateLabel,
+              time: st.time,
+              venueName: st.auditoriumName,
+              seats: state.selectedSeats.map((id) => ({ id })),
+              totalPaid: Math.max(0, sub - disc + fee),
+              customerName: String(fd.get('customerName') || ''),
+            });
+            savePersisted();
+            state.activeShowtime = null;
+            state.activeMovie = null;
+            state.selectedSeats = [];
+            state.view = 'tickets';
+            render();
+            return;
+          }
+
+          if (e.target.id === 'event-modal-form') {
+            e.preventDefault();
+            const fd = new FormData(e.target);
+            const ev = EVENTS.find((x) => x.id === state.modal.eventId) || EVENTS[0];
+            const qty = state.modal.qty || 2;
+            const unit = state.membership ? ev.memberPrice : ev.price;
+            state.bookings.unshift({
+              id: `bk_${Date.now()}`,
+              kind: 'event',
+              code: `KS-${Math.floor(1000 + Math.random() * 8999)}`,
+              title: ev.title,
+              dateLabel: ev.fullDate,
+              time: ev.doors,
+              venueName: ev.where,
+              quantity: qty,
+              totalPaid: unit * qty,
+              customerName: String(fd.get('name') || ''),
+            });
+            savePersisted();
+            state.modal = null;
+            state.view = 'tickets';
+            render();
+            return;
+          }
+
+          if (e.target.id === 'membership-modal-form') {
+            e.preventDefault();
+            const fd = new FormData(e.target);
+            const user = {
+              name: String(fd.get('name') || '').trim(),
+              email: String(fd.get('email') || '').trim(),
+              phone: String(fd.get('phone') || '').trim(),
+              gender: String(fd.get('gender') || ''),
+              dob: String(fd.get('dob') || ''),
+            };
+            state.user = user;
+            state.membership = {
+              cardNumber: `KS-1934-${Math.floor(1000 + Math.random() * 8999)}`,
+              memberName: user.name,
+              gender: user.gender,
+              dob: user.dob,
+            };
+            savePersisted();
+            render();
+            return;
+          }
+
+          if (e.target.id === 'login-page-form') {
+            e.preventDefault();
+            const fd = new FormData(e.target);
+            state.user = {
+              name: String(fd.get('name') || '').trim(),
+              email: String(fd.get('email') || '').trim(),
+              phone: String(fd.get('phone') || '').trim(),
+              gender: String(fd.get('gender') || ''),
+              dob: String(fd.get('dob') || ''),
+            };
+            savePersisted();
+            render();
+          }
+        });
+
+        render();
+      })();
+    </script>
+  </body>
+</html>

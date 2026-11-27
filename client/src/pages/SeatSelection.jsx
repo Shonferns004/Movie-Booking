@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import api from '../services/api.js';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import api, { assetUrl } from '../services/api.js';
 import { useSileoNotice } from '../hooks/useSileoNotice.js';
 import { useRealtime } from '../services/realtime.js';
 import UiIcon from '../components/UiIcon.jsx';
+import BookingPayment from '../components/BookingPayment.jsx';
+import BookingTicket from '../components/BookingTicket.jsx';
 
 const C = {
   ink: '#1E2227',
@@ -37,21 +39,41 @@ function timeLabel(value) {
   return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 }
 
+function dateKey(value) {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function shortDate(value) {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short' });
+}
+
 const STYLES = `
-.kk-seat-body { font-family: 'Public Sans', system-ui, sans-serif; }
-.kk-display { font-family: 'Fraunces', Georgia, serif; }
+.kk-seat-body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+.kk-display { font-family: 'Playfair Display', Georgia, serif; }
 
 .kk-seat {
   display: flex; align-items: center; justify-content: center;
-  height: var(--kk-seat); border-radius: 4px; border: 1px solid transparent;
-  font-size: 9px; font-weight: 700; line-height: 1;
+  width: 100%; height: auto; aspect-ratio: 1; border-radius: 2px; border: 1px solid transparent;
+  font-size: clamp(9px, 0.7vw, 11px); font-weight: 700; line-height: 1;
   transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
 }
 .kk-seat:not(:disabled) { cursor: pointer; }
 .kk-seat:not(:disabled):hover { transform: translateY(-1px) scale(1.07); z-index: 1; }
 .kk-seat:disabled { cursor: not-allowed; }
-.kk-seat-row { display: grid; grid-template-columns: repeat(var(--kk-cols), var(--kk-seat)); gap: 4px; --kk-seat: 18px; }
+.kk-seat-row { flex: 1 1 auto; display: grid; grid-template-columns: repeat(var(--kk-cols), minmax(0, 1fr)); gap: 3px; width: 100%; max-width: 600px; }
 .kk-cat-line { height: 1px; flex: 1 1 0%; background: rgba(242,240,236,.14); }
+@media (max-width: 767px) {
+  .kk-seat-row { grid-template-columns: repeat(var(--kk-cols), 15px); gap: 2px; width: 100%; max-width: none; }
+  .kk-seat { font-size: 8px; }
+  .kk-seat-line { justify-content: flex-start; width: 100%; min-width: 0; gap: 0; }
+}
+.kk-screen { display: flex; flex-direction: column; align-items: center; gap: 8px; width: min(70%, 460px); margin: 0 auto 24px; color: var(--muted); }
+.kk-screen i { display: block; width: 100%; height: 3px; background: linear-gradient(90deg, transparent, rgba(200,255,31,.65), transparent); border-radius: 999px; }
+.kk-screen span { font-size: 9px; font-weight: 700; letter-spacing: .24em; text-transform: uppercase; }
 
 .kk-pay { transition: background-color .2s ease, transform .2s ease, opacity .2s ease; }
 .kk-pay:not(:disabled):hover { background-color: #A8D819; transform: translateY(-1px); }
@@ -65,7 +87,7 @@ const STYLES = `
 .kk-toast { animation: kk-toast-in .22s ease both; }
 @keyframes kk-toast-in { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
 
-@media (min-width: 640px) { .kk-seat-row { --kk-seat: 22px; } }
+
 @media (prefers-reduced-motion: reduce) {
   .kk-seat, .kk-pay, .kk-pill, .kk-zoom { transition: none !important; }
   .kk-toast { animation: none !important; }
@@ -95,9 +117,13 @@ export default function SeatSelection() {
   const [movie, setMovie] = useState(null);
   const [showMeta, setShowMeta] = useState(null);
   const [selected, setSelected] = useState([]);
-  const [limit, setLimit] = useState(2);
-  const [draft, setDraft] = useState(2);
-  const [pickerOpen, setPickerOpen] = useState(true);
+  const [step, setStep] = useState("seats");
+  const [activeHold, setActiveHold] = useState(null);
+  const [activeBooking, setActiveBooking] = useState(null);
+  const [movieShows, setMovieShows] = useState([]);
+  const [limit, setLimit] = useState(10);
+  const [draft, setDraft] = useState(10);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [notice, setNotice] = useState('');
   const [loadingError, setLoadingError] = useState('');
 
@@ -129,6 +155,7 @@ export default function SeatSelection() {
 
   useEffect(() => { load(); }, [showId]);
 
+
   // Seats are the most volatile data: someone else holding/booking a seat shows up
   // here without a refresh.
   useRealtime(['seats'], () => { load(); });
@@ -144,7 +171,9 @@ export default function SeatSelection() {
     let active = true;
     api.get('/shows', { params: { movieId } })
       .then((r) => {
-        const match = (r.data || []).find((s) => s.id === showId || s.id === show.id);
+        const list = Array.isArray(r.data) ? r.data : [];
+        if (active) setMovieShows(list.filter((row) => row.status !== 'cancelled'));
+        const match = list.find((s) => s.id === showId || s.id === show.id);
         if (active && match) setShowMeta(match);
       })
       .catch(() => {});
@@ -295,7 +324,9 @@ export default function SeatSelection() {
           price_minor: seat.price_minor,
         })),
       }));
-      navigate('/checkout', { state: holdData });
+      setActiveHold(holdData);
+      setStep('payment');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (e) {
       setNotice(e?.response?.data?.error || e.message || 'Could not hold those seats.');
     } finally {
@@ -319,330 +350,416 @@ export default function SeatSelection() {
 
   if (!data) {
     return (
-      <div className="kk-seat-body flex min-h-screen items-center justify-center bg-[#1E2227] px-5 text-center text-[#F2F0EC]">
-        <style>{STYLES}</style>
-        <div className="max-w-sm">
-          <div
-            className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-2 border-dashed"
-            style={{ borderColor: C.mango, borderTopColor: 'transparent' }}
-          />
-          <h1 className="kk-display text-2xl font-bold">Preparing your seat map</h1>
-          <p className="mt-2 text-sm text-[#F2F0EC]/65">
-            {loadingError || 'Finding the best seats for your screening…'}
-          </p>
-          {loadingError && (
-            <button type="button" onClick={load} className="mt-5 rounded-xl px-5 py-2.5 font-semibold text-[#1E2227]" style={{ background: C.kokum }}>
+      <div className="min-h-screen bg-[#1E2227] px-4 pb-10 pt-5 text-[#F2F0EC] sm:px-6">
+        <span className="sr-only" role="status">Loading seat map</span>
+        {loadingError ? (
+          <div className="mx-auto mt-24 max-w-md rounded-2xl border border-[#F08A80]/30 bg-[#252A30] p-8 text-center">
+            <h1 className="font-editorial text-2xl font-semibold">Could not load the seat map</h1>
+            <p className="mt-2 text-sm leading-relaxed text-[#B5AFA6]">{loadingError}</p>
+            <button type="button" onClick={load} className="mt-5 rounded-xl bg-[#C8FF1F] px-5 py-2.5 text-xs font-semibold text-[#1E2227]">
               Try again
             </button>
-          )}
-        </div>
+          </div>
+        ) : (
+          <div className="mx-auto grid max-w-7xl animate-pulse grid-cols-1 gap-7 lg:grid-cols-[250px_minmax(0,1fr)_170px]">
+            <aside className="space-y-4">
+              <div className="h-40 w-28 rounded-md bg-[#2A3037]" />
+              <div className="h-3 w-24 rounded bg-[#2A3037]" />
+              <div className="h-7 w-28 rounded bg-[#2A3037]" />
+              <div className="h-16 rounded-lg bg-[#252A30]" />
+              <div className="h-10 rounded-lg bg-[#252A30]" />
+            </aside>
+
+            <div className="min-w-0">
+              <div className="h-3 w-52 rounded bg-[#2A3037]" />
+              <div className="mt-2 h-9 w-72 max-w-full rounded bg-[#2A3037]" />
+              <div className="mt-3 h-3 w-44 rounded bg-[#252A30]" />
+              <div className="mt-5 flex gap-4">
+                <div className="h-5 w-28 rounded-full bg-[#2A3037]" />
+                <div className="h-5 w-20 rounded-full bg-[#252A30]" />
+                <div className="h-5 w-16 rounded-full bg-[#252A30]" />
+              </div>
+              <div className="mx-auto mt-8 h-8 w-3/4 rounded-t-full bg-[#2A3037]" />
+              <div className="mt-5 space-y-2">
+                {Array.from({ length: 8 }).map((_, rowIndex) => (
+                  <div key={rowIndex} className="flex items-center justify-center gap-1.5">
+                    <div className="h-3 w-3 rounded bg-[#252A30]" />
+                    {Array.from({ length: 18 }).map((__, seatIndex) => (
+                      <div
+                        key={seatIndex}
+                        className={`h-3 w-3 rounded-sm sm:h-5 sm:w-5 ${
+                          (rowIndex * 18 + seatIndex) % 7 === 0 ? 'bg-[#3A424B]' : 'bg-[#252A30]'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <aside className="space-y-6">
+              <div className="h-3 w-12 rounded bg-[#252A30]" />
+              <div className="h-9 w-24 rounded bg-[#2A3037]" />
+              <div className="h-3 w-14 rounded bg-[#252A30]" />
+              <div className="h-8 w-24 rounded bg-[#2A3037]" />
+              <div className="h-3 w-12 rounded bg-[#252A30]" />
+              <div className="h-4 w-28 rounded bg-[#2A3037]" />
+            </aside>
+          </div>
+        )}
       </div>
     );
   }
 
+  const format = /dolby/i.test(showMeta?.auditorium_name || '') ? 'Dolby Atmos' : '2K Laser';
+  const showDate = show.starts_at ? new Date(show.starts_at) : null;
+  const dayNumber = showDate && !Number.isNaN(showDate.getTime())
+    ? showDate.toLocaleDateString('en-IN', { day: '2-digit' })
+    : '--';
+  const monthLabel = showDate && !Number.isNaN(showDate.getTime())
+    ? showDate.toLocaleDateString('en-IN', { month: 'short' }).toUpperCase()
+    : '---';
+  const posterPath = movie?.thumbnail_url || showMeta?.movie_thumbnail_url || '';
+  const poster = posterPath ? assetUrl(posterPath) : '';
+  const backdrop = poster;
+
+  const schedule = (() => {
+    const now = Date.now();
+    const list = (Array.isArray(movieShows) ? movieShows : [])
+      .filter((item) => item?.starts_at && new Date(item.starts_at).getTime() >= now)
+      .sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
+    if (show?.starts_at && !list.some((item) => item.id === show.id)) {
+      list.push({ ...show, id: show.id || showId });
+    }
+    return list;
+  })();
+
+  const dateOptions = (() => {
+    const map = new Map();
+    schedule.forEach((item) => {
+      const key = dateKey(item.starts_at);
+      if (key && !map.has(key)) map.set(key, { key, label: shortDate(item.starts_at), short: new Date(item.starts_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }), showId: item.id });
+    });
+    return [...map.values()].slice(0, 6);
+  })();
+
+  const currentDateKey = dateKey(show?.starts_at);
+  const timeOptions = schedule.filter((item) => dateKey(item.starts_at) === currentDateKey).slice(0, 6);
+
+  const stepBar = (
+    <div className="flex flex-wrap items-center gap-5 text-[10px] font-semibold uppercase tracking-[0.16em]">
+      <button
+        type="button"
+        onClick={() => setStep('seats')}
+        className={step === 'seats' ? 'flex items-center gap-2 border-b-2 border-[#C8FF1F] pb-2 text-[#C8FF1F]' : 'flex items-center gap-2 pb-2 text-[#B5AFA6]/60 hover:text-[#F2F0EB]'}
+      >
+        <span className={`grid h-5 w-5 place-items-center rounded-full font-mono text-[10px] ${step === 'seats' ? 'bg-[#C8FF1F] text-[#1E2227]' : 'border border-[#B5AFA6]/40'}`}>1</span>
+        Choose your place
+      </button>
+      <button
+        type="button"
+        disabled={!activeHold}
+        onClick={() => setStep('payment')}
+        className={step === 'payment' ? 'flex items-center gap-2 border-b-2 border-[#C8FF1F] pb-2 text-[#C8FF1F]' : 'flex items-center gap-2 pb-2 text-[#B5AFA6]/60 hover:text-[#F2F0EB] disabled:opacity-40'}
+      >
+        <span className={`grid h-5 w-5 place-items-center rounded-full font-mono text-[10px] ${step === 'payment' ? 'bg-[#C8FF1F] text-[#1E2227]' : 'border border-[#B5AFA6]/40'}`}>2</span>
+        Payment
+      </button>
+      <button
+        type="button"
+        disabled={!activeBooking}
+        onClick={() => setStep('ticket')}
+        className={step === 'ticket' ? 'flex items-center gap-2 border-b-2 border-[#C8FF1F] pb-2 text-[#C8FF1F]' : 'flex items-center gap-2 pb-2 text-[#B5AFA6]/60 hover:text-[#F2F0EB] disabled:opacity-40'}
+      >
+        <span className={`grid h-5 w-5 place-items-center rounded-full font-mono text-[10px] ${step === 'ticket' ? 'bg-[#C8FF1F] text-[#1E2227]' : 'border border-[#B5AFA6]/40'}`}>3</span>
+        Ticket
+      </button>
+    </div>
+  );
+
+  const titleBlock = (
+    <div className="min-w-0">
+      <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#C8FF1F]">{locality}</p>
+      <h1 className="mt-1 font-editorial text-3xl font-semibold leading-none tracking-tight text-[#F2F0EB] sm:text-4xl">
+        {title}
+      </h1>
+      <p className="mt-2 text-xs text-[#B5AFA6]">
+        {[movie?.language, movie?.genre, movie?.certification].filter(Boolean).join(' · ') || 'Cinema'}
+      </p>
+      {dateOptions.length > 1 && (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-[#B5AFA6]">Date</span>
+          <div className="flex items-center gap-1 rounded-xl border border-[#B5AFA6]/20 bg-[#252A30] p-1">
+            {dateOptions.map((day) => (
+              <Link
+                key={day.key}
+                to={`/shows/${day.showId}/seats`}
+                className={`rounded-lg px-3 py-1.5 text-[11px] font-medium transition-colors ${
+                  day.key === currentDateKey
+                    ? 'bg-[#C8FF1F] font-semibold text-[#1E2227]'
+                    : 'text-[#B5AFA6] hover:text-[#F2F0EB]'
+                }`}
+              >
+                {day.short}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   return (
-    <div className="kk-seat-body min-h-screen bg-[#1E2227] pb-40 text-[#F2F0EC]">
+    <div className={`seat-booking-page flex min-h-0 flex-col bg-[#1E2227] text-[#F2F0EB] ${step === 'seats' ? 'lg:h-[calc(100vh-92px)] lg:overflow-hidden' : ''}`}>
       <style>{STYLES}</style>
+      {step === 'seats' && (
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 py-5 grid grid-cols-1 lg:grid-cols-[250px_minmax(0,1fr)_170px] gap-7 items-start lg:h-full lg:min-h-0">
+          <aside className="order-2 lg:order-1 space-y-4 lg:self-start">
+            <div className="w-24 sm:w-28">
+              {poster ? (
+                <img
+                  src={poster}
+                  alt={`Poster for ${title}`}
+                  className="aspect-[2/3] w-full rounded-md object-cover"
+                />
+              ) : (
+                <div className="flex aspect-[2/3] w-full items-end rounded-md bg-[#252A30] p-3">
+                  <span className="font-editorial text-base text-[#F2F0EB]">{title}</span>
+                </div>
+              )}
+            </div>
 
-      {/* Show bar */}
-      <div className="sticky top-[72px] z-30 border-b border-[#F2F0EC]/10 bg-[#1E2227]/95 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2.5 sm:px-6">
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            aria-label="Back to showtimes"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[#F2F0EC]/70 transition hover:bg-[#F2F0EC]/10 hover:text-[#F2F0EC]"
-          >
-            <UiIcon name="arrow_back_ios_new" className="text-[20px]" />
-          </button>
+            <div className="space-y-1">
+              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#C8FF1F]">Your selection</p>
+              <h2 className="font-editorial text-2xl font-semibold text-[#F2F0EB]">Seats</h2>
+            </div>
 
-          <div className="min-w-0 flex-1">
-            <h1 className="kk-display truncate text-base font-bold leading-tight sm:text-xl">{title}</h1>
-            <p className="truncate text-[10px] text-[#F2F0EC]/55 sm:text-xs">
-              {locality}
-              {dateText && <span className="mx-1.5 text-[#F2F0EC]/25">|</span>}
-              {dateText}
-              {timeText && <span className="mx-1.5 text-[#F2F0EC]/25">|</span>}
-              {timeText}
-            </p>
-          </div>
+            <div className="space-y-0">
+              {selectedSeats.length === 0 && (
+                <p className="py-3 text-xs leading-relaxed text-[#B5AFA6]">
+                  Pick your seats on the map. Each seat is held for eight minutes.
+                </p>
+              )}
+              {selectedSeats.map((seat) => (
+                <div
+                  key={seat.seat_id}
+                  className="flex items-center justify-between gap-3 border-b border-[#B5AFA6]/10 py-2.5 text-xs"
+                >
+                  <span className="text-[#B5AFA6]">Row {seat.row_label}</span>
+                  <span className="font-mono text-[#F2F0EB]">Seat {seat.seat_number}</span>
+                  <span className="font-mono text-[#C8FF1F]">{rupees(seat.price_minor || 0)}</span>
+                  <button
+                    type="button"
+                    onClick={() => toggle(seat)}
+                    aria-label={`Remove seat ${seat.row_label}-${seat.seat_number}`}
+                    className="text-[#B5AFA6] transition-colors hover:text-[#C8FF1F]"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
 
-          <button
-            type="button"
-            onClick={() => setPickerOpen(true)}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-md border px-3 py-2 text-xs font-semibold transition hover:bg-[#C8FF1F]/10"
-            style={{ borderColor: `${C.kokum}99`, color: C.kokum }}
-          >
-            <UiIcon name="edit" className="text-[15px]" />
-            {selected.length || limit} {selected.length === 1 || (!selected.length && limit === 1) ? 'Ticket' : 'Tickets'}
-          </button>
-        </div>
-      </div>
+            <div className="flex items-center justify-between border-t border-[#B5AFA6]/20 pt-3">
+              <span className="text-[11px] uppercase tracking-[0.14em] text-[#B5AFA6]">Total</span>
+              <span className="font-mono text-xl font-bold text-[#F2F0EB]">{rupees(totalMinor)}</span>
+            </div>
 
-      <main className="mx-auto max-w-[1180px] px-3 pt-5 sm:px-6">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <p className="text-[10px] font-semibold uppercase tracking-[.18em] text-[#F2F0EC]/40">
-            {stats.length} categories · {availableCount} seats available
-          </p>
+            <div className="flex items-center gap-3 pt-1">
+              <button
+                type="button"
+                onClick={() => navigate('/movies')}
+                className="flex-1 rounded-md border border-[#C8FF1F] px-3 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#C8FF1F] transition-colors hover:bg-[#C8FF1F] hover:text-[#1E2227]"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={hold}
+                disabled={!selected.length || holding}
+                className="flex-1 rounded-md bg-[#C8FF1F] px-3 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#1E2227] transition-colors hover:bg-[#D9FF66] disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {holding ? 'Holding…' : 'Next'}
+              </button>
+            </div>
+          </aside>
 
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={() => setZoomIdx((i) => Math.max(0, i - 1))}
-              disabled={zoomIdx === 0}
-              aria-label="Zoom out"
-              className="kk-zoom flex h-8 w-8 items-center justify-center rounded-full border border-[#F2F0EC]/[0.12] text-[#F2F0EC]/70 disabled:opacity-30"
-            >
-              <UiIcon name="zoom_out" className="text-[18px]" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setZoomIdx((i) => Math.min(ZOOM_STEPS.length - 1, i + 1))}
-              disabled={zoomIdx === ZOOM_STEPS.length - 1}
-              aria-label="Zoom in"
-              className="kk-zoom flex h-8 w-8 items-center justify-center rounded-full border border-[#F2F0EC]/[0.12] text-[#F2F0EC]/70 disabled:opacity-30"
-            >
-              <UiIcon name="zoom_in" className="text-[18px]" />
-            </button>
-          </div>
-        </div>
+          <main className="order-1 lg:order-2 min-w-0 flex min-h-0 flex-col lg:h-full">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+              {titleBlock}
+              <div className="shrink-0 xl:pt-1">{stepBar}</div>
+            </div>
 
-        <div className="overflow-x-auto pb-5">
-          <div className="mx-auto w-max px-1" style={{ zoom: ZOOM_STEPS[zoomIdx] }}>
-            {sections.length === 0 ? (
-              <p className="py-16 text-center text-sm text-[#F2F0EC]/55">
-                No seats are configured for this show yet.
-              </p>
-            ) : (
-              sections.map((section) => (
-                <section key={section.name} className="mb-7">
-                  <div className="mx-auto flex items-center gap-3">
-                    <span className="kk-cat-line" />
-                    <span className="whitespace-nowrap text-[11px] font-bold uppercase tracking-[.18em] text-[#F2F0EC]/60">
-                      {rupees(section.price)} {section.name}
-                    </span>
-                    <span className="kk-cat-line" />
-                  </div>
-
-                  <div className="mt-3 flex flex-col gap-1.5">
-                    {section.rows.map((row) => (
-                      <div key={`${section.name}-${row.label}`} className="flex items-center gap-2">
-                        <span className="w-4 shrink-0 text-center text-[10px] font-semibold text-[#F2F0EC]/35">
-                          {row.label}
-                        </span>
-
-                        <div className="kk-seat-row" style={{ '--kk-cols': cols }}>
-                          {row.seats.map((seat) => {
-                            const isSelected = selected.includes(seat.seat_id);
-                            const unavailable = seat.status !== 'available' && !isSelected;
-                            const isBest = bestsellerName === section.name && !isSelected && !unavailable;
-                            const span = Math.max(1, Number(seat.col_span) || 1);
-
-                            const palette = isSelected
-                              ? { background: C.kokum, borderColor: C.kokum, color: '#fff' }
-                              : unavailable
-                                ? { background: 'rgba(181,175,166,.16)', borderColor: 'rgba(181,175,166,.28)', color: 'rgba(242,240,236,.26)' }
-                                : isBest
-                                  ? { background: 'transparent', borderColor: C.mango, color: C.mango }
-                                  : { background: 'transparent', borderColor: 'rgba(182,227,106,.8)', color: 'rgba(182,227,106,.95)' };
-
-                            return (
-                              <button
-                                key={seat.seat_id}
-                                type="button"
-                                disabled={unavailable}
-                                onClick={() => toggle(seat)}
-                                aria-pressed={isSelected}
-                                aria-label={`Seat ${row.label}-${seat.seat_number}, ${section.name}, ${
-                                  unavailable ? 'sold' : isSelected ? 'selected' : rupees(seat.price_minor || section.price)
-                                }`}
-                                title={`${row.label}-${seat.seat_number} · ${section.name} · ${rupees(seat.price_minor || section.price)}${isBest ? ' · Bestseller' : ''}`}
-                                className="kk-seat"
-                                style={{
-                                  gridColumn: `${Number(seat.x) - minX + 1} / span ${span}`,
-                                  ...palette,
-                                  boxShadow: isSelected ? `0 0 0 1px ${C.shell}, 0 0 12px ${C.kokum}66` : 'none',
-                                }}
-                              >
-                                {seat.accessible ? (
-                                  <span className="text-[10px] leading-none" aria-hidden="true">♿</span>
-                                ) : (
-                                  seat.seat_number
-                                )}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              ))
-            )}
-          </div>
-        </div>
-      </main>
-
-      {/* Legend + pay bar */}
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#F2F0EC]/[0.12] bg-[#171B1F]/[0.96] backdrop-blur-xl">
-        <div className="hidden items-center justify-center gap-7 border-b border-[#F2F0EC]/[0.08] px-4 py-2 text-[11px] text-[#F2F0EC]/60 md:flex">
-          <Legend color="rgba(182,227,106,.9)" label="Available" />
-          <Legend color="rgba(181,175,166,.45)" label="Sold" filled />
-          <span className="inline-flex items-center gap-1.5">
-            <Legend color={C.mango} label="Bestseller" />
-            <UiIcon name="info" className="cursor-help text-[14px] text-[#F2F0EC]/35"
-              title="Most-loved seats in this screen, at the regular price."
-             />
-          </span>
-          <Legend color={C.kokum} label="Selected" filled />
-        </div>
-
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
-          <div className="min-w-0">
-            <p className="text-xs text-[#F2F0EC]/60">
-              {selected.length} {selected.length === 1 ? 'seat' : 'seats'} selected
-              <span className="hidden sm:inline"> · up to {limit}</span>
-            </p>
-            <p className="truncate text-[10px] text-[#F2F0EC]/35">
-              {selectedSeats.length
-                ? selectedSeats.map((seat) => `${seat.row_label}-${seat.seat_number}`).join(', ')
-                : 'Pick a seat from the plan above'}
-            </p>
-          </div>
-
-          <div className="flex shrink-0 items-center gap-3 sm:gap-4">
-            <div className="text-right">
-              <p className="text-[9px] font-bold uppercase tracking-[.14em] text-[#F2F0EC]/40">Total</p>
-              <p className="kk-display text-lg font-bold leading-tight sm:text-xl">
-                {selected.length ? rupees(totalMinor) : '—'}
+            <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+            <div className="mx-auto mb-2 mt-10 w-[70%] max-w-[500px]">
+              <div
+                className="h-8 w-full bg-gradient-to-b from-[#e8e8e8] to-[#e8e8e8]/25"
+                style={{ clipPath: 'polygon(11% 100%, 89% 100%, 100% 0, 0 0)' }}
+                aria-hidden="true"
+              />
+              <p className="mt-1.5 text-center font-mono text-[9px] uppercase tracking-[0.3em] text-[#B5AFA6]">
+                Screen
               </p>
             </div>
-            <button
-              type="button"
-              onClick={hold}
-              disabled={!selected.length || holding}
-              className="kk-pay min-w-[130px] rounded-lg px-5 py-3 text-sm font-bold text-[#1E2227] disabled:cursor-not-allowed disabled:opacity-40 sm:min-w-[170px]"
-              style={{ background: C.kokum }}
-            >
-              {holding ? 'Holding seats…' : selected.length ? `Pay ${rupees(totalMinor)}` : 'Select seats'}
-            </button>
-          </div>
-        </div>
-      </div>
 
-      {notice && (
-        <div
-          className="kk-toast fixed bottom-28 left-1/2 z-50 max-w-[90vw] -translate-x-1/2 rounded-lg px-4 py-2.5 text-center text-xs font-semibold shadow-xl"
-          style={{ background: C.shell, color: C.ink }}
-          role="status"
-        >
-          {notice}
+            <div className="overflow-x-auto pb-2">
+              <div className="mx-auto w-full px-1">
+                {sections.length === 0 ? (
+                  <p className="py-16 text-center text-sm text-[#B5AFA6]">
+                    No seats are configured for this show yet.
+                  </p>
+                ) : (
+                  sections.map((section) => (
+                    <section key={section.name} className="mb-5">
+                      <div className="mx-auto flex items-center gap-3">
+                        <span className="kk-cat-line" />
+                        <span className="whitespace-nowrap font-mono text-[10px] uppercase tracking-wider text-[#B5AFA6]">
+                          <span className="text-[#F2F0EB]">{rupees(section.price)}</span> {section.name}
+                        </span>
+                        <span className="kk-cat-line" />
+                      </div>
+
+                      <div className="mt-2 flex flex-col gap-1.5">
+                        {section.rows.map((row) => (
+                          <div key={`${section.name}-${row.label}`} className="kk-seat-line flex w-full items-center justify-center gap-2">
+                            <span className="hidden sm:block w-5 shrink-0 text-right font-mono text-[10px] text-[#B5AFA6]">
+                              {row.label}
+                            </span>
+                            <div className="kk-seat-row" style={{ '--kk-cols': cols }}>
+                              {row.seats.map((seat) => {
+                                const isSelected = selected.includes(seat.seat_id);
+                                const unavailable = seat.status !== 'available' && !isSelected;
+                                const span = Math.max(1, Number(seat.col_span) || 1);
+
+                                const palette = isSelected
+                                  ? { background: '#C8FF1F', borderColor: '#C8FF1F', color: '#1E2227' }
+                                  : unavailable
+                                    ? { background: '#1A1D21', borderColor: 'rgba(181,175,166,.10)', color: 'rgba(181,175,166,.30)' }
+                                    : { background: '#4A525C', borderColor: 'rgba(242,240,236,.38)', color: '#F7F5F0' };
+
+                                return (
+                                  <button
+                                    key={seat.seat_id}
+                                    type="button"
+                                    disabled={unavailable}
+                                    onClick={() => toggle(seat)}
+                                    aria-pressed={isSelected}
+                                    aria-label={`Seat ${row.label}-${seat.seat_number}, ${section.name}, ${
+                                      unavailable ? 'sold' : isSelected ? 'selected' : rupees(seat.price_minor || section.price)
+                                    }`}
+                                    title={`${row.label}-${seat.seat_number} · ${section.name} · ${rupees(seat.price_minor || section.price)}`}
+                                    className="kk-seat"
+                                    style={{
+                                      gridColumn: `${Number(seat.x) - minX + 1} / span ${span}`,
+                                      width: span > 1 ? `calc(${100 / span}% - 2px)` : '100%',
+                                      justifySelf: 'center',
+                                      ...palette,
+                                    }}
+                                  >
+                                    {seat.accessible ? <span aria-hidden="true">♿</span> : seat.seat_number}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[10px] font-mono uppercase tracking-wider text-[#B5AFA6]">
+              <span className="inline-flex items-center gap-2">
+                <i className="h-3 w-3 rounded-sm bg-[#4A525C]" /> Available
+              </span>
+              <span className="inline-flex items-center gap-2">
+                <i className="h-3 w-3 rounded-sm bg-[#C8FF1F]" /> Selected
+              </span>
+              <span className="inline-flex items-center gap-2">
+                <i className="h-3 w-3 rounded-sm bg-[#1A1D21]" /> Sold
+              </span>
+            </div>
+            </div>
+          </main>
+
+          <aside className="order-3 space-y-6 lg:self-start">
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#B5AFA6]">Date</p>
+              <p className="mt-1 font-editorial text-3xl font-semibold leading-none text-[#F2F0EB]">
+                {dayNumber} <span className="font-mono text-[10px] uppercase tracking-[0.18em]">{monthLabel}</span>
+              </p>
+            </div>
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#B5AFA6]">Time</p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {(timeOptions.length ? timeOptions : [{ id: show.id, starts_at: show.starts_at }]).map((item) => (
+                  <Link
+                    key={item.id}
+                    to={`/shows/${item.id}/seats`}
+                    className={`rounded-md border px-2.5 py-1.5 font-mono text-[10px] ${
+                      item.id === show.id
+                        ? 'border-[#C8FF1F] bg-[#C8FF1F] font-semibold text-[#1E2227]'
+                        : 'border-[#B5AFA6]/20 text-[#B5AFA6] hover:border-[#C8FF1F] hover:text-[#C8FF1F]'
+                    }`}
+                  >
+                    {timeLabel(item.starts_at) || timeText}
+                  </Link>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#B5AFA6]">Hall</p>
+              <p className="mt-1 text-xs font-semibold leading-relaxed text-[#F2F0EB]">{showMeta?.auditorium_name || format}</p>
+              <p className="mt-1 text-[11px] text-[#B5AFA6]">{showMeta?.theatre_name || locality}</p>
+            </div>
+          </aside>
         </div>
       )}
 
-      {/* How many seats? */}
-      {pickerOpen && (
-        <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-[#171B1F]/[0.82] px-4 py-6 backdrop-blur-sm"
-          role="dialog"
-          aria-modal="true"
-          aria-label="How many seats?"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setPickerOpen(false);
-          }}
-        >
-          <div className="w-full max-w-2xl overflow-hidden rounded-2xl bg-[#B5AFA6] text-[#1E2227] shadow-2xl">
-            <div className="relative px-6 pb-5 pt-6 sm:px-8">
-              <button
-                type="button"
-                onClick={() => setPickerOpen(false)}
-                aria-label="Close seat count"
-                className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full text-[#1E2227]/50 transition hover:bg-[#1E2227]/[0.08] hover:text-[#1E2227]"
-              >
-                <UiIcon name="close" className="text-[20px]" />
-              </button>
-
-              <h2 className="kk-display text-center text-2xl font-bold">How many seats?</h2>
-              <p className="mt-1 text-center text-xs text-[#1E2227]/50">
-                {availableCount} seats free · pick up to {maxSelectable}
-              </p>
-
-              <div className="mt-4 flex justify-center">
-                <span
-                  className="flex h-16 w-16 items-center justify-center rounded-full"
-                  style={{ background: `${C.mango}22`, color: C.kokum }}
-                  aria-hidden="true"
-                >
-                  <UiIcon name="two_wheeler" className="text-[34px]" />
-                </span>
-              </div>
-
-              <div className="mt-4 flex flex-wrap items-center justify-center gap-1">
-                {Array.from({ length: MAX_SEATS }, (_, i) => i + 1).map((n) => {
-                  const active = draft === n;
-                  const disabled = n > maxSelectable || n < selected.length;
-                  return (
-                    <button
-                      key={n}
-                      type="button"
-                      disabled={disabled}
-                      onClick={() => setDraft(n)}
-                      aria-pressed={active}
-                      className={`kk-pill flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-25 ${
-                        active ? 'text-[#1E2227]' : 'text-[#1E2227]/75 hover:bg-[#1E2227]/[0.08]'
-                      }`}
-                      style={active ? { background: C.kokum } : undefined}
-                    >
-                      {n}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="mx-6 border-t border-dashed border-[#1E2227]/20 sm:mx-8" />
-
-            <div className="overflow-x-auto px-6 py-4 sm:px-8">
-              <div className="flex min-w-max items-start justify-center gap-7">
-                {stats.map((stat) => {
-                  const tone = stat.status === 'FILLED'
-                    ? C.kokum
-                    : stat.status === 'ALMOST FULL'
-                      ? '#F08A80'
-                      : '#B6E36A';
-                  return (
-                    <div key={stat.name} className="min-w-[84px] text-center">
-                      <p className="truncate text-[9px] font-bold uppercase tracking-[.1em] text-[#1E2227]/55">
-                        {stat.name}
-                      </p>
-                      <p className="kk-display mt-1 text-base font-bold">{rupees(stat.price)}</p>
-                      <p className="mt-0.5 text-[9px] font-bold uppercase tracking-[.08em]" style={{ color: tone }}>
-                        {stat.status}
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="mx-6 flex items-center gap-2 rounded bg-[#1E2227]/5 px-3 py-2 text-[11px] text-[#1E2227]/70 sm:mx-8">
-              <span className="h-3 w-3 shrink-0 rounded-[3px] border-2" style={{ borderColor: C.mango }} />
-              <span>
-                Book the <strong className="font-bold text-[#1E2227]">Bestseller</strong> seats in this cinema at no extra cost!
-              </span>
-            </div>
-
-            <div className="p-6 pt-4 sm:px-8">
-              <button
-                type="button"
-                onClick={confirmCount}
-                className="kk-pay w-full rounded-lg py-3.5 text-sm font-bold text-[#1E2227]"
-                style={{ background: C.kokum }}
-              >
-                Select Seats
-              </button>
-            </div>
+      {step !== 'seats' && (
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 py-5">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+            {titleBlock}
+            <div className="shrink-0 xl:pt-1">{stepBar}</div>
           </div>
+          <div className="mt-6">
+            {step === 'payment' && activeHold && (
+              <BookingPayment
+                hold={activeHold}
+                selectedSeats={selectedSeats}
+                totalMinor={totalMinor}
+                title={title}
+                dateText={`${dayNumber} ${monthLabel}`}
+                timeText={timeText}
+                format={format}
+                locality={locality}
+                onBack={() => setStep('seats')}
+                onPaid={({ reference, booking }) => {
+                  setActiveBooking({ reference, booking });
+                  setStep('ticket');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+              />
+            )}
+            {step === 'ticket' && activeBooking && (
+              <BookingTicket
+                reference={activeBooking.reference}
+                initialBooking={activeBooking.booking}
+                onDone={() => navigate('/')}
+              />
+            )}
+          </div>
+        </div>
+      )}
+
+      {notice && (
+        <div
+          className="fixed bottom-8 left-1/2 z-50 max-w-[90vw] -translate-x-1/2 rounded-md bg-[#F2F0EB] px-4 py-2.5 text-center text-xs font-semibold text-[#16191D]"
+          role="status"
+        >
+          {notice}
         </div>
       )}
     </div>

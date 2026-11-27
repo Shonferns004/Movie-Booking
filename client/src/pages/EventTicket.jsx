@@ -87,7 +87,7 @@ export default function EventTicket() {
     : '#';
 
   return (
-    <main className="min-h-screen bg-[#1A1E23] px-4 pb-20 pt-24 text-[#F2F0EC] sm:px-6">
+    <main className="min-h-screen bg-[#1A1E23] px-4 pb-20 pt-10 text-[#F2F0EC] sm:px-6">
       <style>{CSS}</style>
 
       <div className="mx-auto max-w-[1000px]">
@@ -97,7 +97,7 @@ export default function EventTicket() {
               <span className="h-px w-8 bg-[#C8FF1F]/60" />
               Your ticket
             </p>
-            <h1 className="mt-3 font-['Fraunces',Georgia,serif] text-[32px] font-bold leading-none tracking-[-0.03em] sm:text-[42px]">
+            <h1 className="mt-3 font-['Playfair Display',Georgia,serif] text-[32px] font-bold leading-none tracking-[-0.03em] sm:text-[42px]">
               Event pass
             </h1>
           </div>
@@ -110,17 +110,17 @@ export default function EventTicket() {
         </header>
 
         {loading && (
-          <div className="rounded-[22px] border border-[#F2F0EC]/10 bg-[#242A30]/70 p-10 text-center text-[12px] text-[#F2F0EC]/55">
+          <div className="border border-[#F2F0EC]/10 bg-[#242A30]/70 p-10 text-center text-[12px] text-[#F2F0EC]/55">
             Loading your ticket…
           </div>
         )}
 
         {!loading && error && (
-          <div className="rounded-[22px] border border-[#F08A80]/30 bg-[#F08A80]/10 p-10 text-center">
+          <div className="border border-[#F08A80]/30 bg-[#F08A80]/10 p-10 text-center">
             <p className="text-[13px] text-[#F2F0EC]/70">{error}</p>
             <Link
               to="/"
-              className="mt-4 inline-flex rounded-full bg-[#B5AFA6] px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#1A1E23]"
+              className="btn mt-4"
             >
               Back to community
             </Link>
@@ -128,9 +128,9 @@ export default function EventTicket() {
         )}
 
         {!loading && !error && !paid && (
-          <div className="rounded-[22px] border border-[#C8FF1F]/25 bg-[#242A30]/70 p-10 text-center">
+          <div className="border border-[#C8FF1F]/25 bg-[#242A30]/70 p-10 text-center">
             <UiIcon name="hourglass_top" className="text-[36px] text-[#C8FF1F]/70" />
-            <h2 className="mt-3 font-['Fraunces',Georgia,serif] text-[24px] font-bold">Confirming your payment</h2>
+            <h2 className="mt-3 font-['Playfair Display',Georgia,serif] text-[24px] font-bold">Confirming your payment</h2>
             <p className="mx-auto mt-2 max-w-md text-[12px] leading-relaxed text-[#F2F0EC]/55">
               This page refreshes automatically as soon as the committee’s gateway confirms the
               payment.
@@ -146,7 +146,7 @@ export default function EventTicket() {
               <button
                 type="button"
                 onClick={() => setPrinting(true)}
-                className="inline-flex items-center gap-2 rounded-full bg-[#C8FF1F] px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#1A1E23] transition-transform hover:-translate-y-0.5"
+                className="btn"
               >
                 <UiIcon name="download" className="text-[16px]" />
                 Download PDF
@@ -155,7 +155,7 @@ export default function EventTicket() {
                 href={whatsappLink}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-2 rounded-full bg-[#B6E36A] px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#1A1E23] transition-transform hover:-translate-y-0.5"
+                className="inline-flex items-center gap-2 bg-[#B6E36A] px-5 py-3 text-[10px] font-bold uppercase tracking-[0.12em] text-[#1A1E23] transition-transform hover:-translate-y-0.5"
               >
                 <UiIcon name="chat" className="text-[16px]" />
                 Send details

@@ -21,3 +21,7 @@ server/vendor/youpi-pg/.env
 Thumbs.db
 .idea/
 .vscode/
+
+# local design tooling
+.taste-skill/
+.gemini/

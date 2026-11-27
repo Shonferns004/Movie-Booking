@@ -41,8 +41,8 @@ function formatExpiry(value) {
 }
 
 const STYLES = `
-.kk-checkout { font-family: 'Public Sans', system-ui, sans-serif; }
-.kk-display { font-family: 'Fraunces', Georgia, serif; }
+.kk-checkout { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+.kk-display { font-family: 'Playfair Display', Georgia, serif; }
 .kk-pay { transition: background-color .2s ease, transform .2s ease, opacity .2s ease; }
 .kk-pay:not(:disabled):hover { background-color: #A8D819; transform: translateY(-1px); }
 .kk-row { transition: background-color .16s ease; }
@@ -375,13 +375,13 @@ export default function Checkout() {
       <style>{STYLES}</style>
 
       {/* Show bar */}
-      <div className="sticky top-[72px] z-30 border-b border-[#F2F0EC]/10 bg-[#1E2227]/95 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3 sm:px-6">
+      <div className="sticky top-[74px] z-30 border-b border-[#F2F0EC]/10 bg-[#1E2227]">
+        <div className="mx-auto flex max-w-[820px] items-center gap-3 px-4 py-3 sm:px-6">
           <button
             type="button"
             onClick={() => navigate(-1)}
             aria-label="Back to seats"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[#F2F0EC]/70 transition hover:bg-[#F2F0EC]/10 hover:text-[#F2F0EC]"
+            className="flex h-9 w-9 shrink-0 items-center justify-center border border-[#F2F0EC]/12 text-[#F2F0EC]/70 transition hover:border-[#C8FF1F] hover:text-[#C8FF1F]"
           >
             <UiIcon name="arrow_back_ios_new" className="text-[20px]" />
           </button>
@@ -394,7 +394,7 @@ export default function Checkout() {
             </p>
           </div>
           <span
-            className="shrink-0 rounded-md border px-3 py-2 text-xs font-semibold"
+            className="shrink-0 border px-3 py-2 text-[10px] font-bold uppercase tracking-[0.1em]"
             style={{ borderColor: `${C.kokum}99`, color: C.kokum }}
           >
             {seatCount} {seatCount === 1 ? 'Ticket' : 'Tickets'}
@@ -402,9 +402,9 @@ export default function Checkout() {
         </div>
       </div>
 
-      <main className="mx-auto max-w-3xl space-y-4 px-4 py-6 sm:px-6">
+      <main className="mx-auto max-w-[820px] space-y-4 px-4 py-6 sm:px-6">
         {/* Ticket summary */}
-        <section className="overflow-hidden rounded-2xl text-[#1E2227] shadow-2xl" style={{ background: C.shell }}>
+        <section className="overflow-hidden border border-[#1E2227]/15 text-[#1E2227]" style={{ background: C.shell }}>
           <div className="p-5 sm:p-6">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
@@ -460,7 +460,7 @@ export default function Checkout() {
         </section>
 
         {/* Price breakdown */}
-        <section className="rounded-2xl p-5 text-[#1E2227] shadow-xl sm:p-6" style={{ background: C.shell }}>
+        <section className="border border-[#1E2227]/15 p-5 text-[#1E2227] sm:p-6" style={{ background: C.shell }}>
           <div className="space-y-3 text-sm">
             <div className="flex items-center justify-between gap-4">
               <span className="text-[#1E2227]/65">Ticket(s) price</span>
@@ -499,7 +499,7 @@ export default function Checkout() {
         </section>
 
         {/* Contact */}
-        <section className="rounded-2xl border border-[#F2F0EC]/10 bg-[#262C33] p-5 shadow-lg shadow-black/10 sm:p-6">
+        <section className="border border-[#F2F0EC]/10 bg-[#262C33] p-5 sm:p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-xs font-bold uppercase tracking-[.16em] text-[#F2F0EC]/45">For sending booking details</p>
@@ -526,7 +526,7 @@ export default function Checkout() {
                   value={name}
                   onChange={(event) => setName(event.target.value)}
                   placeholder="Your name"
-                  className="w-full rounded-lg border border-[#F2F0EC]/[0.12] bg-[#171B1F]/70 px-3 py-3 text-sm text-[#F2F0EC] outline-none placeholder:text-[#F2F0EC]/30 focus:border-[#C8FF1F]/60"
+                  className="w-full border border-[#F2F0EC]/[0.12] bg-[#171B1F]/70 px-3 py-3 text-sm text-[#F2F0EC] outline-none placeholder:text-[#F2F0EC]/30 focus:border-[#C8FF1F]/60"
                 />
               </label>
               <label className="block">
@@ -538,7 +538,7 @@ export default function Checkout() {
                   value={mobile}
                   onChange={(event) => setMobile(event.target.value.replace(/[^\d+\s()-]/g, '').slice(0, 20))}
                   placeholder="98765 43210"
-                  className="w-full rounded-lg border border-[#F2F0EC]/[0.12] bg-[#171B1F]/70 px-3 py-3 text-sm text-[#F2F0EC] outline-none placeholder:text-[#F2F0EC]/30 focus:border-[#C8FF1F]/60"
+                  className="w-full border border-[#F2F0EC]/[0.12] bg-[#171B1F]/70 px-3 py-3 text-sm text-[#F2F0EC] outline-none placeholder:text-[#F2F0EC]/30 focus:border-[#C8FF1F]/60"
                 />
               </label>
               <label className="block">
@@ -549,7 +549,7 @@ export default function Checkout() {
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
                   placeholder="you@example.com"
-                  className="w-full rounded-lg border border-[#F2F0EC]/[0.12] bg-[#171B1F]/70 px-3 py-3 text-sm text-[#F2F0EC] outline-none placeholder:text-[#F2F0EC]/30 focus:border-[#C8FF1F]/60"
+                  className="w-full border border-[#F2F0EC]/[0.12] bg-[#171B1F]/70 px-3 py-3 text-sm text-[#F2F0EC] outline-none placeholder:text-[#F2F0EC]/30 focus:border-[#C8FF1F]/60"
                 />
               </label>
             </div>
@@ -563,7 +563,7 @@ export default function Checkout() {
         </section>
 
         {/* Offers */}
-        <section className="overflow-hidden rounded-2xl border border-[#F2F0EC]/10 bg-[#262C33] shadow-lg shadow-black/10">
+        <section className="overflow-hidden border border-[#F2F0EC]/10 bg-[#262C33]">
           <button
             type="button"
             onClick={() => setOffersOpen((open) => !open)}
@@ -602,13 +602,13 @@ export default function Checkout() {
         )}
 
         {status && (
-          <div role="status" aria-live="polite" className="flex items-start gap-3 rounded-xl border border-[#C8FF1F]/20 bg-[#C8FF1F]/[0.07] px-4 py-3 text-sm text-[#C8FF1F]">
+          <div role="status" aria-live="polite" className="flex items-start gap-3 border border-[#C8FF1F]/20 bg-[#C8FF1F]/[0.07] px-4 py-3 text-sm text-[#C8FF1F]">
             <UiIcon name={loading ? 'progress_activity' : 'info'} className="text-lg" />
             <span>{status}</span>
           </div>
         )}
         {error && (
-          <div role="alert" className="flex items-start gap-3 rounded-xl border border-[#C8FF1F]/35 bg-[#C8FF1F]/10 px-4 py-3 text-sm text-[#F0B0A6]">
+          <div role="alert" className="flex items-start gap-3 border border-[#F08A80]/35 bg-[#F08A80]/10 px-4 py-3 text-sm text-[#F0B0A6]">
             <UiIcon name="error" className="text-lg" />
             <span>{error}</span>
           </div>
@@ -616,20 +616,20 @@ export default function Checkout() {
       </main>
 
       {/* Pay bar */}
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#1E2227]/15 bg-[#B5AFA6] text-[#1E2227] shadow-[0_-10px_30px_rgba(0,0,0,.25)]">
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#F2F0EC]/12 bg-[#171B1F] text-[#F2F0EC]">
+        <div className="mx-auto flex max-w-[820px] items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-[.14em] text-[#1E2227]/45">Order total</p>
+            <p className="text-[10px] font-bold uppercase tracking-[.14em] text-[#B5AFA6]">Order total</p>
             <p className="kk-display truncate text-xl font-bold leading-tight">{rupees(payableMinor)}</p>
             {verificationOffsetMinor > 0 && (
-              <p className="text-[9px] text-[#1E2227]/45">incl. {rupees(verificationOffsetMinor)} verification</p>
+              <p className="text-[10px] text-[#B5AFA6]">incl. {rupees(verificationOffsetMinor)} verification</p>
             )}
           </div>
           <button
             type="button"
             onClick={payNow}
             disabled={loading}
-            className="kk-pay min-w-[160px] rounded-lg px-6 py-3.5 text-sm font-bold text-[#1E2227] disabled:cursor-not-allowed disabled:opacity-55 sm:min-w-[210px]"
+            className="btn min-w-[160px] disabled:cursor-not-allowed disabled:opacity-55 sm:min-w-[210px]"
             style={{ background: C.kokum }}
           >
             {payLabel}
@@ -639,7 +639,7 @@ export default function Checkout() {
 
       {notice && (
         <div
-          className="kk-toast fixed bottom-24 left-1/2 z-50 max-w-[90vw] -translate-x-1/2 rounded-lg px-4 py-2.5 text-center text-xs font-semibold shadow-xl"
+          className="kk-toast fixed bottom-24 left-1/2 z-50 max-w-[90vw] -translate-x-1/2 border border-[#1E2227]/20 px-4 py-2.5 text-center text-xs font-semibold"
           style={{ background: C.shell, color: C.ink }}
           role="status"
         >

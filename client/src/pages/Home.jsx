@@ -1,681 +1,429 @@
-import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import api, { assetUrl } from '../services/api.js';
 import { useRealtime } from '../services/realtime.js';
-import { Link } from 'react-router-dom';
-import UiIcon from '../components/UiIcon.jsx';
+import { HeroHeader } from '../components/SiteChrome.jsx';
 
-const FALLBACK_POSTER =
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuBOo5aPBJ7vdVsyiAG9pfkMVnbOJYOVjsyddb_wdpsXPO4tgUUifaP9nMyjEo-fKxK_ZjauieUWHBTRdqvu8Q4CcOErASg1hSKV9obttLqrrs6jTlTsxDnxRJLtWEC4hmHH1qRKkwdlvckJI1x8oqYkdtQp6GDkqg9I2cHnbuZMEXP4XfOWNlSml_xs9RBxGEFaj-pYqP9suJE5VFC4RFuakypp44Chxara4FwGIgRyLVZSH5AUU610lQ';
+const rupees = (value) => `₹${Number(value).toLocaleString('en-IN')}`;
 
-const SLIDE_MS = 6000;
-
-/*
-  Palette (plain hex, no custom Tailwind tokens needed):
-  Sea ink  #1E2227   page background
-  Tide     #262C33   raised surfaces
-  Shell    #F2F0EC   primary text / ticket paper
-  Kokum    #C8FF1F   actions
-  Mango    #C8FF1F   ticket stub
-*/
-const FONTS = `
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,900&family=Public+Sans:wght@400;500;600&display=swap');
-.kk-display { font-family: 'Fraunces', Georgia, serif; }
-.kk-body { font-family: 'Public Sans', system-ui, sans-serif; }
-
-/* Ticket enters from the side you navigated towards */
-@keyframes kk-ticket-in { from { opacity: 0; transform: translateX(var(--dir, 0px)) scale(.985); } to { opacity: 1; transform: none; } }
-.kk-ticket-in { animation: kk-ticket-in .7s cubic-bezier(.2,.8,.2,1) both; }
-
-/* Poster unmasks left to right */
-@keyframes kk-poster-in { from { clip-path: inset(0 100% 0 0 round 12px); transform: scale(1.08); } to { clip-path: inset(0 0 0 0 round 12px); transform: none; } }
-.kk-poster-in { animation: kk-poster-in .9s cubic-bezier(.2,.8,.2,1) both; }
-
-/* Title words slide up out of a mask */
-.kk-mask { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: .1em; }
-.kk-word { display: inline-block; animation: kk-word .8s cubic-bezier(.2,.8,.2,1) both; }
-@keyframes kk-word { from { transform: translateY(110%) rotate(5deg); } to { transform: none; } }
-
-@keyframes kk-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
-.kk-rise { animation: kk-rise .6s cubic-bezier(.2,.8,.2,1) both; }
-
-/* Side tickets slide out from behind the main ticket */
-@keyframes kk-side-in { from { opacity: 0; transform: translateX(var(--from, 0px)); } to { opacity: 1; transform: none; } }
-.kk-side { animation: kk-side-in .6s cubic-bezier(.2,.8,.2,1) .15s both; }
-
-@keyframes kk-ping { 0% { transform: scale(1); opacity: .7; } 100% { transform: scale(2.6); opacity: 0; } }
-.kk-ping { animation: kk-ping 1.6s ease-out infinite; }
-
-/* Ambient blurred backdrop crossfade */
-@keyframes kk-backdrop { from { opacity: 0; transform: scale(1.35); } to { opacity: .28; transform: scale(1.2); } }
-.kk-backdrop { animation: kk-backdrop 1.4s ease-out both; }
-
-/* Autoplay progress on the active thumbnail */
-@keyframes kk-progress { from { width: 0; } to { width: 100%; } }
-.kk-progress { animation: kk-progress ${SLIDE_MS}ms linear both; }
-
-/* Book button: shimmer sweep + soft pulse */
-@keyframes kk-pulse { 0% { box-shadow: 0 0 0 0 rgba(200,255,31,.55); } 70%,100% { box-shadow: 0 0 0 14px rgba(200,255,31,0); } }
-.kk-btn { position: relative; overflow: hidden; animation: kk-pulse 2.6s ease-out infinite; transition: transform .2s ease, background-color .2s ease; }
-.kk-btn:hover { transform: translateY(-2px) scale(1.02); animation-play-state: paused; }
-.kk-btn::after { content: ''; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,.45) 50%, transparent 65%); transform: translateX(-120%); }
-.kk-btn:hover::after { transform: translateX(120%); transition: transform .8s ease; }
-
-/* Perforation notches gently breathe */
-@keyframes kk-dash { to { background-position: 16px 0; } }
-
-/* Scroll reveal */
-.kk-reveal { opacity: 0; transform: translateY(28px) scale(.97); transition: opacity .7s cubic-bezier(.2,.8,.2,1), transform .7s cubic-bezier(.2,.8,.2,1); }
-.kk-reveal.is-in { opacity: 1; transform: none; }
-
-/* Poster cards */
-.kk-card .kk-shine { position: absolute; inset: 0; background: linear-gradient(110deg, transparent 40%, rgba(255,255,255,.28) 50%, transparent 60%); transform: translateX(-130%); pointer-events: none; }
-.kk-card:hover .kk-shine { transform: translateX(130%); transition: transform .9s ease; }
-.kk-card .kk-cta { transform: translateY(110%); transition: transform .35s cubic-bezier(.2,.8,.2,1); }
-.kk-card:hover .kk-cta, .kk-card:focus-visible .kk-cta { transform: none; }
-
-/* Skeleton shimmer */
-@keyframes kk-shimmer { from { background-position: -200% 0; } to { background-position: 200% 0; } }
-.kk-skeleton { background: linear-gradient(100deg, #262C33 30%, #2E353D 50%, #262C33 70%); background-size: 200% 100%; animation: kk-shimmer 1.6s linear infinite; }
-
-/* Promise icons */
-@keyframes kk-ring { from { stroke-dashoffset: 0; } to { stroke-dashoffset: 88; } }
-@keyframes kk-scan { 0%,100% { transform: translateY(0); } 50% { transform: translateY(26px); } }
-@keyframes kk-spin { to { transform: rotate(360deg); } }
-@keyframes kk-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
-.kk-ring { stroke-dasharray: 88; animation: kk-ring 8s linear infinite; transform-origin: center; transform: rotate(-90deg); }
-.kk-scan { animation: kk-scan 2.2s ease-in-out infinite; }
-.kk-spin { transform-origin: 24px 24px; animation: kk-spin 14s linear infinite; }
-.kk-float { animation: kk-float 3s ease-in-out infinite; }
-
-@media (prefers-reduced-motion: reduce) {
-  .kk-ping, .kk-ticket-in, .kk-side, .kk-poster-in, .kk-word, .kk-rise, .kk-backdrop, .kk-progress, .kk-btn,
-  .kk-skeleton, .kk-ring, .kk-scan, .kk-spin, .kk-float { animation: none !important; }
-  .kk-backdrop { opacity: .28; }
-  .kk-reveal { opacity: 1; transform: none; transition: none; }
-  .kk-card .kk-shine { display: none; }
-}
-`;
-
-const prefersReduced = () =>
-  typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-
-/* Fades and lifts children in once they scroll into view */
-function Reveal({ children, delay = 0, className = '' }) {
-  const ref = useRef(null);
-  const [shown, setShown] = useState(false);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || !('IntersectionObserver' in window) || prefersReduced()) {
-      setShown(true);
-      return;
-    }
-    const io = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setShown(true);
-          io.disconnect();
-        }
-      },
-      { threshold: 0.12 }
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
-
-  return (
-    <div ref={ref} className={`kk-reveal ${shown ? 'is-in' : ''} ${className}`} style={{ transitionDelay: `${delay}ms` }}>
-      {children}
-    </div>
-  );
-}
-
-/* Poster that tilts towards the pointer with a moving glare */
-function Tilt({ children, className = '' }) {
-  const ref = useRef(null);
-
-  const onMove = (e) => {
-    if (prefersReduced() || e.pointerType === 'touch') return;
-    const el = ref.current;
-    const r = el.getBoundingClientRect();
-    const x = (e.clientX - r.left) / r.width;
-    const y = (e.clientY - r.top) / r.height;
-    el.style.transform = `perspective(900px) rotateY(${(x - 0.5) * 12}deg) rotateX(${(0.5 - y) * 12}deg) scale(1.03)`;
-    el.style.setProperty('--gx', `${x * 100}%`);
-    el.style.setProperty('--gy', `${y * 100}%`);
-    el.style.setProperty('--glare', '1');
-  };
-  const onLeave = () => {
-    const el = ref.current;
-    el.style.transform = '';
-    el.style.setProperty('--glare', '0');
-  };
-
-  return (
-    <div
-      ref={ref}
-      onPointerMove={onMove}
-      onPointerLeave={onLeave}
-      className={`relative transition-transform duration-300 ease-out will-change-transform ${className}`}
-    >
-      {children}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 rounded-xl transition-opacity duration-300"
-        style={{
-          opacity: 'var(--glare, 0)',
-          background: 'radial-gradient(circle at var(--gx, 50%) var(--gy, 50%), rgba(255,255,255,.35), transparent 55%)',
-        }}
-      />
-    </div>
-  );
-}
-
-/* Title words slide up one after another */
-const Words = ({ text }) =>
-  text.split(' ').map((w, i) => (
-    <Fragment key={i}>
-      <span className="kk-mask">
-        <span className="kk-word" style={{ animationDelay: `${180 + i * 80}ms` }}>
-          {w}
-        </span>
-      </span>{' '}
-    </Fragment>
-  ));
-
-function useCountUp(target) {
-  const [value, setValue] = useState(0);
-  useEffect(() => {
-    if (prefersReduced()) {
-      setValue(target);
-      return;
-    }
-    let raf;
-    let start;
-    const tick = (ts) => {
-      start ??= ts;
-      const p = Math.min((ts - start) / 700, 1);
-      setValue(Math.round(target * (1 - Math.pow(1 - p, 3))));
-      if (p < 1) raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [target]);
-  return value;
-}
-
-const PromiseIcon = ({ kind }) => (
-  <UiIcon
-    name={kind}
-    size={48}
-    stroke={1.5}
-    style={{ color: kind === 'star' ? '#C8FF1F' : '#F2F0EC' }}
-  />
-);
-
-/* Smaller ticket that peeks out from behind the main one (previous / next film) */
-function SideTicket({ movie, side, poster, onClick }) {
-  if (!movie) return null;
-  const left = side === 'left';
-  return (
-    <div className={`relative w-10 shrink-0 sm:w-24 lg:w-36 ${left ? '-mr-4' : '-ml-4'}`}>
-      <button
-        key={movie.id}
-        onClick={onClick}
-        aria-label={`${left ? 'Previous' : 'Next'} movie: ${movie.title}`}
-        style={{ '--from': left ? '36px' : '-36px' }}
-        className={`kk-side group absolute inset-x-0 inset-y-[14%] overflow-hidden border-2 border-dashed border-[#F2F0EC]/30 bg-[#262C33] text-left transition-transform duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#C8FF1F] ${
-          left ? 'rounded-l-2xl hover:-translate-x-2' : 'rounded-r-2xl hover:translate-x-2'
-        }`}
-      >
-        <img
-          src={poster}
-          alt=""
-          draggable={false}
-          className="h-full w-full object-cover opacity-55 transition duration-500 group-hover:scale-105 group-hover:opacity-90"
-        />
-        <span className="absolute inset-0 bg-gradient-to-t from-[#1E2227] via-[#1E2227]/30 to-transparent" />
-        <UiIcon
-          name={left ? 'chevron_left' : 'chevron_right'}
-          className={`absolute top-1/2 h-5 w-5 -translate-y-1/2 text-[#F2F0EC] ${left ? 'left-1.5' : 'right-1.5'}`}
-        />
-        <span className="absolute inset-x-0 bottom-0 hidden p-3 sm:block">
-          <span className="block text-xs text-[#F2F0EC]/70">{left ? 'Previous' : 'Next'}</span>
-          <span className="kk-display line-clamp-2 text-sm font-bold leading-tight text-[#F2F0EC]">{movie.title}</span>
-        </span>
-      </button>
-    </div>
-  );
-}
-
-/* A film counts as new if the API says so (is_new) or it was released/added in the last 30 days */
-const NEW_DAYS = 30;
-const isNew = (m) => {
-  if (typeof m.is_new === 'boolean') return m.is_new;
-  const t = Date.parse(m.release_date || m.created_at || '');
-  return Number.isFinite(t) && Date.now() - t < NEW_DAYS * 86400000;
+const formatFromAuditorium = (name = '') => {
+  if (/dolby/i.test(name)) return 'Dolby Atmos';
+  if (/laser/i.test(name)) return '2K Laser';
+  return name || '2K Laser';
 };
 
-const NewTag = () => (
-  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#C8FF1F] px-2.5 py-0.5 text-xs font-semibold text-[#1E2227] shadow-md shadow-black/30">
-    <span className="relative flex h-2 w-2">
-      <span className="kk-ping absolute inline-flex h-full w-full rounded-full bg-white" />
-      <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
-    </span>
-    New show
-  </span>
-);
+const dateKey = (value) => {
+  const date = new Date(value);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+};
 
-const Meta = ({ children }) => (
-  <span className="inline-flex items-center rounded-full border border-[#F2F0EC]/25 px-2.5 py-0.5 text-xs text-[#F2F0EC]/80">
-    {children}
-  </span>
-);
+const dateLabel = (value) => {
+  const date = new Date(value);
+  return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+};
+
+const timeLabel = (value) => {
+  const date = new Date(value);
+  return date
+    .toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
+    .toLowerCase();
+};
+
+const minuteLabel = (minutes) => {
+  const total = Number(minutes);
+  if (!Number.isFinite(total) || total <= 0) return '—';
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  return [h ? `${h}h` : '', m ? `${String(m).padStart(2, '0')}m` : ''].filter(Boolean).join(' ');
+};
 
 export default function Home() {
+  const navigate = useNavigate();
   const [movies, setMovies] = useState([]);
-  const [current, setCurrent] = useState(0);
-  const [dir, setDir] = useState(1);
-  const [paused, setPaused] = useState(false);
-  const railRef = useRef(null);
+  const [shows, setShows] = useState([]);
+  const [community, setCommunity] = useState(null);
+  const [selectedDate, setSelectedDate] = useState('');
+  const [heroIndex, setHeroIndex] = useState(0);
+  const [loading, setLoading] = useState(true);
 
-  const loadMovies = useCallback(() => {
-    api.get('/movies').then((r) => setMovies(r.data)).catch(console.error);
+  const load = useCallback(async () => {
+    const [moviesResult, showsResult, communityResult] = await Promise.allSettled([
+      api.get('/movies'),
+      api.get('/shows'),
+      api.get('/community'),
+    ]);
+    setMovies(
+      moviesResult.status === 'fulfilled' && Array.isArray(moviesResult.value.data)
+        ? moviesResult.value.data
+        : [],
+    );
+    setShows(
+      showsResult.status === 'fulfilled' && Array.isArray(showsResult.value.data) ? showsResult.value.data : [],
+    );
+    setCommunity(communityResult.status === 'fulfilled' ? communityResult.value.data : null);
+    setLoading(false);
   }, []);
 
-  useEffect(() => { loadMovies(); }, [loadMovies]);
-  // Realtime: refresh when the catalog changes anywhere (another admin, another device).
-  useRealtime(['catalog'], loadMovies);
-
-  // Keep the active thumbnail visible inside the rail (horizontal only)
   useEffect(() => {
-    const tab = railRef.current?.querySelector('[aria-selected="true"]');
-    tab?.scrollIntoView?.({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-  }, [current]);
+    load();
+  }, [load]);
 
-  const go = (i) => {
-    if (!movies.length) return;
-    const next = (i + movies.length) % movies.length;
-    setDir(next >= current ? 1 : -1);
-    setCurrent(next);
-  };
-  const step = (d) => {
-    if (!movies.length) return;
-    setDir(d);
-    setCurrent((c) => (c + d + movies.length) % movies.length);
-  };
+  useRealtime(['catalog'], load);
 
-  // Arrow keys move through the films
-  useEffect(() => {
-    const onKey = (e) => {
-      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
-      if (e.key === 'ArrowRight') step(1);
-      if (e.key === 'ArrowLeft') step(-1);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [movies.length]);
+  const films = useMemo(
+    () => movies.filter((movie) => movie.thumbnail_url || movie.synopsis),
+    [movies],
+  );
+  const filmIds = useMemo(() => new Set(films.map((movie) => String(movie.id))), [films]);
 
-  // Trackpad horizontal scroll and swipe/drag
-  const lastWheel = useRef(0);
-  const startX = useRef(null);
-  const onWheel = (e) => {
-    if (Math.abs(e.deltaX) < 30 || Math.abs(e.deltaX) < Math.abs(e.deltaY)) return;
+  const showtimes = useMemo(() => {
     const now = Date.now();
-    if (now - lastWheel.current < 700) return;
-    lastWheel.current = now;
-    step(e.deltaX > 0 ? 1 : -1);
-  };
-  const onDown = (e) => {
-    startX.current = e.clientX;
-  };
-  const onUp = (e) => {
-    if (startX.current == null) return;
-    const dx = e.clientX - startX.current;
-    startX.current = null;
-    if (Math.abs(dx) > 60) step(dx < 0 ? 1 : -1);
-  };
+    return shows
+      .filter(
+        (show) =>
+          show?.starts_at &&
+          new Date(show.starts_at).getTime() >= now &&
+          show.status !== 'cancelled' &&
+          filmIds.has(String(show.movie_id)),
+      )
+      .map((show) => ({
+        id: show.id,
+        movieId: show.movie_id,
+        startsAt: show.starts_at,
+        date: dateKey(show.starts_at),
+        dateLabel: dateLabel(show.starts_at),
+        time: timeLabel(show.starts_at),
+        format: formatFromAuditorium(show.auditorium_name),
+        auditoriumName: [show.theatre_name, show.auditorium_name].filter(Boolean).join(' · '),
+        price: show.price_min_minor ? Math.round(Number(show.price_min_minor) / 100) : 600,
+      }))
+      .sort((a, b) => new Date(a.startsAt) - new Date(b.startsAt));
+  }, [shows, filmIds]);
 
-  const featured = movies[current];
-  const prevMovie = movies.length > 1 ? movies[(current - 1 + movies.length) % movies.length] : null;
-  const nextMovie = movies.length > 1 ? movies[(current + 1) % movies.length] : null;
-  const posterOf = (m) => assetUrl(m.thumbnail_url) || FALLBACK_POSTER;
-  const filmCount = useCountUp(movies.length);
+  const dates = useMemo(() => {
+    const map = new Map();
+    showtimes.forEach((show) => {
+      if (!map.has(show.date)) map.set(show.date, show.dateLabel);
+    });
+    return [...map.entries()].slice(0, 4).map(([date, label]) => ({ date, label }));
+  }, [showtimes]);
 
-  return (
-    <div className="kk-body min-h-screen bg-[#1E2227] text-[#F2F0EC]">
-      <style>{FONTS}</style>
+  useEffect(() => {
+    if (selectedDate && !dates.some((day) => day.date === selectedDate)) setSelectedDate('');
+  }, [dates, selectedDate]);
 
-      {/* FEATURED TICKET */}
-      <div className="relative overflow-hidden">
-        {/* Blurred poster glow that crossfades with the film */}
-        {featured && (
-          <>
-            <img
-              key={`bg-${featured.id}`}
-              src={posterOf(featured)}
-              alt=""
-              aria-hidden="true"
-              className="kk-backdrop pointer-events-none absolute inset-0 h-full w-full object-cover blur-3xl"
-            />
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-[#1E2227]/40 to-[#1E2227]"
-            />
-          </>
-        )}
+  const showForMovie = useCallback(
+    (movieId) =>
+      showtimes.filter(
+        (show) => String(show.movieId) === String(movieId) && (!selectedDate || show.date === selectedDate),
+      ),
+    [showtimes, selectedDate],
+  );
 
-        <section
-          className="relative w-full pb-14 pt-6"
-          onMouseEnter={() => setPaused(true)}
-          onMouseLeave={() => setPaused(false)}
-          onFocus={() => setPaused(true)}
-          onBlur={() => setPaused(false)}
-        >
-          <p className="kk-rise mb-6 max-w-md px-5 text-sm text-[#F2F0EC]/75 sm:px-8">
-            Pick your seats on a live map, hold them while you pay, and walk in with a QR ticket.
-          </p>
+  const heroSlides = useMemo(() => {
+    if (!films.length) return [];
+    const heroImage = community?.hero?.[0]?.url || '';
+    return films
+      .map((movie) => ({
+        movie,
+        showsForMovie: showtimes.filter(
+          (show) => String(show.movieId) === String(movie.id) && (!selectedDate || show.date === selectedDate),
+        ),
+      }))
+      .filter((entry) => entry.showsForMovie.length > 0)
+      .slice(0, 5)
+      .map(({ movie, showsForMovie }, index) => {
+        const show = showsForMovie[0];
+        return {
+          movie,
+          show,
+          kicker:
+            index === 0
+              ? 'Samudai Cineplex, Margao · Screen 1 · 2K Laser'
+              : [movie.language, show?.format].filter(Boolean).join(' · '),
+          backdrop: assetUrl(movie.thumbnail_url) || heroImage,
+        };
+      });
+  }, [films, showtimes, selectedDate, community]);
 
-          {featured ? (
-            <div className="kk-shell kk-shell-bleed">
-              <div className="kk-hero-split">
-                {/* Poster hero */}
-                <div className="relative min-h-[330px] overflow-hidden sm:min-h-[440px]">
-                  <img
-                    key={featured.id}
-                    src={posterOf(featured)}
-                    alt={`Poster for ${featured.title}`}
-                    className="kk-poster-in absolute inset-0 h-full w-full object-cover"
-                  />
-                  <div
-                    aria-hidden="true"
-                    className="absolute inset-0 bg-gradient-to-t from-[#14181B] via-[#14181B]/55 to-[#14181B]/10"
-                  />
+  useEffect(() => {
+    if (heroIndex >= heroSlides.length) setHeroIndex(0);
+    else if (!heroSlides[heroIndex]?.show) {
+      const firstWithShow = heroSlides.findIndex((slide) => slide.show);
+      if (firstWithShow >= 0) setHeroIndex(firstWithShow);
+    }
+  }, [heroSlides.length, heroIndex, heroSlides]);
 
-                  <div className="absolute left-4 top-4 flex items-center gap-2 sm:left-6 sm:top-6">
-                    <span className="kk-rail-label rounded-full bg-[#14181B]/60 px-3 py-1.5 backdrop-blur">
-                      Now showing
-                    </span>
-                    {isNew(featured) && <NewTag />}
-                  </div>
+  const activeHero = heroSlides[heroIndex] || heroSlides[0];
+  const spotlightCards = films.flatMap((movie) =>
+    showForMovie(movie.id).map((show) => ({ movie, show })),
+  );
 
-                  <div className="absolute right-4 top-4 flex items-center gap-2 sm:right-6 sm:top-6">
-                    <button
-                      type="button"
-                      aria-label="Previous film"
-                      onClick={() => step(-1)}
-                      className="kk-circle !h-10 !w-10"
-                    >
-                      <UiIcon name="chevron_left" className="text-[20px]" />
-                    </button>
-                    <button
-                      type="button"
-                      aria-label="Next film"
-                      onClick={() => step(1)}
-                      className="kk-circle !h-10 !w-10"
-                    >
-                      <UiIcon name="chevron_right" className="text-[20px]" />
-                    </button>
-                  </div>
+  function openMovieShow(movie) {
+    const showsForMovie = showForMovie(movie.id);
+    if (showsForMovie[0]) navigate(`/shows/${showsForMovie[0].id}/seats`);
+    else navigate('/movies');
+  }
 
-                  <div className="absolute inset-x-0 bottom-0 p-5 sm:p-8">
-                    <h1 className="kk-display text-3xl font-black leading-[0.95] tracking-[-0.03em] text-[#F7F5F1] drop-shadow-[0_8px_28px_rgba(0,0,0,0.85)] sm:text-5xl lg:text-6xl">
-                      <Words text={featured.title} />
-                    </h1>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {[
-                        featured.language || 'English',
-                        `${featured.duration_minutes || 120} min`,
-                        featured.certification || 'UA',
-                        featured.genre || 'Drama',
-                      ].filter(Boolean).map((chip) => (
-                        <span
-                          key={chip}
-                          className="rounded-full border border-[#F2F0EC]/20 bg-[#14181B]/45 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[#F2F0EC]/80 backdrop-blur"
-                        >
-                          {chip}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Details */}
-                <div className="flex flex-col justify-between gap-6 p-5 sm:p-8">
-                  <div>
-                    <p className="kk-rail-label">Featured film</p>
-                    <p className="mt-3 line-clamp-4 text-sm leading-relaxed text-[#F2F0EC]/75">
-                      {featured.synopsis || 'Synopsis coming soon.'}
-                    </p>
-                  </div>
-
-                  <dl className="grid grid-cols-2 gap-x-4 gap-y-5">
-                    {[
-                      ['Language', featured.language || 'English'],
-                      ['Runtime', `${featured.duration_minutes || 120} min`],
-                      ['Genre', featured.genre || 'Drama'],
-                      ['Release', featured.release_date
-                        ? new Date(featured.release_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
-                        : 'TBA'],
-                    ].map(([label, value], i) => (
-                      <div key={label} className="kk-rise" style={{ animationDelay: `${180 + i * 70}ms` }}>
-                        <dt className="text-[9px] font-bold uppercase tracking-[0.16em] text-[#B5AFA6]">{label}</dt>
-                        <dd className="kk-display mt-1 text-lg font-bold leading-tight">{value}</dd>
-                      </div>
-                    ))}
-                  </dl>
-
-                  <Link
-                    to={`/movies/${featured.slug || featured.id}`}
-                    className="kk-btn inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#C8FF1F] px-6 py-3.5 text-sm font-bold text-[#1E2227] hover:bg-[#A8D819] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1E2227] sm:w-auto sm:min-w-[240px] sm:self-start"
-                  >
-                    <UiIcon name="local_activity" className="text-[19px]" />
-                    Book seats
-                  </Link>
-                </div>
-              </div>
-
-              {/* Notch + editorial strip */}
-              <div className="relative border-t border-[#F2F0EC]/10 px-5 pb-6 pt-10 sm:px-8 sm:pb-8">
-                <button type="button" className="kk-play-notch" aria-label="Play trailer">
-                  <UiIcon name="play_arrow" className="text-[30px]" />
-                </button>
-
-                <div className="flex flex-col gap-7 pt-4 md:flex-row md:items-center md:justify-between">
-                  <div className="flex gap-3">
-                    {movies.slice(0, 2).map((movie, i) => (
-                      <button
-                        key={movie.id}
-                        type="button"
-                        onClick={() => go(movies.indexOf(movie))}
-                        aria-label={movie.title}
-                        className="kk-poster-card !flex-[0_0_104px] text-left sm:!flex-[0_0_126px]"
-                      >
-                        <img src={posterOf(movie)} alt="" loading="lazy" />
-                        <span className="absolute inset-x-2 bottom-2 z-10 line-clamp-2 text-[9px] font-bold uppercase tracking-[0.08em] text-[#F2F0EC]">
-                          {movie.title}
-                        </span>
-                        {i === 0 && (
-                          <span className="absolute right-1.5 top-1.5 z-10 rounded-full bg-[#C8FF1F] px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.08em] text-[#171B1F]">
-                            New
-                          </span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="max-w-sm">
-                    <p className="kk-rail-label">Curated for the Samudai</p>
-                    <h2 className="kk-display-xl mt-2">Discover your next favourite story</h2>
-                  </div>
-
-                  <div className="kk-avatar-round shrink-0">
-                    <img src={posterOf(featured)} alt="" />
-                  </div>
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-3 pb-16 space-y-16" role="status" aria-label="Loading films">
+        <span className="sr-only">Loading films</span>
+        <section className="space-y-5 animate-pulse">
+          <div className="relative pb-5">
+            <div className="relative rounded-[28px] bg-[#16191D] min-h-[340px] sm:min-h-[380px] lg:min-h-[395px] flex flex-col justify-between overflow-hidden">
+              <HeroHeader active="movies" />
+              <div className="relative z-10 space-y-3 px-5 sm:px-8 pb-9 pt-8">
+                <div className="h-3 w-36 rounded bg-[#2A3037]" />
+                <div className="h-10 w-80 max-w-full rounded bg-[#2A3037]" />
+                <div className="h-3 w-[28rem] max-w-full rounded bg-[#252A30]" />
+                <div className="flex flex-wrap gap-3 pt-1">
+                  <div className="h-10 w-48 rounded-xl bg-[#2A3037]" />
+                  <div className="h-10 w-36 rounded-xl bg-[#252A30]" />
                 </div>
               </div>
             </div>
-          ) : (
-            <div className="kk-skeleton h-[420px] rounded-3xl" />
-          )}
+          </div>
 
-          {/* Poster rail selects the featured film; the bar shows time until the next one */}
-          {movies.length > 1 && (
-            <div
-              ref={railRef}
-              className="kk-rail mt-6 !px-5 sm:!px-8"
-              role="tablist"
-              aria-label="Choose a movie"
-            >
-              {movies.map((m, i) => {
-                const active = i === current;
-                return (
-                  <button
-                    key={m.id}
-                    role="tab"
-                    aria-selected={active}
-                    aria-label={m.title}
-                    onClick={() => go(i)}
-                    className={`kk-poster-card !flex-[0_0_82px] text-left sm:!flex-[0_0_96px] ${
-                      active
-                        ? 'ring-2 ring-[#C8FF1F] ring-offset-2 ring-offset-[#1E2227]'
-                        : 'opacity-55 hover:opacity-100'
-                    }`}
-                  >
-                    <img src={posterOf(m)} alt="" className="h-full w-full object-cover" />
-                    {active && (
-                      <span
-                        key={`p-${current}`}
-                        className="kk-progress absolute bottom-0 left-0 h-1 bg-[#C8FF1F]"
-                        style={{ animationPlayState: paused ? 'paused' : 'running' }}
-                        onAnimationEnd={() => step(1)}
-                      />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          )}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="h-3 w-28 rounded bg-[#252A30]" />
+            <div className="h-10 w-64 rounded-xl bg-[#252A30]" />
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+            {[0, 1, 2, 3, 4].map((item) => (
+              <div key={item} className="relative flex aspect-[3/3.45] flex-col justify-between rounded-[22px] bg-[#252A30] p-3">
+                <div className="h-6 w-16 rounded-full bg-[#2A3037]" />
+                <div className="space-y-2">
+                  <div className="h-6 w-24 rounded-full bg-[#2A3037]" />
+                  <div className="h-9 w-full rounded-xl bg-[#B5AFA6]/30" />
+                </div>
+              </div>
+            ))}
+          </div>
         </section>
       </div>
+    );
+  }
 
-      {/* NOW SHOWING */}
-      <main id="movies" className="mx-auto max-w-6xl px-4 pb-20 sm:px-6">
-        <Reveal>
-          <div className="mb-8 flex items-baseline justify-between gap-4 border-b border-[#F2F0EC]/15 pb-4">
-            <h2 className="kk-display text-3xl font-bold">Now showing</h2>
-            <p className="text-sm tabular-nums text-[#F2F0EC]/60">
-              {filmCount} {movies.length === 1 ? 'film' : 'films'}
-            </p>
-          </div>
-        </Reveal>
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-3 pb-16 space-y-16">
+      <section className="space-y-5">
+        <div className="relative pb-5">
+          <div className="relative rounded-[28px] bg-[#16191D] text-[#F2F0EB] overflow-hidden min-h-[340px] sm:min-h-[380px] lg:min-h-[395px] flex flex-col justify-between">
+            {activeHero?.backdrop && (
+              <img
+                src={activeHero.backdrop}
+                alt={activeHero.movie.title}
+                className="absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-500"
+              />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-r from-[#16191D]/95 via-[#1E2227]/72 to-[#1E2227]/35" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#16191D]/92 via-transparent to-[#16191D]/65" />
 
-        {movies.length === 0 && <p className="text-[#F2F0EC]/60">No movies are published yet. Check back soon.</p>}
+            <HeroHeader active="movies" />
 
-        <div className="grid grid-cols-2 gap-x-5 gap-y-10 md:grid-cols-3 lg:grid-cols-4">
-          {movies.map((m, i) => (
-            <Reveal key={m.id} delay={(i % 4) * 90}>
-              <Link
-                to={`/movies/${m.slug || m.id}`}
-                className="kk-card group block focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#C8FF1F]"
-              >
-                <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-[#262C33] transition duration-300 group-hover:-translate-y-1.5 group-hover:shadow-2xl group-hover:shadow-black/50">
-                  <img
-                    src={posterOf(m)}
-                    alt={`Poster for ${m.title}`}
-                    loading="lazy"
-                    className="h-full w-full object-cover motion-safe:transition-transform motion-safe:duration-700 group-hover:scale-110"
+            <div className="relative z-10 flex items-end justify-between gap-6 px-5 sm:px-8 pb-8 sm:pb-9 pt-8">
+              <div className="max-w-xl space-y-3">
+                <p className="text-xs font-semibold tracking-wide text-[#C8FF1F]">{activeHero?.kicker}</p>
+                <h1 className="font-editorial text-3xl sm:text-[42px] font-semibold tracking-tight text-[#F2F0EB] leading-[1.08]">
+                  {activeHero?.movie.title || 'All films and showtimes'}
+                </h1>
+                <p className="text-sm text-[#B5AFA6] leading-relaxed max-w-lg">
+                  {activeHero
+                    ? `${activeHero.movie.language || 'Cinema'} · ${activeHero.movie.genre || 'Drama'} · ${
+                        activeHero.movie.certification || 'UA'
+                      } · ${minuteLabel(activeHero.movie.duration_minutes)}. ${
+                        activeHero.show ? `Next show at ${activeHero.show.time}.` : 'Showtimes at the box office.'
+                      }`
+                    : 'Films at the Samudai Cineplex, Margao.'}
+                </p>
+                <div className="flex flex-wrap items-center gap-3 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => activeHero?.show && navigate(`/shows/${activeHero.show.id}/seats`)}
+                    disabled={!activeHero?.show}
+                    className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-[#C8FF1F] text-[#1E2227] hover:bg-[#B5AFA6] transition-colors disabled:opacity-50"
+                  >
+                    Choose seats · from {rupees(activeHero?.show?.price || 600)}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById('movies-now')?.scrollIntoView({ behavior: 'smooth' })}
+                    className="px-5 py-2.5 rounded-xl text-sm font-medium bg-[#1E2227]/75 backdrop-blur-md text-[#F2F0EB] border border-[#B5AFA6]/30 hover:border-[#C8FF1F] hover:text-[#C8FF1F] transition-colors"
+                  >
+                    All showtimes
+                  </button>
+                </div>
+              </div>
+
+              <div className="hidden sm:flex flex-col items-center gap-2 pb-10 shrink-0">
+                {heroSlides.map((item, index) => (
+                  <button
+                    key={item.movie.id}
+                    type="button"
+                    onClick={() => setHeroIndex(index)}
+                    aria-label={item.movie.title}
+                    className={`w-3.5 rounded-full transition-all duration-200 ${
+                      index === heroIndex
+                        ? 'h-8 bg-[#C8FF1F]'
+                        : 'h-5 bg-[#1E2227]/60 border border-[#B5AFA6]/45 hover:border-[#C8FF1F]'
+                    }`}
                   />
-                  <span className="kk-shine" aria-hidden="true" />
-                  <span className="absolute left-2 top-2 rounded bg-[#C8FF1F] px-1.5 py-0.5 text-xs font-bold text-[#1E2227]">
-                    {m.certification || 'UA'}
-                  </span>
-                  {isNew(m) && (
-                    <span className="absolute bottom-2 left-2 transition-opacity duration-200 group-hover:opacity-0">
-                      <NewTag />
-                    </span>
-                  )}
-                  <span className="kk-cta absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#C8FF1F] to-[#C8FF1F]/85 py-3 text-center text-sm font-semibold text-[#1E2227]">
-                    Book seats
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <svg
+            viewBox="0 0 160 46"
+            className="pointer-events-none absolute bottom-[18px] left-1/2 -translate-x-1/2 w-[156px] h-[46px] z-20"
+            aria-hidden="true"
+          >
+            <path d="M 0 46 C 28 46, 38 4, 80 4 C 122 4, 132 46, 160 46 Z" fill="#1E2227" />
+          </svg>
+          <button
+            type="button"
+            onClick={() => document.getElementById('movies-now')?.scrollIntoView({ behavior: 'smooth' })}
+            aria-label="Scroll to schedule"
+            className="absolute bottom-0 left-1/2 -translate-x-1/2 z-30 w-14 h-14 rounded-full bg-[#252A30] hover:bg-[#C8FF1F] text-[#F2F0EB] hover:text-[#1E2227] shadow-md flex items-center justify-center transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path d="M12 5v14M19 12l-7 7-7-7" />
+            </svg>
+          </button>
+
+          <div className="absolute bottom-[30px] right-4 z-30 hidden sm:block">
+            <svg
+              viewBox="0 0 300 72"
+              preserveAspectRatio="none"
+              className="pointer-events-none absolute -top-[14px] h-[72px]"
+              style={{ left: '-16%', width: '132%', maxWidth: 'none' }}
+              aria-hidden="true"
+            >
+              <path
+                d="M0 72 C10 72, 14 8, 24 8 L300 8 L300 72 Z"
+                fill="#1E2227"
+              />
+            </svg>
+            <div className="relative z-10 flex items-center gap-1 rounded-xl border border-[#B5AFA6]/20 bg-[#252A30] p-1">
+            {dates.length ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setSelectedDate('')}
+                  className={`px-4 py-2 text-xs font-medium rounded-lg transition-colors ${
+                    selectedDate === ''
+                      ? 'bg-[#C8FF1F] text-[#1E2227] font-semibold'
+                      : 'text-[#B5AFA6] hover:text-[#F2F0EB]'
+                  }`}
+                >
+                  All
+                </button>
+                {dates.map((day) => (
+                  <button
+                    key={day.date}
+                    type="button"
+                    onClick={() => setSelectedDate(day.date)}
+                    className={`px-4 py-2 text-xs font-medium rounded-lg transition-colors ${
+                      selectedDate === day.date
+                        ? 'bg-[#C8FF1F] text-[#1E2227] font-semibold'
+                        : 'text-[#B5AFA6] hover:text-[#F2F0EB]'
+                    }`}
+                  >
+                    {day.label}
+                  </button>
+                ))}
+              </>
+            ) : (
+              <span className="px-4 py-2 text-xs text-[#B5AFA6]">Dates at the box office</span>
+            )}
+          </div>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 sm:hidden">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#B5AFA6]">Choose a date</p>
+          <div className="flex items-center gap-1 p-1 bg-[#252A30] border border-[#B5AFA6]/20 rounded-xl">
+            {dates.length ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setSelectedDate('')}
+                  className={`px-3 py-2 text-xs font-medium rounded-lg transition-colors ${
+                    selectedDate === ''
+                      ? 'bg-[#C8FF1F] text-[#1E2227] font-semibold'
+                      : 'text-[#B5AFA6] hover:text-[#F2F0EB]'
+                  }`}
+                >
+                  All
+                </button>
+                {dates.map((day) => (
+                  <button
+                    key={day.date}
+                    type="button"
+                    onClick={() => setSelectedDate(day.date)}
+                    className={`px-3 py-2 text-xs font-medium rounded-lg transition-colors ${
+                      selectedDate === day.date
+                        ? 'bg-[#C8FF1F] text-[#1E2227] font-semibold'
+                        : 'text-[#B5AFA6] hover:text-[#F2F0EB]'
+                    }`}
+                  >
+                    {day.label}
+                  </button>
+                ))}
+              </>
+            ) : (
+              <span className="px-4 py-2 text-xs text-[#B5AFA6]">Dates at the box office</span>
+            )}
+          </div>
+        </div>
+
+        <div id="movies-now" className="space-y-5 pt-2">
+
+        {spotlightCards.length ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+            {spotlightCards.map(({ movie, show }) => (
+              <button
+                key={`${movie.id}-${show.id}`}
+                type="button"
+                onClick={() => navigate(`/shows/${show.id}/seats`)}
+                className="group relative rounded-[22px] overflow-hidden bg-[#252A30] aspect-[3/3.45] flex flex-col justify-between p-3 text-left shadow-sm"
+              >
+                {movie.thumbnail_url && (
+                  <img
+                    src={assetUrl(movie.thumbnail_url)}
+                    alt={movie.title}
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                  />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-[#16191D]/95 via-[#1E2227]/30 to-[#16191D]/45" />
+                <div className="relative z-10">
+                  <span className="px-2.5 py-1 rounded-full bg-[#B5AFA6] text-[#1E2227] font-mono text-[11px] font-bold tabular-nums">
+                    {show.time}
                   </span>
                 </div>
-                <h3 className="kk-display mt-3 text-lg font-bold leading-tight transition-colors duration-200 group-hover:text-[#C8FF1F]">
-                  {m.title}
-                </h3>
-                <p className="mt-1 text-xs text-[#F2F0EC]/60">
-                  {m.language || 'English'}, {m.duration_minutes || 120} min, {m.genre || 'Drama'}
-                </p>
-              </Link>
-            </Reveal>
-          ))}
-        </div>
-      </main>
-
-      {/* PROMISES */}
-      <section className="bg-[#262C33] py-14">
-        <div className="mx-auto grid max-w-6xl gap-10 px-4 sm:px-6 md:grid-cols-3">
-          {[
-            { icon: 'hold', title: 'Seats held for 8 minutes', desc: 'Once you pick seats, nobody else can book them while you check out.' },
-            { icon: 'qr', title: 'QR ticket on your phone', desc: 'Scan at the turnstile from your wallet or the SMS link.' },
-            { icon: 'star', title: 'Club Samudai rewards', desc: 'Every ticket earns popcorn upgrades and early pick of premium seats.' },
-          ].map((f, i) => (
-            <Reveal key={f.title} delay={i * 120}>
-              <PromiseIcon kind={f.icon} />
-              <h4 className="kk-display mt-4 text-xl font-bold text-[#C8FF1F]">{f.title}</h4>
-              <p className="mt-2 max-w-xs text-sm leading-relaxed text-[#F2F0EC]/75">{f.desc}</p>
-            </Reveal>
-          ))}
+                <div className="relative z-10 space-y-2">
+                  <span className="inline-block px-2.5 py-1 rounded-full bg-[#1E2227]/85 border border-[#B5AFA6]/20 text-[#B5AFA6] font-mono text-[11px] font-medium tabular-nums">
+                    from {rupees(show.price || 600)}
+                  </span>
+                  <div className="w-full rounded-xl bg-[#B5AFA6] group-hover:bg-[#C8FF1F] text-[#1E2227] px-3 py-2 flex items-center justify-between gap-2 transition-colors">
+                    <span className="text-xs font-semibold truncate">{movie.title}</span>
+                    <span>→</span>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-[22px] bg-[#252A30] px-6 py-14 text-center">
+            <p className="font-editorial text-xl font-semibold text-[#F2F0EB]">No screenings on this date</p>
+            <p className="mt-1 text-xs text-[#B5AFA6]">Choose another date to see what is playing.</p>
+          </div>
+        )}
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer className="bg-[#171B1F] text-sm text-[#F2F0EC]/65">
-        <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-          <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
-            {[
-              { h: 'Cinemas', items: ['City Mall, Mangaluru', 'Samudai Plaza, Udupi', 'Panaji Heritage Screen, Goa'] },
-              { h: 'Experiences', items: ['Konkani Film Festival', 'Dolby Atmos Prime', 'VIP Recliner Lounges'] },
-              { h: 'Help', items: ['Cancellation & refunds', 'Food & beverages menu', 'Privacy policy'] },
-            ].map((col) => (
-              <div key={col.h}>
-                <h5 className="kk-display mb-3 text-base font-bold text-[#F2F0EC]">{col.h}</h5>
-                <ul className="space-y-2">
-                  {col.items.map((t) => (
-                    <li key={t}>
-                      <a href="#" className="inline-block transition duration-200 hover:translate-x-1 hover:text-[#C8FF1F]">
-                        {t}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-            <div className="col-span-2 md:col-span-1">
-              <h5 className="kk-display mb-3 text-base font-bold text-[#F2F0EC]">Get release alerts</h5>
-              <p className="mb-3">Be first to know when new Konkani films open.</p>
-              <div className="flex gap-2">
-                <input
-                  type="email"
-                  aria-label="Email address"
-                  placeholder="Email address"
-                  className="w-full rounded-lg border border-[#F2F0EC]/20 bg-transparent px-3 py-2 text-[#F2F0EC] transition placeholder:text-[#F2F0EC]/40 focus:border-[#C8FF1F] focus:outline-none focus:ring-2 focus:ring-[#C8FF1F]/30"
-                />
-                <button className="rounded-lg bg-[#C8FF1F] px-4 py-2 font-semibold text-[#1E2227] transition duration-200 hover:-translate-y-0.5 hover:bg-[#D9FF66] active:translate-y-0">
-                  Join
-                </button>
-              </div>
-            </div>
-          </div>
-          <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-[#F2F0EC]/10 pt-6 sm:flex-row">
-            <p>© 2025 Konkani Samudai Theatres Pvt Ltd. All rights reserved.</p>
-            <div className="flex gap-6">
-              <a href="#" className="transition-colors hover:text-[#C8FF1F]">Terms of service</a>
-              <a href="#" className="transition-colors hover:text-[#C8FF1F]">Security</a>
-              <a href="#" className="transition-colors hover:text-[#C8FF1F]">Sitemap</a>
-            </div>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }
