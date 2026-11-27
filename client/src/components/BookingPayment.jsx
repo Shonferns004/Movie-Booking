@@ -40,6 +40,18 @@ export default function BookingPayment({
   const seats = selectedSeats.map((seat) => `${seat.row_label}-${seat.seat_number}`);
   const seatTotal = totalMinor || Number(hold?.totalMinor) || 0;
 
+  useEffect(() => {
+    const onMessage = (event) => {
+      const payload = event.data;
+      if (!payload || payload.event !== 'youpi.open_upi_app') return;
+      const url = String(payload.url || '');
+      if (!/^(upi:\/\/|intent:\/\/|gpay:\/\/|tez:\/\/|phonepe:\/\/|paytmmp:\/\/)/i.test(url)) return;
+      window.location.href = url;
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, []);
+
   useEffect(() => () => {
     if (pollRef.current) clearInterval(pollRef.current);
     try {

@@ -1794,6 +1794,7 @@
 
     function renderState(data) {
       state = data;
+      initUpiAppLaunch();
       const b = data.branding || {};
       const appName = b.appName || 'YouPI PG';
       const hideAppName = Boolean(b.hideAppName);
@@ -2567,6 +2568,66 @@
         </div>
       `;
       qBanner.style.display = 'block';
+    }
+
+    // --- MOBILE UPI APP LAUNCHERS ---
+    function initUpiAppLaunch() {
+      const row = document.getElementById('upiAppLaunchRow');
+      const hint = document.getElementById('upiAppLaunchHint');
+      if (!row) return;
+      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      const vpa = String(state?.payeeVpa || '').trim();
+      if (!isMobile || !vpa) {
+        row.style.display = 'none';
+        if (hint) hint.style.display = 'none';
+        return;
+      }
+      row.style.display = 'flex';
+      if (hint) hint.style.display = 'block';
+      if (row.dataset.bound === '1') return;
+      row.dataset.bound = '1';
+      row.querySelectorAll('[data-upi-app]').forEach((btn) => {
+        btn.addEventListener('click', () => launchUpiApp(btn.getAttribute('data-upi-app')));
+      });
+    }
+
+    function buildUpiUri() {
+      const vpa = String(state?.payeeVpa || '').trim();
+      if (!vpa) return '';
+      const query = new URLSearchParams({
+        pa: vpa,
+        pn: state?.merchantName || 'Konkani Samudai',
+        am: String(state?.amount || ''),
+        cu: 'INR',
+        tn: `Order ${state?.orderId || PAYMENT_ID}`,
+        tr: String(state?.orderId || PAYMENT_ID),
+      });
+      return `upi://pay?${query.toString()}`;
+    }
+
+    function launchUpiApp(app) {
+      const uri = buildUpiUri();
+      if (!uri) return;
+      const packages = {
+        gpay: 'com.google.android.apps.nbu.paisa.user',
+        phonepe: 'com.phonepe.app',
+        paytm: 'net.one97.paytm',
+        navi: 'com.navi.android',
+      };
+      const pkg = packages[app];
+      const isAndroid = /Android/i.test(navigator.userAgent);
+      let target = uri;
+      if (isAndroid && pkg) {
+        const params = uri.split('?')[1] || '';
+        target = `intent://pay?${params}#Intent;scheme=upi;package=${pkg};end`;
+      }
+      // The checkout runs inside an iframe. Intent URLs are often blocked from
+      // an iframe, so hand the deep link to the parent app to open it.
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ event: 'youpi.open_upi_app', url: target }, '*');
+      } else {
+        window.location.href = target;
+      }
     }
 
     // --- PURE QR SVG LOADER (ALWAYS LOADS & SHOWS QR CODE REGARDLESS OF SERVER STATUS) ---

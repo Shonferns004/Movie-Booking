@@ -3053,3 +3053,42 @@
         max-height: 170px !important;
       }
     }
+/* Mobile UPI app launchers */
+.ypg-mobile-upi-apps {
+  display: none;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 10px 0 6px;
+}
+.ypg-upi-app-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 74px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.12s ease;
+}
+.ypg-upi-app-btn:active {
+  transform: scale(0.97);
+  border-color: #94a3b8;
+}
+.ypg-mobile-upi-hint {
+  display: none;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+@media (min-width: 768px) {
+  .ypg-mobile-upi-apps,
+  .ypg-mobile-upi-hint {
+    display: none !important;
+  }
+}
