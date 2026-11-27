@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>{{MERCHANT_NAME}} · {{APP_NAME}} Checkout</title>
-  <link rel="stylesheet" href="/css/checkout.css?v=13">
+  <link rel="stylesheet" href="/css/checkout.css?v=14">
 </head>
 
 <body>
@@ -1798,6 +1798,8 @@
       const stateStatus = String(data?.status || '').toUpperCase();
       if (['SUCCESS', 'FAILED', 'EXPIRED', 'CANCELLED'].includes(stateStatus)) {
         hideCoinOverlay();
+        const doneBar = document.getElementById('upiFixedBar');
+        if (doneBar) doneBar.hidden = true;
       }
       const b = data.branding || {};
       const appName = b.appName || 'YouPI PG';
@@ -2223,6 +2225,10 @@
             });
           } catch (e) { }
 
+          try {
+            postToMerchant({ event: 'youpi.checkout_ready', paymentId: PAYMENT_ID });
+          } catch (e) { }
+
           const btnReturn = document.getElementById('btnReturnStore') || document.getElementById('btnReturnToStore');
           const safeReturnUrl = sanitizeRedirectUrl(data.returnUrl);
           if (btnReturn && safeReturnUrl) {
@@ -2240,6 +2246,12 @@
 
       // Sync payment methods & modality layout immediately to match merchant settings
       renderMethodSelectorBar(data);
+
+      // Tell the embedding app the checkout UI is ready so its branded loader
+      // can fade out only once the portal content is on screen.
+      try {
+        postToMerchant({ event: 'youpi.checkout_ready', paymentId: PAYMENT_ID });
+      } catch (e) { }
 
       // Auto-bind customer to payment session helper
       if (typeof autoBindCustomerToSession !== 'function') {
@@ -2585,6 +2597,9 @@
       const vpa = String(state?.payeeVpa || '').trim();
       const fixedBar = document.getElementById('upiFixedBar');
       const fixedBtn = document.getElementById('upiFixedContinue');
+      if (fixedBar && fixedBar.parentElement !== document.body) {
+        document.body.appendChild(fixedBar);
+      }
       if (!isMobile || !vpa) {
         row.style.display = 'none';
         if (hint) hint.style.display = 'none';

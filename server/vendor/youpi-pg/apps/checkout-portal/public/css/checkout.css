@@ -3340,3 +3340,26 @@
     display: none !important;
   }
 }
+
+/* Compact mobile cancel sheet: both buttons on screen */
+@media (max-width: 767px) {
+  .rzp-cancel-header-arc {
+    display: none !important;
+  }
+  .rzp-sheet-dialog {
+    max-height: 86dvh !important;
+    padding: 14px 14px max(14px, env(safe-area-inset-bottom)) !important;
+    display: flex;
+    flex-direction: column;
+  }
+  #rzpCancelPromptView {
+    padding-bottom: 8px !important;
+  }
+  .rzp-sheet-title {
+    font-size: 18px !important;
+    margin-top: 0 !important;
+  }
+  .rzp-sheet-subtitle {
+    font-size: 12px !important;
+  }
+}

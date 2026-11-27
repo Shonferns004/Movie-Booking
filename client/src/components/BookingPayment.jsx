@@ -37,6 +37,7 @@ function attachPaymentLoader() {
   container.appendChild(loader);
 
   let hidden = false;
+  let contentReady = false;
   const hide = () => {
     if (hidden) return;
     hidden = true;
@@ -44,19 +45,32 @@ function attachPaymentLoader() {
     window.setTimeout(() => loader.remove(), 260);
   };
 
-  if (iframe) {
-    iframe.addEventListener('load', hide, { once: true });
-    if (iframe.dataset.loaded === '1') window.setTimeout(hide, 200);
-  }
-
   const onMessage = (event) => {
-    if (event?.data?.event === 'youpi.modal_ready') hide();
+    if (event?.data?.event === 'youpi.checkout_ready') {
+      contentReady = true;
+      hide();
+    }
   };
   window.addEventListener('message', onMessage);
+
+  if (iframe) {
+    iframe.addEventListener(
+      'load',
+      () => {
+        // The iframe load fires before the portal has painted its payment UI;
+        // keep our branded loader over the portal splash until it's ready.
+        window.setTimeout(() => {
+          if (!contentReady) hide();
+        }, 2200);
+      },
+      { once: true },
+    );
+  }
+
   window.setTimeout(() => {
     window.removeEventListener('message', onMessage);
     hide();
-  }, 4000);
+  }, 6000);
 }
 
 function enablePaymentSheetDrag() {
