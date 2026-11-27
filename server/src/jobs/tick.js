@@ -46,6 +46,20 @@ export async function processOutbox() {
     for (const msg of rows) {
       try {
         let providerMessageId = `console-${Date.now()}`;
+        const isWhatsApp = String(msg.event_type || '').endsWith('_whatsapp');
+        const gatewayBase = String(env.YOUPI_API_URL || '').replace(/\/$/, '');
+        const hostedGateway = /^https?:\/\//.test(gatewayBase) && !/127\.0\.0\.1|localhost/i.test(gatewayBase);
+
+        if (isWhatsApp && !hostedGateway) {
+          // A development box shares the production database but not the deployed
+          // WhatsApp gateway. Leave these for the production worker instead of
+          // burning the retry budget against a local gateway with no movie tables.
+          await client.query(
+            "UPDATE email_outbox SET next_attempt_at=now() + interval '1 minute', updated_at=now() WHERE id=$1",
+            [msg.id],
+          );
+          continue;
+        }
 
         if (msg.event_type === 'ticket_whatsapp') {
           // Generate + send the PDF on the gateway host, which owns the WhatsApp socket.
