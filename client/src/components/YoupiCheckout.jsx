@@ -91,7 +91,9 @@ export default function YoupiCheckout({
   const [error, setError] = useState('');
   const [cancelBusy, setCancelBusy] = useState(false);
   const completedRef = useRef(false);
+  const launchedRef = useRef(false);
   const timersRef = useRef([]);
+  const [showEscape, setShowEscape] = useState(false);
 
   const amount = state?.amount || order?.amount || '0';
   const ticketMinor = Number(order?.baseAmountMinor ?? order?.amountMinor ?? 0);
@@ -115,10 +117,16 @@ export default function YoupiCheckout({
 
   useEffect(() => {
     if (typeof document === 'undefined') return undefined;
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const body = document.body;
+    const previousOverflow = body.style.overflow;
+    const previousPadding = body.style.paddingRight;
+    const scrollbar = window.innerWidth - document.documentElement.clientWidth;
+    body.style.overflow = 'hidden';
+    // Keep the page behind from jumping when its scrollbar disappears.
+    if (scrollbar > 0) body.style.paddingRight = `${scrollbar}px`;
     return () => {
-      document.body.style.overflow = previous;
+      body.style.overflow = previousOverflow;
+      body.style.paddingRight = previousPadding;
     };
   }, []);
 
@@ -204,6 +212,55 @@ export default function YoupiCheckout({
     return () => window.clearInterval(timer);
   }, [paymentId, checkStatus]);
 
+  // Coming back from the UPI app: show the coin acknowledgement immediately and
+  // ask the gateway right away instead of waiting for the next 3s poll tick.
+  useEffect(() => {
+    if (!paymentId || typeof document === 'undefined') return undefined;
+    const armOverlay = () => {
+      if (!launchedRef.current || completedRef.current) return;
+      setMode((current) => (current === 'idle' ? 'verifying' : current));
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        // Arm the coin while the UPI app covers the browser, so it is already
+        // on screen the instant the customer returns (no flash of the sheet).
+        armOverlay();
+        return;
+      }
+      if (!launchedRef.current || completedRef.current) return;
+      armOverlay();
+      checkStatus();
+      const first = window.setTimeout(checkStatus, 1200);
+      const second = window.setTimeout(checkStatus, 3200);
+      timersRef.current.push(first, second);
+    };
+    const onReturn = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (!launchedRef.current || completedRef.current) return;
+      armOverlay();
+      checkStatus();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('pagehide', armOverlay);
+    window.addEventListener('focus', onReturn);
+    window.addEventListener('pageshow', onReturn);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pagehide', armOverlay);
+      window.removeEventListener('focus', onReturn);
+      window.removeEventListener('pageshow', onReturn);
+    };
+  }, [paymentId, checkStatus]);
+
+  useEffect(() => {
+    if (mode !== 'verifying') {
+      setShowEscape(false);
+      return undefined;
+    }
+    const timer = window.setTimeout(() => setShowEscape(true), 8000);
+    return () => window.clearTimeout(timer);
+  }, [mode]);
+
   useEffect(() => {
     if (mode === 'expired' || mode === 'done') return undefined;
     const timer = window.setInterval(() => {
@@ -234,6 +291,7 @@ export default function YoupiCheckout({
       return;
     }
     setError('');
+    launchedRef.current = true;
     window.location.href = appTarget(app, upiUri.split('?')[1] || '');
   }
 
@@ -332,7 +390,7 @@ export default function YoupiCheckout({
             </button>
           </header>
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-4 sm:px-6 lg:overflow-hidden">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-4 sm:px-6 lg:overflow-hidden">
             {/* Mobile / tablet summary */}
             <div className="lg:hidden">
               <div className="flex items-start justify-between gap-4">
@@ -456,9 +514,19 @@ export default function YoupiCheckout({
               </div>
             </div>
             <div>
-              <p className="text-sm font-semibold">Payment received</p>
-              <p className="mt-1 text-[11px] text-[#B5AFA6]">Confirming with your bank…</p>
+              <p className="text-sm font-semibold">Confirming payment…</p>
+              <p className="mt-1 text-[11px] text-[#B5AFA6]">Checking with your bank. This can take a few seconds.</p>
             </div>
+            {showEscape && (
+              <button
+                type="button"
+                onClick={cancelPayment}
+                disabled={cancelBusy}
+                className="absolute bottom-6 left-1/2 -translate-x-1/2 rounded-full px-4 py-2 text-[11px] font-semibold text-[#B5AFA6] transition-colors hover:text-[#F08A80] disabled:opacity-50"
+              >
+                {cancelBusy ? 'Cancelling…' : 'Taking too long? Cancel'}
+              </button>
+            )}
           </div>
         )}
 
