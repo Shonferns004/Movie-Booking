@@ -3279,3 +3279,48 @@
   cursor: pointer;
 }
 .ypg-coin-cancel:active { background: #f1f5f9; }
+
+/* Mobile fixed amount + continue bar */
+.ypg-upi-fixed-bar { display: none; }
+@media (max-width: 767px) {
+  .ypg-sticky-footer { display: none !important; }
+  .ypg-upi-fixed-bar {
+    display: flex;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 60;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+    background: #ffffff;
+    border-top: 1px solid #e2e8f0;
+    box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.12);
+  }
+  .ypg-upi-fixed-bar[hidden] { display: none !important; }
+  .ypg-body { padding-bottom: 100px !important; }
+}
+.ypg-upi-fixed-total { display: flex; flex-direction: column; line-height: 1.1; }
+.ypg-upi-fixed-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #64748b;
+  font-weight: 700;
+}
+.ypg-upi-fixed-total strong { font-size: 18px; color: #0f172a; }
+.ypg-upi-fixed-continue {
+  flex: 1;
+  max-width: 230px;
+  height: 46px;
+  border: 0;
+  border-radius: 12px;
+  background: #0f172a;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.ypg-upi-fixed-continue:disabled { opacity: 0.4; cursor: not-allowed; }

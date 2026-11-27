@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>{{MERCHANT_NAME}} · {{APP_NAME}} Checkout</title>
-  <link rel="stylesheet" href="/css/checkout.css?v=8">
+  <link rel="stylesheet" href="/css/checkout.css?v=9">
 </head>
 
 <body>
@@ -2586,6 +2586,8 @@
       if (!isMobile || !vpa) {
         row.style.display = 'none';
         if (hint) hint.style.display = 'none';
+        const hiddenBar = document.getElementById('upiFixedBar');
+        if (hiddenBar) hiddenBar.hidden = true;
         return;
       }
       row.style.display = 'flex';
@@ -2595,9 +2597,16 @@
 
       const continueBtn = document.getElementById('upiContinueBtn');
       const footerContinue = document.getElementById('btnContinuePayment');
+      const fixedBar = document.getElementById('upiFixedBar');
+      const fixedBtn = document.getElementById('upiFixedContinue');
       const overlay = document.getElementById('upiCoinOverlay');
       if (overlay && overlay.parentElement !== document.body) {
         document.body.appendChild(overlay);
+      }
+      if (fixedBar) {
+        fixedBar.hidden = false;
+        const amountEl = document.getElementById('upiFixedAmount');
+        if (amountEl && state?.amount) amountEl.textContent = `₹${state.amount}`;
       }
 
       const beginSelectedApp = () => {
@@ -2610,6 +2619,10 @@
           footerContinue.textContent = 'Payment Done — Check My Payment';
           footerContinue.onclick = () => submitPaymentDone();
         }
+        if (fixedBtn) {
+          fixedBtn.textContent = 'Payment Done — Check My Payment';
+          fixedBtn.onclick = () => submitPaymentDone();
+        }
         window.setTimeout(() => launchUpiApp(selectedUpiApp), 90);
       };
 
@@ -2618,6 +2631,11 @@
         footerContinue.style.display = 'block';
         footerContinue.textContent = 'Continue';
         footerContinue.onclick = beginSelectedApp;
+      }
+      if (fixedBtn) {
+        fixedBtn.disabled = true;
+        fixedBtn.textContent = 'Continue';
+        fixedBtn.onclick = beginSelectedApp;
       }
       if (continueBtn) continueBtn.style.display = 'none';
 
@@ -2630,6 +2648,11 @@
             footerContinue.onclick = beginSelectedApp;
             footerContinue.style.display = 'block';
           }
+          if (fixedBtn) {
+            fixedBtn.textContent = 'Continue';
+            fixedBtn.disabled = !selectedUpiApp;
+            fixedBtn.onclick = beginSelectedApp;
+          }
         };
       }
       row.querySelectorAll('[data-upi-app]').forEach((btn) => {
@@ -2639,6 +2662,7 @@
             other.classList.toggle('is-selected', other === btn);
           });
           if (continueBtn) continueBtn.disabled = !selectedUpiApp;
+          if (fixedBtn) fixedBtn.disabled = !selectedUpiApp;
         });
       });
       if (continueBtn) {
