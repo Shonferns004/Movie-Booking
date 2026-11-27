@@ -3212,3 +3212,58 @@
   }
 }
 .ypg-upi-app-btn { gap: 6px; }
+
+/* Mobile UPI selector: compact grid, footer Continue */
+#upiContinueBtn { display: none !important; }
+@media (max-width: 767px) {
+  .ypg-mobile-upi-apps {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .ypg-upi-app-btn {
+    height: 46px;
+    min-width: 0;
+    padding: 0 10px;
+    justify-content: flex-start;
+    font-size: 12px;
+  }
+  .ypg-upi-app-btn img {
+    width: 18px !important;
+    height: 18px !important;
+    max-width: 18px !important;
+    max-height: 18px !important;
+  }
+}
+
+/* Mobile UPI apps: single-column list */
+@media (max-width: 767px) {
+  .ypg-mobile-upi-apps {
+    display: flex !important;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .ypg-upi-app-btn {
+    width: 100%;
+    height: 48px;
+    padding: 0 12px;
+    justify-content: flex-start;
+    font-size: 13px;
+    border-radius: 12px;
+  }
+  .ypg-upi-app-btn img {
+    width: 22px !important;
+    height: 22px !important;
+    max-width: 22px !important;
+    max-height: 22px !important;
+  }
+  .ypg-upi-app-btn.is-selected {
+    padding-right: 14px;
+  }
+  .ypg-upi-app-btn.is-selected::after {
+    content: '?';
+    margin-left: auto;
+    font-size: 14px;
+    font-weight: 900;
+  }
+}

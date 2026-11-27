@@ -1515,3 +1515,27 @@ body .youpi-checkout-close-btn:hover {
     border-top-right-radius: 24px !important;
   }
 }
+
+/* YouPI checkout mobile drag handle */
+.youpi-drag-handle {
+  display: none;
+}
+@media (max-width: 767px) {
+  .youpi-checkout-container {
+    touch-action: pan-y;
+  }
+  .youpi-drag-handle {
+    display: block;
+    position: absolute;
+    top: 6px;
+    left: 50%;
+    width: 44px;
+    height: 5px;
+    margin-left: -22px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.55);
+    z-index: 30;
+    touch-action: none;
+    cursor: grab;
+  }
+}

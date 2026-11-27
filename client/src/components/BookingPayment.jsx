@@ -5,6 +5,70 @@ import { loadYoupiScript } from '../services/youpi.js';
 const rupees = (minor = 0) =>
   `₹${Number((Number(minor) || 0) / 100).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
 
+function enablePaymentSheetDrag() {
+  if (typeof window === 'undefined' || window.innerWidth >= 768) return;
+  const container = document.querySelector('.youpi-checkout-container');
+  if (!container || container.dataset.sheetDrag === '1') return;
+  container.dataset.sheetDrag = '1';
+
+  const handle = document.createElement('div');
+  handle.className = 'youpi-drag-handle';
+  handle.setAttribute('aria-hidden', 'true');
+  container.appendChild(handle);
+
+  const controller = new AbortController();
+  let startY = 0;
+  let offset = 0;
+  let dragging = false;
+
+  const onDown = (event) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    dragging = true;
+    startY = event.clientY;
+    offset = 0;
+    container.style.transition = 'none';
+    try {
+      handle.setPointerCapture(event.pointerId);
+    } catch {
+      // Ignore.
+    }
+  };
+
+  const onMove = (event) => {
+    if (!dragging) return;
+    const delta = event.clientY - startY;
+    offset = delta > 0 ? delta : Math.max(delta * 0.3, -48);
+    container.style.transform = `translateY(${offset}px)`;
+  };
+
+  const onUp = () => {
+    if (!dragging) return;
+    dragging = false;
+    container.style.transition = 'transform 0.28s cubic-bezier(0.22, 1, 0.36, 1)';
+    if (offset > 120) {
+      container.style.transform = 'translateY(100%)';
+      window.setTimeout(() => {
+        document.querySelector('.youpi-checkout-close-btn')?.click();
+      }, 220);
+    } else {
+      container.style.transform = 'translateY(0)';
+    }
+  };
+
+  handle.addEventListener('pointerdown', onDown, { signal: controller.signal });
+  window.addEventListener('pointermove', onMove, { passive: true, signal: controller.signal });
+  window.addEventListener('pointerup', onUp, { signal: controller.signal });
+  window.addEventListener('pointercancel', onUp, { signal: controller.signal });
+
+  const observer = new MutationObserver(() => {
+    if (!container.isConnected) {
+      controller.abort();
+      observer.disconnect();
+    }
+  });
+  observer.observe(document.body, { childList: true });
+}
+
 export default function BookingPayment({
   hold,
   context,
@@ -172,6 +236,7 @@ export default function BookingPayment({
     else if (typeof Youpi?.open === 'function') instance = Youpi.open(options);
     else throw new Error('Payment SDK did not initialise');
     youpiRef.current = instance || null;
+    window.setTimeout(enablePaymentSheetDrag, 80);
   }
 
   async function pay() {

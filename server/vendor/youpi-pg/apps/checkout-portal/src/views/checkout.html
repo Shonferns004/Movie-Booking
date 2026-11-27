@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>{{MERCHANT_NAME}} · {{APP_NAME}} Checkout</title>
-  <link rel="stylesheet" href="/css/checkout.css?v=3">
+  <link rel="stylesheet" href="/css/checkout.css?v=7">
 </head>
 
 <body>
@@ -2454,22 +2454,22 @@
             return;
           }
 
-          // Initialize button hidden until 4:00 has elapsed
-          if (btnContinue && remainingSec > 240) {
-            btnContinue.style.display = 'none';
-          } else if (btnContinue) {
-            btnContinue.style.display = 'block';
+          // Initialize button: hidden until 4:00 has elapsed, unless the mobile
+          // UPI app selector is driving it (then Continue is shown immediately).
+          if (btnContinue) {
+            const forceContinue = btnContinue.dataset.upiContinue === '1';
+            btnContinue.style.display = forceContinue || remainingSec <= 240 ? 'block' : 'none';
           }
 
           runCountdown(remainingSec, sec => {
             const tText = document.getElementById('activeTimerText');
             if (tText) tText.textContent = formatTime(sec);
 
-            // "Payment Done — Check My Payment" button appears after 4:00
-            if (sec <= 240 && btnContinue) {
-              btnContinue.style.display = 'block';
-            } else if (btnContinue) {
-              btnContinue.style.display = 'none';
+            // "Payment Done — Check My Payment" appears after 4:00; the mobile
+            // UPI Continue mode keeps it visible from the start.
+            if (btnContinue) {
+              const forceContinue = btnContinue.dataset.upiContinue === '1';
+              btnContinue.style.display = forceContinue || sec <= 240 ? 'block' : 'none';
             }
           }, () => {
             const tText = document.getElementById('activeTimerText');
@@ -2594,6 +2594,27 @@
       row.dataset.bound = '1';
 
       const continueBtn = document.getElementById('upiContinueBtn');
+      const footerContinue = document.getElementById('btnContinuePayment');
+      const overlay = document.getElementById('upiCoinOverlay');
+      if (overlay && overlay.parentElement !== document.body) {
+        document.body.appendChild(overlay);
+      }
+      if (footerContinue) {
+        footerContinue.dataset.upiContinue = '1';
+        footerContinue.style.display = 'block';
+        footerContinue.textContent = 'Continue';
+        footerContinue.onclick = () => {
+          if (!selectedUpiApp) {
+            if (hint) hint.textContent = 'Pick a UPI app first.';
+            return;
+          }
+          showCoinOverlay();
+          footerContinue.textContent = 'Payment Done — Check My Payment';
+          footerContinue.onclick = () => submitPaymentDone();
+          window.setTimeout(() => launchUpiApp(selectedUpiApp), 90);
+        };
+      }
+      if (continueBtn) continueBtn.style.display = 'none';
       row.querySelectorAll('[data-upi-app]').forEach((btn) => {
         btn.addEventListener('click', () => {
           selectedUpiApp = btn.getAttribute('data-upi-app') || '';
