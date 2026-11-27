@@ -122,16 +122,19 @@
               <div id="viewUpiContent">
                 <h2 class="ypg-page-title">UPI QR Payment</h2>
 
-                <!-- Section Label & Countdown Timer -->
+                <!-- Section Label, Amount & Countdown Timer -->
                 <div class="ypg-section-label-row">
                   <span class="ypg-section-heading">Scan &amp; Pay via UPI</span>
-                  <div class="ypg-countdown-pill" id="activeTimerBadge">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                      stroke-width="2.2">
-                      <circle cx="12" cy="12" r="10" />
-                      <polyline points="12 6 12 12 16 14" />
-                    </svg>
-                    <span id="activeTimerText">05:00</span>
+                  <div class="ypg-amount-timer">
+                    <strong class="ypg-amount-value" id="upiHeaderAmount">₹{{AMOUNT}}</strong>
+                    <div class="ypg-countdown-pill" id="activeTimerBadge">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.2">
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
+                      </svg>
+                      <span id="activeTimerText">05:00</span>
+                    </div>
                   </div>
                 </div>
 
@@ -205,7 +208,7 @@
                     <button type="button" class="ypg-upi-continue" id="upiContinueBtn" disabled>
                       Continue
                     </button>
-                    <div class="ypg-mobile-upi-hint" id="upiAppLaunchHint">Pick an app, then tap Continue. You'll come back here for confirmation.</div>
+                    <div class="ypg-mobile-upi-hint" id="upiAppLaunchHint">Tap an app to pay - you'll come back here for confirmation.</div>
 
                     <div class="ypg-coin-overlay" id="upiCoinOverlay" hidden>
                       <div class="ypg-coin" aria-hidden="true"><span>₹</span></div>

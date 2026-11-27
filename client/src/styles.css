@@ -1614,3 +1614,11 @@ body .youpi-checkout-close-btn:hover {
     animation: none;
   }
 }
+
+/* Taller YouPI sheet on phones */
+@media (max-width: 767px) {
+  .youpi-checkout-container {
+    height: 94dvh !important;
+    max-height: 96dvh !important;
+  }
+}
