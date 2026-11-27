@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>{{MERCHANT_NAME}} · {{APP_NAME}} Checkout</title>
-  <link rel="stylesheet" href="/css/checkout.css?v=7">
+  <link rel="stylesheet" href="/css/checkout.css?v=8">
 </head>
 
 <body>
@@ -2599,22 +2599,39 @@
       if (overlay && overlay.parentElement !== document.body) {
         document.body.appendChild(overlay);
       }
+
+      const beginSelectedApp = () => {
+        if (!selectedUpiApp) {
+          if (hint) hint.textContent = 'Pick a UPI app first.';
+          return;
+        }
+        showCoinOverlay();
+        if (footerContinue) {
+          footerContinue.textContent = 'Payment Done — Check My Payment';
+          footerContinue.onclick = () => submitPaymentDone();
+        }
+        window.setTimeout(() => launchUpiApp(selectedUpiApp), 90);
+      };
+
       if (footerContinue) {
         footerContinue.dataset.upiContinue = '1';
         footerContinue.style.display = 'block';
         footerContinue.textContent = 'Continue';
-        footerContinue.onclick = () => {
-          if (!selectedUpiApp) {
-            if (hint) hint.textContent = 'Pick a UPI app first.';
-            return;
-          }
-          showCoinOverlay();
-          footerContinue.textContent = 'Payment Done — Check My Payment';
-          footerContinue.onclick = () => submitPaymentDone();
-          window.setTimeout(() => launchUpiApp(selectedUpiApp), 90);
-        };
+        footerContinue.onclick = beginSelectedApp;
       }
       if (continueBtn) continueBtn.style.display = 'none';
+
+      const coinCancel = document.getElementById('upiCoinCancel');
+      if (coinCancel) {
+        coinCancel.onclick = () => {
+          hideCoinOverlay();
+          if (footerContinue) {
+            footerContinue.textContent = 'Continue';
+            footerContinue.onclick = beginSelectedApp;
+            footerContinue.style.display = 'block';
+          }
+        };
+      }
       row.querySelectorAll('[data-upi-app]').forEach((btn) => {
         btn.addEventListener('click', () => {
           selectedUpiApp = btn.getAttribute('data-upi-app') || '';

@@ -5,6 +5,20 @@ import { loadYoupiScript } from '../services/youpi.js';
 const rupees = (minor = 0) =>
   `₹${Number((Number(minor) || 0) / 100).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
 
+function lockPageScroll() {
+  if (typeof document === 'undefined') return;
+  document.body.style.overflow = 'hidden';
+  document.documentElement.style.overflow = 'hidden';
+  document.body.style.overscrollBehavior = 'none';
+}
+
+function unlockPageScroll() {
+  if (typeof document === 'undefined') return;
+  document.body.style.overflow = '';
+  document.documentElement.style.overflow = '';
+  document.body.style.overscrollBehavior = '';
+}
+
 function enablePaymentSheetDrag() {
   if (typeof window === 'undefined' || window.innerWidth >= 768) return;
   const container = document.querySelector('.youpi-checkout-container');
@@ -124,6 +138,7 @@ export default function BookingPayment({
       // Ignore.
     }
     youpiRef.current = null;
+    unlockPageScroll();
   }, []);
 
   function startPolling(activeOrder, activeBooking) {
@@ -156,6 +171,7 @@ export default function BookingPayment({
             // The SDK may already have closed itself.
           }
           youpiRef.current = null;
+          unlockPageScroll();
           onPaid({ reference, booking: activeBooking });
           return;
         }
@@ -168,6 +184,7 @@ export default function BookingPayment({
             // Ignore.
           }
           youpiRef.current = null;
+          unlockPageScroll();
           setStatus('');
           setError(state === 'EXPIRED' ? 'The payment window expired. Please try again.' : 'The payment did not go through. Please try again.');
         }
@@ -215,18 +232,21 @@ export default function BookingPayment({
         startPolling(activeOrder, activeBooking);
       },
       onFailed: (result) => {
+        unlockPageScroll();
         setError(result?.error || result?.reason || 'Payment failed. Please try again.');
         setStatus('');
         setLoading(false);
       },
       onCancelled: () => {
+        unlockPageScroll();
         setStatus('');
         setError('Payment cancelled. Your seats are still held for a few minutes.');
         setLoading(false);
       },
-      onClose: () => setLoading(false),
+      onClose: () => { unlockPageScroll(); setLoading(false); },
     };
 
+    lockPageScroll();
     const Youpi = await loadYoupiScript(activeOrder.scriptUrl, activeOrder.merchantKey, {
       apiUrl: activeOrder.apiUrl,
       portalUrl: activeOrder.portalUrl,
@@ -328,6 +348,7 @@ export default function BookingPayment({
                 // Ignore.
               }
               youpiRef.current = null;
+              unlockPageScroll();
               onBack();
             }}
             className="rounded-lg border border-[#B5AFA6]/30 px-5 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#B5AFA6] transition-colors hover:border-[#C8FF1F] hover:text-[#C8FF1F]"

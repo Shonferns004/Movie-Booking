@@ -3267,3 +3267,15 @@
     font-weight: 900;
   }
 }
+.ypg-coin-cancel {
+  margin-top: 6px;
+  padding: 9px 22px;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.ypg-coin-cancel:active { background: #f1f5f9; }
