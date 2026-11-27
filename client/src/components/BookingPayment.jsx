@@ -94,7 +94,7 @@ export default function BookingPayment({
     setCheckout(null);
     setLoading(true);
     setError('');
-    setStatus('Starting secure payment…');
+    setStatus('Starting payment…');
     try {
       const sessionRef = localStorage.getItem('sessionRef') || undefined;
       const response = await api.post('/payments/youpi/orders', {
