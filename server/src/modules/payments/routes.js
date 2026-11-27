@@ -54,6 +54,15 @@ router.get('/youpi/status/:paymentId', async (req, res, next) => {
   try { res.json(await payments.getYoupiStatus(req.params.paymentId, { publicOnly: true })); } catch (e) { next(e); }
 });
 
+// In-app React checkout: sanitized state for the UPI sheet.
+router.get('/youpi/checkout/:paymentId', async (req, res, next) => {
+  try { res.json(await payments.getYoupiCheckoutState(req.params.paymentId)); } catch (e) { next(e); }
+});
+
+router.post('/youpi/checkout/:paymentId/cancel', async (req, res, next) => {
+  try { res.json(await payments.cancelYoupiCheckout(req.params.paymentId)); } catch (e) { next(e); }
+});
+
 const youpiConfirmSchema = z.object({
   orderId: z.string(),
   utr: z.string().optional(),

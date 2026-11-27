@@ -608,6 +608,61 @@ export async function createYoupiSession({
   return body;
 }
 
+/** Public checkout state for the in-app React checkout (UPI only). */
+export async function getYoupiCheckoutState(paymentId) {
+  const gatewayBase = youpiApi();
+  let res;
+  try {
+    res = await fetch(`${gatewayBase}/api/v1/checkout/${encodeURIComponent(paymentId)}/state`, {
+      headers: {
+        ...(env.YOUPI_MERCHANT_ID ? { 'X-Merchant-Id': env.YOUPI_MERCHANT_ID } : {}),
+      },
+    });
+  } catch (e) {
+    if (e && e.status) throw e;
+    console.error('[youpi] gateway unreachable:', gatewayBase, e?.message || e);
+    throw serviceUnavailable('payment gateway is unreachable - check YOUPI_API_URL');
+  }
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw notFound('youpi checkout not found');
+  return {
+    paymentId: body.id || paymentId,
+    orderId: body.orderId || null,
+    amount: body.amount || null,
+    currency: body.currency || 'INR',
+    status: body.status || null,
+    timeRemainingSeconds: body.timeRemainingSeconds ?? null,
+    expiresAt: body.expiresAt || null,
+    payeeVpa: body.payeeVpa || null,
+    payeeName: body.payeeName || body.merchantName || null,
+    merchantName: body.merchantName || null,
+    isBanned: Boolean(body.isBanned),
+    blockedNotice: body.blockedNotice || null,
+  };
+}
+
+export async function cancelYoupiCheckout(paymentId) {
+  const gatewayBase = youpiApi();
+  let res;
+  try {
+    res = await fetch(`${gatewayBase}/api/v1/checkout/${encodeURIComponent(paymentId)}/cancel`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(env.YOUPI_MERCHANT_ID ? { 'X-Merchant-Id': env.YOUPI_MERCHANT_ID } : {}),
+      },
+      body: '{}',
+    });
+  } catch (e) {
+    if (e && e.status) throw e;
+    console.error('[youpi] gateway unreachable:', gatewayBase, e?.message || e);
+    throw serviceUnavailable('payment gateway is unreachable - check YOUPI_API_URL');
+  }
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok && res.status !== 409) throw badRequest(body.error || body.message || 'could not cancel the checkout');
+  return { paymentId, status: body.status || 'CANCELLED' };
+}
+
 /** Poll YOUPI for the authoritative status of a payment session. */
 export async function getYoupiStatus(paymentId, { publicOnly = false } = {}) {
   const gatewayBase = youpiApi();
