@@ -19,6 +19,46 @@ function unlockPageScroll() {
   document.body.style.overscrollBehavior = '';
 }
 
+function attachPaymentLoader() {
+  const container = document.querySelector('.youpi-checkout-container');
+  if (!container || container.querySelector('.konkani-pay-loader')) return;
+
+  const iframe = container.querySelector('.youpi-checkout-iframe');
+  const loader = document.createElement('div');
+  loader.className = 'konkani-pay-loader';
+  loader.innerHTML = `
+    <div class="konkani-pay-loader__mark">K</div>
+    <div class="konkani-pay-loader__copy">
+      <strong>Konkani Samudai</strong>
+      <span>Opening secure payment…</span>
+    </div>
+    <div class="konkani-pay-loader__bar"><i></i></div>
+  `;
+  container.appendChild(loader);
+
+  let hidden = false;
+  const hide = () => {
+    if (hidden) return;
+    hidden = true;
+    loader.style.opacity = '0';
+    window.setTimeout(() => loader.remove(), 260);
+  };
+
+  if (iframe) {
+    iframe.addEventListener('load', hide, { once: true });
+    if (iframe.dataset.loaded === '1') window.setTimeout(hide, 200);
+  }
+
+  const onMessage = (event) => {
+    if (event?.data?.event === 'youpi.modal_ready') hide();
+  };
+  window.addEventListener('message', onMessage);
+  window.setTimeout(() => {
+    window.removeEventListener('message', onMessage);
+    hide();
+  }, 4000);
+}
+
 function enablePaymentSheetDrag() {
   if (typeof window === 'undefined' || window.innerWidth >= 768) return;
   const container = document.querySelector('.youpi-checkout-container');
@@ -256,7 +296,10 @@ export default function BookingPayment({
     else if (typeof Youpi?.open === 'function') instance = Youpi.open(options);
     else throw new Error('Payment SDK did not initialise');
     youpiRef.current = instance || null;
-    window.setTimeout(enablePaymentSheetDrag, 80);
+    window.setTimeout(() => {
+      attachPaymentLoader();
+      enablePaymentSheetDrag();
+    }, 80);
   }
 
   async function pay() {

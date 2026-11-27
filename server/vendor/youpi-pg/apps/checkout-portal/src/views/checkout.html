@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>{{MERCHANT_NAME}} · {{APP_NAME}} Checkout</title>
-  <link rel="stylesheet" href="/css/checkout.css?v=9">
+  <link rel="stylesheet" href="/css/checkout.css?v=13">
 </head>
 
 <body>
@@ -2583,22 +2583,22 @@
       if (!row) return;
       const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
       const vpa = String(state?.payeeVpa || '').trim();
+      const fixedBar = document.getElementById('upiFixedBar');
+      const fixedBtn = document.getElementById('upiFixedContinue');
       if (!isMobile || !vpa) {
         row.style.display = 'none';
         if (hint) hint.style.display = 'none';
-        const hiddenBar = document.getElementById('upiFixedBar');
-        if (hiddenBar) hiddenBar.hidden = true;
+        if (fixedBar) fixedBar.hidden = true;
         return;
       }
       row.style.display = 'flex';
       if (hint) hint.style.display = 'block';
+      if (fixedBar) fixedBar.hidden = false;
       if (row.dataset.bound === '1') return;
       row.dataset.bound = '1';
 
       const continueBtn = document.getElementById('upiContinueBtn');
       const footerContinue = document.getElementById('btnContinuePayment');
-      const fixedBar = document.getElementById('upiFixedBar');
-      const fixedBtn = document.getElementById('upiFixedContinue');
       const overlay = document.getElementById('upiCoinOverlay');
       if (overlay && overlay.parentElement !== document.body) {
         document.body.appendChild(overlay);
@@ -2653,6 +2653,7 @@
             fixedBtn.disabled = !selectedUpiApp;
             fixedBtn.onclick = beginSelectedApp;
           }
+          if (fixedBar) fixedBar.hidden = false;
         };
       }
       row.querySelectorAll('[data-upi-app]').forEach((btn) => {

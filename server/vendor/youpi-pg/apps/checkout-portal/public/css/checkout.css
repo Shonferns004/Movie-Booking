@@ -3261,9 +3261,9 @@
     padding-right: 14px;
   }
   .ypg-upi-app-btn.is-selected::after {
-    content: '?';
+    content: '\2713';
     margin-left: auto;
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 900;
   }
 }
@@ -3324,3 +3324,19 @@
   cursor: pointer;
 }
 .ypg-upi-fixed-continue:disabled { opacity: 0.4; cursor: not-allowed; }
+@media (max-width: 767px) {
+  .ypg-qr-prompt-title,
+  .ypg-qr-details-col .ypg-upi-logos-row {
+    display: none !important;
+  }
+}
+@media (max-width: 767px) {
+  .ypg-instructions-card {
+    display: none !important;
+  }
+}
+@media (max-width: 767px) {
+  .ypg-upi-scan-note {
+    display: none !important;
+  }
+}

@@ -1539,3 +1539,78 @@ body .youpi-checkout-close-btn:hover {
     cursor: grab;
   }
 }
+
+/* Konkani Samudai payment loading screen */
+.konkani-pay-loader {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  border-radius: inherit;
+  background: #1e2227;
+  color: #f2f0eb;
+  transition: opacity 0.26s ease;
+}
+.konkani-pay-loader__mark {
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  background: #c8ff1f;
+  color: #1e2227;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 28px;
+  font-weight: 700;
+  box-shadow: 0 10px 30px rgba(200, 255, 31, 0.18);
+  animation: kk-pay-breathe 1.6s ease-in-out infinite;
+}
+.konkani-pay-loader__copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+.konkani-pay-loader__copy strong {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 16px;
+  letter-spacing: 0.02em;
+}
+.konkani-pay-loader__copy span {
+  font-size: 11px;
+  color: #b5afa6;
+}
+.konkani-pay-loader__bar {
+  width: 120px;
+  height: 3px;
+  border-radius: 99px;
+  overflow: hidden;
+  background: rgba(200, 255, 31, 0.16);
+}
+.konkani-pay-loader__bar i {
+  display: block;
+  width: 40%;
+  height: 100%;
+  border-radius: 99px;
+  background: #c8ff1f;
+  animation: kk-pay-slide 1.1s ease-in-out infinite;
+}
+@keyframes kk-pay-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.07); }
+}
+@keyframes kk-pay-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(320%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .konkani-pay-loader__mark,
+  .konkani-pay-loader__bar i {
+    animation: none;
+  }
+}
