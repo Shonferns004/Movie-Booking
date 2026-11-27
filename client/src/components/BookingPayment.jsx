@@ -89,6 +89,34 @@ export default function BookingPayment({
     }
   }
 
+  async function retryPayment() {
+    if (!booking || loading) return;
+    setCheckout(null);
+    setLoading(true);
+    setError('');
+    setStatus('Starting secure payment…');
+    try {
+      const sessionRef = localStorage.getItem('sessionRef') || undefined;
+      const response = await api.post('/payments/youpi/orders', {
+        bookingReference: booking.booking_reference,
+        sessionRef,
+        customer: {
+          name: name.trim() || undefined,
+          email: email.trim() || undefined,
+          mobile: mobile.trim() || undefined,
+        },
+      });
+      setOrder(response.data);
+      setStatus('');
+      setCheckout({ order: response.data, booking });
+    } catch (err) {
+      setError(err?.response?.data?.error || err?.message || 'Unable to restart payment.');
+      setStatus('');
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function handlePaid({ booking: paidBooking }) {
     const reference = paidBooking?.booking_reference || booking?.booking_reference;
     try {
@@ -151,7 +179,14 @@ export default function BookingPayment({
               disabled={loading}
               className="flex-1 rounded-lg bg-[#C8FF1F] px-5 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#1E2227] transition-colors hover:bg-[#B5AFA6] disabled:opacity-50"
             >
-              {loading ? 'Opening payment…' : 'Pay'}
+              {loading ? (
+                <span className="inline-flex items-center justify-center gap-2">
+                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#1E2227]/25 border-t-[#1E2227]" aria-hidden="true" />
+                  Opening payment…
+                </span>
+              ) : (
+                'Pay'
+              )}
             </button>
           </div>
         </div>
@@ -169,7 +204,11 @@ export default function BookingPayment({
         <YoupiCheckout
           order={checkout.order}
           booking={checkout.booking}
+          payerName={name}
+          payerMobile={mobile}
+          seatCount={selectedSeats.length}
           onSuccess={handlePaid}
+          onRetry={retryPayment}
           onBack={handleCheckoutBack}
         />
       )}
