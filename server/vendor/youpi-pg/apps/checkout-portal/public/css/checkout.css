@@ -3092,3 +3092,37 @@
     display: none !important;
   }
 }
+
+/* Mobile cancel sheet: keep both actions on screen */
+@media (max-width: 767px) {
+  .rzp-sheet-dialog {
+    max-height: 94dvh !important;
+    padding-bottom: max(12px, env(safe-area-inset-bottom)) !important;
+    overflow-y: auto !important;
+  }
+  .rzp-cancel-header-arc {
+    height: 62px !important;
+  }
+  .rzp-cancel-header-arc svg {
+    width: 64px !important;
+    height: 46px !important;
+  }
+  #rzpCancelPromptView {
+    padding-bottom: 10px !important;
+  }
+  .rzp-sheet-title {
+    font-size: 18px !important;
+    margin-top: 2px;
+  }
+  .rzp-btn-wait,
+  .rzp-btn-confirm-cancel {
+    height: 44px !important;
+    flex: none;
+  }
+  .rzp-btn-wait {
+    margin-top: 10px !important;
+  }
+  .rzp-btn-confirm-cancel {
+    margin-top: 6px !important;
+  }
+}
