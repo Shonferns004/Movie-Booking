@@ -380,10 +380,38 @@ export async function getBooking(reference, user, guestToken = null) {
     };
   }
 
-  const seats = await pool.query('SELECT * FROM booking_seats WHERE booking_id=$1', [booking.id]);
-  const tickets = await pool.query('SELECT id, ticket_reference, status, checked_in_at FROM tickets WHERE booking_id=$1', [booking.id]);
-  const extras = await loadBookingExtras(pool, booking.id);
-  return { ...booking, seats: seats.rows, tickets: tickets.rows, ...extras };
+  const [showRes, seats, tickets, extras] = await Promise.all([
+    pool.query(
+      `SELECT s.starts_at, s.ends_at,
+              m.title, m.slug AS movie_slug, m.certification, m.duration_minutes, m.language, m.genre,
+              a.name AS auditorium_name, t.name AS theatre_name, t.address AS theatre_address,
+              (SELECT url FROM movie_media WHERE movie_id=m.id AND media_type='poster' ORDER BY display_order LIMIT 1) AS thumbnail_url
+         FROM shows s
+         JOIN movies m ON m.id=s.movie_id
+         JOIN auditoriums a ON a.id=s.auditorium_id
+         JOIN theatres t ON t.id=a.theatre_id
+        WHERE s.id=$1`,
+      [booking.show_id],
+    ),
+    pool.query(
+      `SELECT bs.*, tk.id AS ticket_id, tk.ticket_reference,
+              tk.status AS ticket_status, tk.checked_in_at AS ticket_checked_in_at
+         FROM booking_seats bs
+         LEFT JOIN tickets tk ON tk.booking_seat_id = bs.id
+        WHERE bs.booking_id=$1
+        ORDER BY bs.seat_label`,
+      [booking.id],
+    ),
+    pool.query('SELECT id, ticket_reference, status, checked_in_at FROM tickets WHERE booking_id=$1', [booking.id]),
+    loadBookingExtras(pool, booking.id),
+  ]);
+  return {
+    ...booking,
+    ...(showRes.rows[0] || {}),
+    seats: seats.rows,
+    tickets: tickets.rows,
+    ...extras,
+  };
 }
 
 export async function listMyTickets(userId) {

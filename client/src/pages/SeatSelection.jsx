@@ -783,7 +783,26 @@ export default function SeatSelection() {
                 locality={locality}
                 onBack={() => setStep('seats')}
                 onPaid={({ reference, booking }) => {
-                  setActiveBooking({ reference, booking });
+                  const knownSeats = booking?.seats?.length
+                    ? booking.seats
+                    : selectedSeats.map((seat) => ({
+                        seat_label: seat.seat_label || `${seat.row_label || ''}${seat.seat_number || ''}`,
+                        category_name: seat.category_name || '',
+                        price_minor: seat.price_minor,
+                        currency: seat.currency || 'INR',
+                      }));
+                  setActiveBooking({
+                    reference,
+                    booking: {
+                      ...booking,
+                      booking_reference: booking?.booking_reference || reference,
+                      title: booking?.title || title,
+                      starts_at: booking?.starts_at || show.starts_at,
+                      theatre_name: booking?.theatre_name || showMeta?.theatre_name,
+                      auditorium_name: booking?.auditorium_name || showMeta?.auditorium_name,
+                      seats: knownSeats,
+                    },
+                  });
                   setStep('ticket');
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}

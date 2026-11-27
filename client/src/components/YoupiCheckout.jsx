@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import StyledQr from './StyledQr.jsx';
 import SamudaiPayLoader from './SamudaiPayLoader.jsx';
 import api from '../services/api.js';
@@ -87,6 +88,8 @@ export default function YoupiCheckout({
   const [seconds, setSeconds] = useState(300);
   const [mode, setMode] = useState('idle');
   const [stateReady, setStateReady] = useState(false);
+  const [introMounted, setIntroMounted] = useState(true);
+  const [introLeaving, setIntroLeaving] = useState(false);
   const [selectedApp, setSelectedApp] = useState('gpay');
   const [error, setError] = useState('');
   const [cancelBusy, setCancelBusy] = useState(false);
@@ -171,6 +174,14 @@ export default function YoupiCheckout({
       window.clearTimeout(fallback);
     };
   }, [paymentId]);
+
+  // Fade the branded intro out instead of snapping to the payment screen.
+  useEffect(() => {
+    if (!stateReady) return undefined;
+    setIntroLeaving(true);
+    const timer = window.setTimeout(() => setIntroMounted(false), 240);
+    return () => window.clearTimeout(timer);
+  }, [stateReady]);
 
   const checkStatus = useCallback(async () => {
     if (!paymentId || completedRef.current) return;
@@ -312,7 +323,7 @@ export default function YoupiCheckout({
 
   const activeApp = UPI_APPS.find((item) => item.id === selectedApp);
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-[95] flex items-end justify-center bg-[#0B0C0D]/82 backdrop-blur-sm lg:items-center lg:p-4"
       role="dialog"
@@ -320,7 +331,7 @@ export default function YoupiCheckout({
       aria-label="Payment options"
     >
       <style>{COIN_CSS}</style>
-      <div className="relative flex max-h-[94dvh] w-full max-w-none flex-col overflow-hidden rounded-t-[26px] bg-[#1E2227] text-[#F2F0EB] shadow-[0_40px_110px_-40px_rgba(0,0,0,0.9)] sm:max-w-[560px] lg:h-[600px] lg:max-w-[880px] lg:flex-row lg:rounded-[20px]">
+      <div className="relative flex max-h-[94svh] w-full max-w-none flex-col overflow-hidden rounded-t-[26px] bg-[#1E2227] text-[#F2F0EB] shadow-[0_40px_110px_-40px_rgba(0,0,0,0.9)] sm:max-w-[560px] lg:h-[600px] lg:max-w-[880px] lg:flex-row lg:rounded-[20px]">
         {/* Desktop summary rail */}
         <aside className="hidden w-[300px] shrink-0 flex-col bg-[#252A30] px-6 py-7 lg:flex">
           <div className="flex items-center gap-3">
@@ -503,7 +514,11 @@ export default function YoupiCheckout({
           </div>
         </section>
 
-        {!stateReady && mode === 'idle' && <SamudaiPayLoader />}
+        {introMounted && mode === 'idle' && (
+          <div className={`absolute inset-0 z-10 transition-opacity duration-200 ${introLeaving ? 'opacity-0' : 'opacity-100'}`}>
+            <SamudaiPayLoader />
+          </div>
+        )}
 
         {mode === 'verifying' && (
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-5 bg-[#1E2227] px-6 text-center">
@@ -572,6 +587,7 @@ export default function YoupiCheckout({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
