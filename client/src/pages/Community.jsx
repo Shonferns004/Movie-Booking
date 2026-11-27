@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api, { assetUrl } from '../services/api.js';
 import { useRealtime } from '../services/realtime.js';
 import { HeroHeader, Lightbox } from '../components/SiteChrome.jsx';
+import { useScrollReveal, useHoverLift, prefersReducedMotion } from '../hooks/useMotion.js';
 import { MembershipModal, TicketModal } from './CommunityModals.jsx';
 
 const rupees = (value) => `₹${Number(value).toLocaleString('en-IN')}`;
@@ -75,6 +76,7 @@ function dateLabel(value) {
 
 export default function Community() {
   const navigate = useNavigate();
+  const pageRef = useRef(null);
   const [page, setPage] = useState(null);
   const [offline, setOffline] = useState(false);
   const [movies, setMovies] = useState([]);
@@ -214,6 +216,15 @@ export default function Community() {
   }, [heroImages, gallery]);
 
   const slide = slides[heroIndex] || slides[0];
+
+  useEffect(() => {
+    if (prefersReducedMotion() || slides.length <= 1) return undefined;
+    const timer = window.setInterval(() => {
+      if (document.hidden) return;
+      setHeroIndex((index) => (index + 1) % slides.length);
+    }, 6000);
+    return () => window.clearInterval(timer);
+  }, [slides.length]);
   const films = useMemo(
     () => movies.filter((movie) => movie.thumbnail_url || movie.synopsis).slice(0, 3),
     [movies],
@@ -277,6 +288,10 @@ export default function Community() {
     }
     navigate('/movies');
   }
+
+  const revealKey = page ? 'ready' : 'idle';
+  useScrollReveal(pageRef, { refreshKey: revealKey });
+  useHoverLift(pageRef, '[data-hover-lift]', revealKey);
 
   if (!page) {
     return (
@@ -369,7 +384,7 @@ export default function Community() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-3 pb-16 space-y-16">
+    <div ref={pageRef} className="max-w-7xl mx-auto px-4 sm:px-6 pt-3 pb-16 space-y-16">
       <section id="house-hero" className="space-y-5">
         <div className="relative pb-5">
           <div className="relative rounded-[28px] bg-[#16191D] text-[#F2F0EB] overflow-hidden min-h-[340px] sm:min-h-[380px] lg:min-h-[395px] flex flex-col justify-between">
@@ -385,7 +400,7 @@ export default function Community() {
 
             <HeroHeader active="house" />
 
-            <div className="relative z-10 flex items-end justify-between gap-6 px-5 sm:px-8 pb-8 sm:pb-9 pt-8">
+            <div className="relative z-10 flex items-end justify-between gap-6 px-5 sm:px-8 pb-8 sm:pb-9 pt-8" data-reveal>
               <div className="max-w-xl space-y-3">
                 <p className="text-xs font-semibold tracking-wide text-[#C8FF1F]">{slide.kicker}</p>
                 <h1 className="font-editorial text-3xl sm:text-[42px] font-semibold tracking-tight text-[#F2F0EB] leading-[1.08]">
@@ -562,7 +577,7 @@ export default function Community() {
         </div>
       </section>
 
-      <section id="whats-on" className="pt-8 border-t border-[#B5AFA6]/15 space-y-8">
+      <section id="whats-on" data-reveal className="pt-8 border-t border-[#B5AFA6]/15 space-y-8">
         <div className="space-y-1.5">
           <p className="text-xs font-semibold uppercase tracking-wider text-[#C8FF1F]">Festivals &amp; Evenings</p>
           <h2 className="font-editorial text-3xl sm:text-4xl font-semibold text-[#F2F0EB]">What&rsquo;s on at the Samudai</h2>
@@ -577,6 +592,7 @@ export default function Community() {
             return (
               <article
                 key={event.id}
+                data-hover-lift
                 className="bg-[#252A30] text-[#F2F0EB] rounded-[24px] overflow-hidden grid grid-cols-1 sm:grid-cols-12 shadow-sm"
               >
                 <div className="sm:col-span-5 relative min-h-[240px] bg-[#16191D]">
@@ -627,7 +643,7 @@ export default function Community() {
         </div>
       </section>
 
-      <section id="now-showing" className="pt-8 border-t border-[#B5AFA6]/15 space-y-8">
+      <section id="now-showing" data-reveal className="pt-8 border-t border-[#B5AFA6]/15 space-y-8">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div className="space-y-1.5">
             <p className="text-xs font-semibold uppercase tracking-wider text-[#C8FF1F]">Now Showing</p>
@@ -649,6 +665,7 @@ export default function Community() {
             return (
               <article
                 key={movie.id}
+                data-hover-lift
                 className="group bg-[#252A30] text-[#F2F0EB] rounded-[22px] overflow-hidden shadow-sm flex flex-col justify-between"
               >
                 <div>
@@ -742,7 +759,7 @@ export default function Community() {
         )}
       </section>
 
-      <section id="committee" className="pt-10 border-t border-[#B5AFA6]/15 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <section id="committee" data-reveal className="pt-10 border-t border-[#B5AFA6]/15 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         <div className="lg:col-span-4 space-y-5 lg:sticky lg:top-12">
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-wider text-[#C8FF1F]">House Announcements</p>
@@ -793,7 +810,7 @@ export default function Community() {
         </div>
       </section>
 
-      <section id="gallery" className="pt-8 border-t border-[#B5AFA6]/15 space-y-6">
+      <section id="gallery" data-reveal className="pt-8 border-t border-[#B5AFA6]/15 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div className="space-y-1">
             <p className="text-xs font-semibold uppercase tracking-wider text-[#C8FF1F]">The full archive</p>
@@ -827,7 +844,7 @@ export default function Community() {
         </div>
       </section>
 
-      <section id="join-house" className="pt-8 border-t border-[#B5AFA6]/15 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+      <section id="join-house" data-reveal className="pt-8 border-t border-[#B5AFA6]/15 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
         <div className="lg:col-span-6 space-y-5">
           <p className="text-xs font-semibold uppercase tracking-wider text-[#C8FF1F]">Join the house</p>
           <h2 className="font-editorial text-3xl sm:text-4xl font-semibold text-[#F2F0EB]">

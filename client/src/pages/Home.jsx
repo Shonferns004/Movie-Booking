@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api, { assetUrl } from '../services/api.js';
 import { useRealtime } from '../services/realtime.js';
 import { HeroHeader } from '../components/SiteChrome.jsx';
+import { useScrollReveal, useHoverLift, prefersReducedMotion } from '../hooks/useMotion.js';
 
 const rupees = (value) => `₹${Number(value).toLocaleString('en-IN')}`;
 
@@ -39,6 +40,7 @@ const minuteLabel = (minutes) => {
 
 export default function Home() {
   const navigate = useNavigate();
+  const pageRef = useRef(null);
   const [movies, setMovies] = useState([]);
   const [shows, setShows] = useState([]);
   const [community, setCommunity] = useState(null);
@@ -154,6 +156,15 @@ export default function Home() {
     }
   }, [heroSlides.length, heroIndex, heroSlides]);
 
+  useEffect(() => {
+    if (prefersReducedMotion() || heroSlides.length <= 1) return undefined;
+    const timer = window.setInterval(() => {
+      if (document.hidden) return;
+      setHeroIndex((index) => (index + 1) % heroSlides.length);
+    }, 6000);
+    return () => window.clearInterval(timer);
+  }, [heroSlides.length]);
+
   const activeHero = heroSlides[heroIndex] || heroSlides[0];
   const spotlightCards = films.flatMap((movie) =>
     showForMovie(movie.id).map((show) => ({ movie, show })),
@@ -164,6 +175,10 @@ export default function Home() {
     if (showsForMovie[0]) navigate(`/shows/${showsForMovie[0].id}/seats`);
     else navigate('/movies');
   }
+
+  const revealKey = `${loading}-${spotlightCards.length}-${dates.length}`;
+  useScrollReveal(pageRef, { refreshKey: revealKey });
+  useHoverLift(pageRef, '[data-hover-lift]', revealKey);
 
   if (loading) {
     return (
@@ -207,7 +222,7 @@ export default function Home() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-3 pb-16 space-y-16">
+    <div ref={pageRef} className="max-w-7xl mx-auto px-4 sm:px-6 pt-3 pb-16 space-y-16">
       <section className="space-y-5">
         <div className="relative pb-5">
           <div className="relative rounded-[28px] bg-[#16191D] text-[#F2F0EB] overflow-hidden min-h-[340px] sm:min-h-[380px] lg:min-h-[395px] flex flex-col justify-between">
@@ -223,7 +238,7 @@ export default function Home() {
 
             <HeroHeader active="movies" />
 
-            <div className="relative z-10 flex items-end justify-between gap-6 px-5 sm:px-8 pb-8 sm:pb-9 pt-8">
+            <div className="relative z-10 flex items-end justify-between gap-6 px-5 sm:px-8 pb-8 sm:pb-9 pt-8" data-reveal>
               <div className="max-w-xl space-y-3">
                 <p className="text-xs font-semibold tracking-wide text-[#C8FF1F]">{activeHero?.kicker}</p>
                 <h1 className="font-editorial text-3xl sm:text-[42px] font-semibold tracking-tight text-[#F2F0EB] leading-[1.08]">
@@ -293,20 +308,8 @@ export default function Home() {
             </svg>
           </button>
 
-          <div className="absolute bottom-[30px] right-4 z-30 hidden sm:block">
-            <svg
-              viewBox="0 0 300 72"
-              preserveAspectRatio="none"
-              className="pointer-events-none absolute -top-[14px] h-[72px]"
-              style={{ left: '-16%', width: '132%', maxWidth: 'none' }}
-              aria-hidden="true"
-            >
-              <path
-                d="M0 72 C10 72, 14 8, 24 8 L300 8 L300 72 Z"
-                fill="#1E2227"
-              />
-            </svg>
-            <div className="relative z-10 flex items-center gap-1 rounded-xl border border-[#B5AFA6]/20 bg-[#252A30] p-1">
+          <div className="absolute bottom-6 right-6 z-30 hidden sm:block" data-reveal>
+            <div className="flex items-center gap-1 rounded-xl border border-[#B5AFA6]/25 bg-[#1E2227]/80 p-1 backdrop-blur-md">
             {dates.length ? (
               <>
                 <button
@@ -388,6 +391,8 @@ export default function Home() {
                 key={`${movie.id}-${show.id}`}
                 type="button"
                 onClick={() => navigate(`/shows/${show.id}/seats`)}
+                data-reveal
+                data-hover-lift
                 className="group relative rounded-[22px] overflow-hidden bg-[#252A30] aspect-[3/3.45] flex flex-col justify-between p-3 text-left shadow-sm"
               >
                 {movie.thumbnail_url && (
@@ -416,7 +421,7 @@ export default function Home() {
             ))}
           </div>
         ) : (
-          <div className="rounded-[22px] bg-[#252A30] px-6 py-14 text-center">
+          <div className="rounded-[22px] bg-[#252A30] px-6 py-14 text-center" data-reveal>
             <p className="font-editorial text-xl font-semibold text-[#F2F0EB]">No screenings on this date</p>
             <p className="mt-1 text-xs text-[#B5AFA6]">Choose another date to see what is playing.</p>
           </div>
@@ -427,3 +432,4 @@ export default function Home() {
     </div>
   );
 }
+

@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
-import { QRCodeSVG } from 'qrcode.react';
+import { useEffect, useRef } from 'react';
 import { assetUrl } from '../services/api.js';
+import { useModalMotion } from '../hooks/useMotion.js';
+import TicketBarcode from './TicketBarcode.jsx';
 
 const inr = (minor = 0) =>
   `₹${Number((Number(minor) || 0) / 100).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
@@ -26,7 +27,11 @@ const ScreenIcon = () => (
   </svg>
 );
 
-export default function MovieTicketModal({ booking, onClose, onManage }) {
+export default function MovieTicketModal({ booking, onClose, onManage, onDownload }) {
+  const backdropRef = useRef(null);
+  const panelRef = useRef(null);
+  useModalMotion(panelRef, backdropRef);
+
   useEffect(() => {
     const onKey = (event) => {
       if (event.key === 'Escape') onClose();
@@ -62,6 +67,7 @@ export default function MovieTicketModal({ booking, onClose, onManage }) {
 
   return (
     <div
+      ref={backdropRef}
       className="fixed inset-0 z-[90] flex items-center justify-center bg-[#0B0C0D]/85 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
@@ -69,79 +75,85 @@ export default function MovieTicketModal({ booking, onClose, onManage }) {
       onClick={onClose}
     >
       <div
-        className="max-h-[94vh] w-full max-w-[360px] overflow-y-auto rounded-[26px] bg-[#C8433D] text-[#F8EDE7] shadow-[0_40px_100px_-40px_rgba(0,0,0,0.9)]"
+        ref={panelRef}
+        className="relative max-h-[94vh] w-full max-w-[360px] overflow-y-auto overflow-x-hidden rounded-[24px] bg-[#252A30] text-[#F2F0EB] shadow-[0_40px_100px_-40px_rgba(0,0,0,0.9)]"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="bg-[#B73530] px-5 py-3 text-center text-[11px] font-semibold tracking-wide">
-          Ticket for {people} {people === 1 ? 'person' : 'persons'}
+        <div className="bg-[#C8FF1F]/10 px-4 py-2.5">
+          <p className="text-center text-[11px] font-semibold tracking-wide text-[#C8FF1F]">
+            Ticket for {people} {people === 1 ? 'person' : 'persons'}
+          </p>
         </div>
 
-        <div className="p-5 space-y-4">
-          <div className="overflow-hidden rounded-2xl bg-[#8F2925]">
+        <div className="px-4 pt-4">
+          <div className="mx-auto h-[200px] w-[200px] overflow-hidden rounded-2xl bg-[#16191D]">
             {poster ? (
-              <img src={poster} alt={`Poster for ${booking.title}`} className="aspect-[4/5] w-full object-cover" />
+              <img src={poster} alt={`Poster for ${booking.title}`} className="h-full w-full object-cover" />
             ) : (
-              <div className="flex aspect-[4/5] items-end p-5">
-                <span className="font-editorial text-2xl font-semibold">{booking.title}</span>
+              <div className="flex h-full items-end p-4">
+                <span className="font-editorial text-xl font-semibold">{booking.title}</span>
               </div>
             )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[10px] font-medium">
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-[10px] font-medium text-[#B5AFA6]">
             <span className="inline-flex items-center gap-1.5"><CalendarIcon /> {date}</span>
             <span className="inline-flex items-center gap-1.5"><ClockIcon /> {time}</span>
-            <span className="inline-flex items-center gap-1.5"><ScreenIcon /> {auditorium || booking.theatre_name || 'Screen 1'}</span>
+            <span className="inline-flex min-w-0 items-center gap-1.5"><ScreenIcon /> <span className="truncate">{auditorium || booking.theatre_name || 'Screen 1'}</span></span>
           </div>
 
-          <div className="grid grid-cols-3 gap-3 border-t border-white/25 pt-3 text-center">
+          <div className="mt-3 grid grid-cols-3 gap-2 border-t border-[#B5AFA6]/15 pt-2.5 text-center">
             <div>
-              <p className="text-[8px] font-semibold uppercase tracking-[0.16em] opacity-70">Salon</p>
+              <p className="text-[8px] font-semibold uppercase tracking-[0.16em] text-[#B5AFA6]">Salon</p>
               <p className="font-mono text-lg font-bold">{String(screenNumber).padStart(2, '0')}</p>
             </div>
             <div>
-              <p className="text-[8px] font-semibold uppercase tracking-[0.16em] opacity-70">Row</p>
+              <p className="text-[8px] font-semibold uppercase tracking-[0.16em] text-[#B5AFA6]">Row</p>
               <p className="font-mono text-lg font-bold">{row}</p>
             </div>
-            <div>
-              <p className="text-[8px] font-semibold uppercase tracking-[0.16em] opacity-70">Seat</p>
-              <p className="font-mono text-lg font-bold">{numbers.join(', ') || '—'}</p>
+            <div className="min-w-0">
+              <p className="text-[8px] font-semibold uppercase tracking-[0.16em] text-[#B5AFA6]">Seat</p>
+              <p className="truncate font-mono text-lg font-bold">{numbers.join(', ') || '—'}</p>
             </div>
           </div>
+        </div>
 
-          <div className="rounded-xl bg-white p-3 text-[#1E2227]">
-            <div className="flex items-center gap-3">
-              <div
-                className="h-11 flex-1"
-                aria-hidden="true"
-                style={{
-                  background:
-                    'repeating-linear-gradient(90deg, #1E2227 0 2px, transparent 2px 4px, #1E2227 4px 5px, transparent 5px 8px, #1E2227 8px 11px, transparent 11px 13px)',
-                }}
-              />
-              <QRCodeSVG value={qr} size={54} level="M" bgColor="#ffffff" fgColor="#1E2227" />
+        <div className="relative mt-3">
+          <span className="pointer-events-none absolute left-0 top-0 z-10 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#0B0C0D]" />
+          <span className="pointer-events-none absolute right-0 top-0 z-10 h-5 w-5 -translate-y-1/2 translate-x-1/2 rounded-full bg-[#0B0C0D]" />
+          <div className="border-t border-dashed border-[#B5AFA6]/30 bg-white px-4 pb-3 pt-2.5 text-[#1E2227]">
+            <div className="flex items-baseline justify-between gap-3">
+              <p className="text-[8px] font-semibold uppercase tracking-[0.16em] text-[#1E2227]/50">Booking</p>
+              <p className="text-[8px] text-[#1E2227]/50">Show this at the door</p>
             </div>
-            <p className="mt-1.5 truncate text-center font-mono text-[9px] tracking-[0.08em] text-[#1E2227]/60">
+            <p className="mt-1 break-all font-mono text-[10px] tracking-[0.08em]">
               {booking.booking_reference}
             </p>
+            <div className="mt-2 h-9 w-full">
+              <TicketBarcode value={qr} height={32} barColor="#1E2227" />
+            </div>
           </div>
+        </div>
 
-          <div className="flex items-center justify-between gap-3 text-[10px]">
-            <button
-              type="button"
-              onClick={onManage}
-              className="rounded-lg border border-white/30 px-3 py-2 font-semibold transition-colors hover:bg-white/10"
-            >
-              Cancellations &amp; refunds
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg bg-[#F8EDE7] px-4 py-2 font-semibold text-[#8F2925]"
-            >
-              Close
-            </button>
-          </div>
-          <p className="text-center text-[9px] opacity-70">Show this pass at the door · {inr(booking.paid_minor || booking.total_minor || 0)}</p>
+        <div className="px-4 pt-3">
+          <button
+            type="button"
+            onClick={() => onDownload?.(booking)}
+            className="w-full rounded-xl bg-[#C8FF1F] py-2.5 text-xs font-semibold text-[#1E2227] transition-colors hover:bg-[#B5AFA6]"
+          >
+            Download ticket
+          </button>
+        </div>
+
+        <div className="flex items-center justify-between gap-3 px-4 py-3 text-[10px]">
+          <button
+            type="button"
+            onClick={onManage}
+            className="font-medium text-[#B5AFA6] underline decoration-[#B5AFA6]/40 underline-offset-4 transition-colors hover:text-[#C8FF1F]"
+          >
+            Cancellations &amp; refunds
+          </button>
+          <span className="text-[#B5AFA6]">{inr(booking.paid_minor || booking.total_minor || 0)}</span>
         </div>
       </div>
     </div>

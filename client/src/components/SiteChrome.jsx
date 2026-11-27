@@ -1,13 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import api, { session } from '../services/api.js';
-
-const MOVIE_ICON = (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
-    <rect x="2" y="2" width="20" height="20" rx="2.18" />
-    <path d="M7 2v20M17 2v20M2 12h20M2 7h5M2 17h5M17 17h5M17 7h5" />
-  </svg>
-);
+import { useModalMotion } from '../hooks/useMotion.js';
 
 const TICKET_ICON = (
   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
@@ -57,7 +51,8 @@ function useTicketCount(pathname) {
 function AccountButton({ tone = 'dark' }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const [token] = useState(() => Boolean(localStorage.getItem('token')));
+  const [token, setToken] = useState(() => Boolean(localStorage.getItem('token')));
+  const [signingOut, setSigningOut] = useState(false);
   const ref = useRef(null);
 
   useEffect(() => {
@@ -88,10 +83,20 @@ function AccountButton({ tone = 'dark' }) {
     );
   }
 
-  function signOut() {
-    session.logout();
-    setOpen(false);
-    navigate('/');
+  async function signOut() {
+    if (signingOut) return;
+    setSigningOut(true);
+    try {
+      await Promise.race([
+        session.logout().catch(() => {}),
+        new Promise((resolve) => setTimeout(resolve, 900)),
+      ]);
+    } finally {
+      setToken(false);
+      setSigningOut(false);
+      setOpen(false);
+      navigate('/', { replace: true });
+    }
   }
 
   return (
@@ -110,19 +115,20 @@ function AccountButton({ tone = 'dark' }) {
         {USER_ICON}
       </button>
       {open && (
-        <div className="absolute right-0 top-[calc(100%+10px)] z-[80] w-56 overflow-hidden rounded-2xl border border-[#B5AFA6]/20 bg-[#252A30] text-[#F2F0EB] shadow-2xl">
-          <Link to="/my-tickets" onClick={() => setOpen(false)} className="block px-4 py-3 text-xs font-medium hover:bg-[#1E2227]">
-            My tickets
-          </Link>
-          <Link to="/#join" onClick={() => setOpen(false)} className="block px-4 py-3 text-xs font-medium hover:bg-[#1E2227]">
-            Membership
-          </Link>
+        <div className="absolute right-0 top-[calc(100%+10px)] z-[80] w-40 overflow-hidden rounded-2xl border border-[#B5AFA6]/20 bg-[#252A30] text-[#F2F0EB] shadow-2xl">
           <button
             type="button"
             onClick={signOut}
-            className="block w-full px-4 py-3 text-left text-xs font-medium text-[#F08A80] hover:bg-[#1E2227]"
+            disabled={signingOut}
+            className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-xs font-medium text-[#F08A80] transition-colors hover:bg-[#1E2227] disabled:cursor-wait"
           >
-            Sign out
+            <span>Sign out</span>
+            {signingOut && (
+              <span
+                className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-[#F08A80]/30 border-t-[#F08A80]"
+                aria-hidden="true"
+              />
+            )}
           </button>
         </div>
       )}
@@ -134,7 +140,7 @@ export function HeroHeader({ active = 'house' }) {
   const { pathname } = useLocation();
   const count = useTicketCount(pathname);
   return (
-    <div className="relative z-10 flex items-center justify-between gap-4 px-5 sm:px-7 pt-5 sm:pt-6">
+    <div data-no-enter className="relative z-10 flex items-center justify-between gap-4 px-5 sm:px-7 pt-5 sm:pt-6">
       <div className="flex items-center gap-3 flex-wrap">
         <div className="inline-flex items-center bg-[#1E2227]/85 backdrop-blur-md border border-[#B5AFA6]/25 rounded-full p-1">
           <Link
@@ -184,6 +190,10 @@ export function HeroHeader({ active = 'house' }) {
 export function SubNavbar() {
   const { pathname } = useLocation();
   const count = useTicketCount(pathname);
+  const ticketsActive =
+    pathname.startsWith('/my-tickets') ||
+    pathname.startsWith('/booking') ||
+    pathname.startsWith('/event-ticket');
   return (
     <header className="sticky top-0 z-40 pt-4 px-4 sm:px-6 bg-[#1E2227]/90 backdrop-blur-md">
       <div className="max-w-7xl mx-auto rounded-full bg-[#252A30] border border-[#B5AFA6]/20 px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4 shadow-sm">
@@ -221,20 +231,21 @@ export function SubNavbar() {
         </div>
         <div className="flex items-center gap-2.5">
           <Link
-            to="/movies"
-            title="Movies"
-            className="w-9 h-9 rounded-full bg-[#1E2227] border border-[#B5AFA6]/25 text-[#F2F0EB] hover:bg-[#C8FF1F] hover:text-[#1E2227] inline-flex items-center justify-center transition-colors"
-          >
-            {MOVIE_ICON}
-          </Link>
-          <Link
             to="/my-tickets"
             title="My Tickets"
-            className="relative w-9 h-9 rounded-full bg-[#1E2227] border border-[#B5AFA6]/25 text-[#F2F0EB] hover:bg-[#C8FF1F] hover:text-[#1E2227] inline-flex items-center justify-center transition-colors"
+            className={`relative w-9 h-9 rounded-full border inline-flex items-center justify-center transition-colors ${
+              ticketsActive
+                ? 'bg-[#C8FF1F] text-[#1E2227] border-[#C8FF1F]'
+                : 'bg-[#1E2227] border-[#B5AFA6]/25 text-[#F2F0EB] hover:bg-[#C8FF1F] hover:text-[#1E2227]'
+            }`}
           >
             {TICKET_ICON}
             {count > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#C8FF1F] text-[#1E2227] font-mono text-[10px] font-bold flex items-center justify-center tabular-nums">
+              <span
+                className={`absolute -top-1 -right-1 w-4 h-4 rounded-full font-mono text-[10px] font-bold flex items-center justify-center tabular-nums ${
+                  ticketsActive ? 'bg-[#1E2227] text-[#C8FF1F]' : 'bg-[#C8FF1F] text-[#1E2227]'
+                }`}
+              >
                 {count}
               </span>
             )}
@@ -284,6 +295,10 @@ export function SiteFooter() {
 }
 
 export function Lightbox({ images, index, onChange, onClose }) {
+  const backdropRef = useRef(null);
+  const panelRef = useRef(null);
+  useModalMotion(panelRef, backdropRef);
+
   useEffect(() => {
     const onKey = (event) => {
       if (event.key === 'Escape') onClose();
@@ -303,6 +318,7 @@ export function Lightbox({ images, index, onChange, onClose }) {
 
   return (
     <div
+      ref={backdropRef}
       className="fixed inset-0 z-50 bg-[#16191D]/95 backdrop-blur-sm flex flex-col justify-between p-4 sm:p-8"
       role="dialog"
       aria-modal="true"
@@ -324,7 +340,7 @@ export function Lightbox({ images, index, onChange, onClose }) {
           {CLOSE_ICON}
         </button>
       </div>
-      <div className="flex-1 flex items-center justify-center gap-4 py-4" onClick={(event) => event.stopPropagation()}>
+      <div ref={panelRef} className="flex-1 flex items-center justify-center gap-4 py-4" onClick={(event) => event.stopPropagation()}>
         <button
           type="button"
           onClick={() => onChange((index - 1 + images.length) % images.length)}

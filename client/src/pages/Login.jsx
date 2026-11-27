@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import api, { session } from '../services/api.js';
+import api from '../services/api.js';
 import notify from '../services/notify.js';
 import { useSileoNotice } from '../hooks/useSileoNotice.js';
+import { useScrollReveal } from '../hooks/useMotion.js';
 
 const FEATURE_ART =
   'https://lh3.googleusercontent.com/aida-public/AB6AXuCQDt_qykwZIxiz9ZYZ6fR-gF3aANZ8rKGZWeZSdJi9wDavoHDqqDlkKKxaJXv_sb0r_JOTo9HmTHxQBs4JE5HwfMDtjBkTqffRLiN2kJ5_unTJakCIvZvkKm7TRWiT46E9ta8_5h2C49Xzq_AueGyTRWiG9gr0f_Ed_-7uA7xndUAi7YMsJQLeUBLwyqm1yTyIPsHcFn5rRx0-p_gXS8dKRToRRGEaYYmDCjno-ECa0ibzOO11UzuqtQ';
@@ -22,15 +23,60 @@ const APPLE_ICON = (
   </svg>
 );
 
-const CSS = '';
+const CSS = `
+.kk-auth{--ink:#1E2227;--tide:#262C33;--shell:#F2F0EC;--kokum:#C8FF1F;--mango:#C8FF1F;--deep:#171B1F;min-height:100vh;background:var(--ink);color:var(--shell);padding:28px;display:flex;align-items:center;justify-content:center;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;position:relative;isolation:isolate;overflow:hidden}
+.kk-auth *{box-sizing:border-box}.kk-auth:before{content:"";position:absolute;width:600px;height:600px;right:-180px;top:-280px;border-radius:50%;background:rgba(200,255,31,.13);filter:blur(30px);z-index:-1}.kk-auth:after{content:"";position:absolute;width:500px;height:500px;left:-260px;bottom:-300px;border-radius:50%;background:rgba(200,255,31,.08);filter:blur(25px);z-index:-1}
+.kk-auth-wrap{width:100%;max-width:1120px}.kk-auth-grid{display:grid;grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr);border:1px solid rgba(181,175,166,.12);border-radius:26px;overflow:hidden;box-shadow:0 30px 90px rgba(0,0,0,.28);background:var(--deep);animation:kk-rise .55s ease both}
+.kk-auth-feature{position:relative;min-height:650px;padding:30px;display:flex;flex-direction:column;justify-content:space-between;background:linear-gradient(180deg,rgba(23,27,31,.05) 0%,rgba(23,27,31,.3) 35%,#171B1F 82%),url('${FEATURE_ART}') center/cover}
+.kk-auth-feature:before{content:"";position:absolute;inset:0;background:linear-gradient(135deg,rgba(38,44,51,.45),transparent 50%);pointer-events:none}.kk-auth-feature>*{position:relative}
+.kk-auth-kicker{display:inline-flex;align-items:center;gap:9px;width:max-content;max-width:100%;border:1px solid rgba(181,175,166,.25);border-radius:999px;padding:8px 12px;background:rgba(23,27,31,.48);backdrop-filter:blur(10px);font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase}.kk-auth-dot{width:7px;height:7px;background:var(--mango);border-radius:50%;box-shadow:0 0 0 4px rgba(200,255,31,.14)}
+.kk-auth-feature-copy{margin-top:auto;padding-top:200px}.kk-auth-eyebrow{color:var(--mango);font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;margin:0 0 13px}.kk-auth-feature h2{font-family:Georgia,"Times New Roman",serif;font-weight:500;font-size:clamp(34px,4vw,53px);line-height:1.02;letter-spacing:-.045em;margin:0;max-width:470px}.kk-auth-feature-copy p{color:rgba(181,175,166,.76);font-size:14px;line-height:1.7;max-width:390px;margin:17px 0 0}
+.kk-auth-perks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:28px}.kk-auth-perk{border:1px solid rgba(181,175,166,.15);background:rgba(23,27,31,.55);backdrop-filter:blur(12px);border-radius:13px;padding:13px 10px}.kk-auth-perk-icon{color:var(--mango);font-size:19px;display:block;margin-bottom:8px}.kk-auth-perk strong{display:block;font-size:11px;line-height:1.3}.kk-auth-perk span:last-child{display:block;color:rgba(181,175,166,.6);font-size:10px;line-height:1.4;margin-top:5px}
+.kk-auth-formside{padding:clamp(25px,4vw,48px);background:var(--tide);color:var(--shell);display:flex;flex-direction:column;justify-content:center}.kk-auth-brand{display:flex;align-items:center;gap:12px;margin-bottom:42px}.kk-auth-brandmark{width:43px;height:43px;border-radius:14px;background:var(--mango);color:#1E2227;display:grid;place-items:center;font-family:Georgia,serif;font-size:23px;box-shadow:0 7px 18px rgba(0,0,0,.14)}.kk-auth-brandname{font-family:Georgia,"Times New Roman",serif;font-size:17px;letter-spacing:.035em;font-weight:700}.kk-auth-brandtag{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:#B5AFA6;margin-top:4px}
+.kk-auth-heading{font-family:Georgia,"Times New Roman",serif;font-size:clamp(30px,3.2vw,42px);font-weight:500;line-height:1.07;letter-spacing:-.04em;margin:0}.kk-auth-subtitle{font-size:13px;line-height:1.7;color:#B5AFA6;margin:12px 0 25px;max-width:430px}
+.kk-auth-tabs{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:5px;background:#1E2227;border-radius:12px;margin-bottom:23px}.kk-auth-tab{border:0;border-radius:9px;background:transparent;color:#B5AFA6;padding:12px 8px;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:background .2s,color .2s}.kk-auth-tab.active{background:var(--kokum);color:#1E2227;box-shadow:0 4px 12px rgba(0,0,0,.15)}
+.kk-auth-fields{display:flex;flex-direction:column;gap:15px}.kk-auth-label{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}.kk-auth-label small{font-size:10px;letter-spacing:0;text-transform:none;font-weight:500;color:#C8FF1F}.kk-auth-inputwrap{display:flex;align-items:center;min-width:0;border:1px solid #3A4148;background:#1A1E23;border-radius:11px;overflow:hidden;transition:border-color .2s,box-shadow .2s}.kk-auth-inputwrap:focus-within{border-color:var(--kokum);box-shadow:0 0 0 3px rgba(200,255,31,.1)}.kk-auth-prefix{display:flex;align-items:center;gap:7px;align-self:stretch;padding:0 13px;background:#262C33;border-right:1px solid #3A4148;font-size:13px;font-weight:700}.kk-auth-field{width:100%;min-width:0;border:0;outline:0;background:transparent;padding:14px 13px;color:var(--shell);font:500 14px inherit}.kk-auth-field::placeholder{color:#8C877F}.kk-auth-iconbtn{border:0;background:transparent;color:#B5AFA6;padding:10px 13px;cursor:pointer;font-size:16px}.kk-auth-check{display:flex;align-items:flex-start;gap:11px;padding:13px;border-radius:11px;background:#2E353D;cursor:pointer}.kk-auth-check input{accent-color:var(--kokum);width:16px;height:16px;flex:none;margin-top:2px}.kk-auth-check strong{font-size:11px;line-height:1.5;display:block}.kk-auth-check small{display:block;color:#B5AFA6;font-size:10px;line-height:1.5;margin-top:4px}
+.kk-auth-error{border:1px solid #6E3A34;background:#33221F;color:#F0B0A6;border-radius:10px;padding:11px 12px;font-size:12px;line-height:1.5}.kk-auth-primary{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;border:0;border-radius:11px;padding:15px 18px;background:var(--kokum);color:#1E2227;font-size:13px;font-weight:800;letter-spacing:.025em;cursor:pointer;box-shadow:0 8px 18px rgba(200,255,31,.18);transition:transform .2s,background .2s,box-shadow .2s}.kk-auth-primary:hover:not(:disabled){background:#A8D819;transform:translateY(-1px);box-shadow:0 11px 23px rgba(200,255,31,.25)}.kk-auth-primary:disabled{opacity:.65;cursor:wait}.kk-auth-forgot{border:0;background:none;color:var(--kokum);font-size:11px;font-weight:700;cursor:pointer;padding:0}.kk-auth-link{border:0;background:none;color:var(--kokum);font-size:12px;font-weight:700;cursor:pointer}.kk-auth-switch{text-align:center;margin-top:17px}.kk-auth-divider{display:flex;align-items:center;gap:12px;color:#8C877F;font-size:9px;font-weight:800;letter-spacing:.18em;margin:24px 0 14px}.kk-auth-divider:before,.kk-auth-divider:after{content:"";height:1px;flex:1;background:#3A4148}.kk-auth-socials{display:grid;grid-template-columns:1fr 1fr;gap:10px}.kk-auth-social{display:flex;align-items:center;justify-content:center;gap:9px;padding:12px 10px;border:1px solid #3A4148;border-radius:10px;background:transparent;color:var(--shell);font-size:12px;font-weight:700}.kk-auth-social:disabled{opacity:.65}.kk-auth-guest{text-align:center;margin-top:23px}.kk-auth-guest a{color:var(--shell);font-size:12px;font-weight:800;text-decoration:none;border-bottom:1px solid var(--mango);padding-bottom:3px}.kk-auth-trust{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 17px;color:#B5AFA6;font-size:10px;margin-top:28px}.kk-auth-trust span{display:flex;align-items:center;gap:6px}.kk-auth-trust b{color:var(--kokum);font-size:13px}
+.kk-auth-foot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:15px 5px 0;color:rgba(181,175,166,.53);font-size:10px}.kk-auth-foot-links{display:flex;gap:14px;flex-wrap:wrap}.kk-auth-foot a{color:inherit;text-decoration:none}.kk-auth-foot a:hover{color:var(--mango)}
+@keyframes kk-rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}@media(max-width:850px){.kk-auth{padding:18px}.kk-auth-grid{grid-template-columns:1fr;max-width:600px;margin:auto}.kk-auth-feature{min-height:360px;padding:23px;background-position:center 42%}.kk-auth-feature-copy{padding-top:95px}.kk-auth-feature h2{font-size:38px}.kk-auth-feature-copy p{margin-top:10px}.kk-auth-perks{margin-top:18px}.kk-auth-formside{padding:28px}.kk-auth-brand{margin-bottom:27px}.kk-auth-foot{max-width:600px;margin:auto}}@media(max-width:480px){.kk-auth{padding:10px}.kk-auth-grid{border-radius:19px}.kk-auth-feature{min-height:320px;padding:18px}.kk-auth-feature-copy{padding-top:70px}.kk-auth-feature h2{font-size:32px}.kk-auth-feature-copy p{font-size:12px}.kk-auth-perks{gap:6px}.kk-auth-perk{padding:10px 8px}.kk-auth-perk strong{font-size:10px}.kk-auth-perk span:last-child{font-size:9px}.kk-auth-formside{padding:22px 17px}.kk-auth-brand{margin-bottom:24px}.kk-auth-heading{font-size:31px}.kk-auth-tabs{margin-bottom:18px}.kk-auth-tab{font-size:11px;padding:11px 5px}.kk-auth-socials{gap:7px}.kk-auth-social{font-size:11px}.kk-auth-trust{gap:8px 12px}.kk-auth-foot{font-size:9px}}@media(prefers-reduced-motion:reduce){.kk-auth-grid{animation:none}.kk-auth *{transition:none!important;scroll-behavior:auto!important}}
+.kk-auth-signedin{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 13px;margin-bottom:18px;border:1px solid rgba(200,255,31,.25);border-radius:11px;background:rgba(200,255,31,.08);font-size:11px;color:#D9D4CB}
+.kk-auth-signedin strong{color:var(--shell);font-weight:700}
+.kk-auth-signedin button{border:0;background:none;color:var(--kokum);font-size:11px;font-weight:800;cursor:pointer;padding:0}
+.kk-auth-whatsapp{margin:0;color:#B5AFA6;font-size:10px;line-height:1.55;text-align:center}
+.kk-auth-step{animation:kk-step-in .32s cubic-bezier(.22,1,.36,1) both}
+.kk-auth-otp{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:9px}
+.kk-auth-otp-box{width:100%;min-width:0;height:52px;border:1px solid #3A4148;background:#1A1E23;border-radius:11px;color:var(--shell);text-align:center;font:700 18px/1 "JetBrains Mono",monospace;outline:0;transition:border-color .2s,box-shadow .2s}
+.kk-auth-otp-box:focus{border-color:var(--kokum);box-shadow:0 0 0 3px rgba(200,255,31,.1)}
+.kk-auth-otp-box::-webkit-outer-spin-button,.kk-auth-otp-box::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+@keyframes kk-step-in{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.kk-auth-step{animation:none}}
+@media(max-width:850px){.kk-auth-feature{display:none}.kk-auth-grid{max-width:520px;margin:auto;border:0;border-radius:0;background:transparent;box-shadow:none}.kk-auth-formside{padding:26px 22px;background:transparent}}
+.kk-dots{display:inline-flex;gap:1px;margin-left:2px}
+.kk-dots i{font-style:normal;animation:kk-dot 1s infinite ease-in-out}
+.kk-dots i:nth-child(2){animation-delay:.15s}.kk-dots i:nth-child(3){animation-delay:.3s}
+@keyframes kk-dot{0%,80%,100%{opacity:.25;transform:translateY(0)}40%{opacity:1;transform:translateY(-2px)}}
+@media(prefers-reduced-motion:reduce){.kk-dots i{animation:none}}
+`;
 
 export default function Login() {
+  const pageRef = useRef(null);
+  useScrollReveal(pageRef);
   const navigate = useNavigate();
   const mobileRef = useRef(null);
+  const otpInputs = useRef([]);
+  const autoSubmitted = useRef('');
   const [mode, setMode] = useState('phone');
   const [mobile, setMobile] = useState('');
-  const [whatsappOptin, setWhatsappOptin] = useState(true);
   const [otp, setOtp] = useState('');
+  const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
+  const [signedIn, setSignedIn] = useState(() => Boolean(localStorage.getItem('token')));
+  const [account] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('user') || 'null');
+    } catch {
+      return null;
+    }
+  });
   const [otpSent, setOtpSent] = useState(false);
   const [otpMessage, setOtpMessage] = useState('');
   const [cooldown, setCooldown] = useState(0);
@@ -42,7 +88,6 @@ export default function Login() {
   const [isRegister, setIsRegister] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-
 
   useSileoNotice(error, 'error', { title: 'Could not sign you in' });
 
@@ -57,12 +102,85 @@ export default function Login() {
     return () => clearTimeout(timer);
   }, [cooldown]);
 
+  useEffect(() => {
+    if (otpSent && !mobile) {
+      setOtpSent(false);
+      setOtp('');
+      setOtpDigits(['', '', '', '', '', '']);
+      autoSubmitted.current = '';
+    }
+  }, [otpSent, mobile]);
+
+  useEffect(() => {
+    if (otpSent) otpInputs.current[0]?.focus();
+  }, [otpSent]);
+
+  useEffect(() => {
+    if (!otpSent || otp.length !== 6 || submitting) return;
+    if (autoSubmitted.current === otp) return;
+    autoSubmitted.current = otp;
+    verifyOtp();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [otp, otpSent, submitting]);
+
+  function handleSignOut() {
+    session.logout();
+    setSignedIn(false);
+    navigate('/login');
+  }
+
+  function setOtpBox(index, raw) {
+    const digits = String(raw).replace(/\D/g, '');
+    const next = [...otpDigits];
+    if (!digits) {
+      next[index] = '';
+      setOtpDigits(next);
+      setOtp(next.join(''));
+      return;
+    }
+    for (let step = 0; step < digits.length && index + step < 6; step += 1) {
+      next[index + step] = digits[step];
+    }
+    setOtpDigits(next);
+    setOtp(next.join(''));
+    const focusIndex = Math.min(5, index + digits.length);
+    otpInputs.current[focusIndex]?.focus();
+  }
+
+  function handleOtpKeyDown(index, event) {
+    if (event.key === 'Backspace' && !otpDigits[index] && index > 0) {
+      otpInputs.current[index - 1]?.focus();
+    }
+    if (event.key === 'ArrowLeft' && index > 0) {
+      event.preventDefault();
+      otpInputs.current[index - 1]?.focus();
+    }
+    if (event.key === 'ArrowRight' && index < 5) {
+      event.preventDefault();
+      otpInputs.current[index + 1]?.focus();
+    }
+  }
+
+  function handleOtpPaste(event) {
+    const digits = event.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (!digits) return;
+    event.preventDefault();
+    const next = ['', '', '', '', '', ''];
+    for (let index = 0; index < digits.length; index += 1) next[index] = digits[index];
+    setOtpDigits(next);
+    setOtp(next.join(''));
+    otpInputs.current[Math.min(5, digits.length - 1)]?.focus();
+  }
+
   function resetPhoneFlow() {
     setOtpSent(false);
     setOtp('');
+    setOtpDigits(['', '', '', '', '', '']);
+    autoSubmitted.current = '';
     setOtpMessage('');
     setCooldown(0);
     setError('');
+    mobileRef.current?.focus();
   }
 
   async function sendOtp() {
@@ -80,9 +198,12 @@ export default function Login() {
       const response = await api.post('/auth/otp/send', { mobile });
       setOtpSent(true);
       setCooldown(30);
+      autoSubmitted.current = '';
       if (response.data?.devOtp) {
-        setOtp(String(response.data.devOtp));
-        setOtpMessage(`Development OTP: ${response.data.devOtp}`);
+        const devOtp = String(response.data.devOtp);
+        setOtp(devOtp);
+        setOtpDigits(devOtp.slice(0, 6).split(''));
+        setOtpMessage(`Development OTP: ${devOtp}`);
         notify.info({ title: 'Development OTP ready', description: 'Filled in automatically for local testing.' });
       } else {
         setOtp('');
@@ -156,247 +277,124 @@ export default function Login() {
 
   const phoneTabActive = mode === 'phone';
 
-  const signedIn = Boolean(localStorage.getItem('token'));
-  let account = null;
-  try {
-    account = JSON.parse(localStorage.getItem('user') || 'null');
-  } catch {
-    account = null;
-  }
-  function signOut() {
-    session.logout();
-    navigate('/');
-  }
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-      <div className="lg:col-span-7 bg-[#252A30] border border-[#B5AFA6]/20 rounded-[24px] p-6 sm:p-8 space-y-6">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-[#C8FF1F]">Household Account</p>
-          <h1 className="font-editorial text-3xl font-semibold text-[#F2F0EB] mt-1">
-            {signedIn
-              ? `Welcome, ${account?.displayName || account?.name || 'member'}`
-              : 'Sign in to Konkani Samudai'}
-          </h1>
-        </div>
+    <main ref={pageRef} className="kk-auth">
+      <style>{CSS}</style>
+      <div className="kk-auth-wrap">
+        <div className="kk-auth-grid">
+          <section className="kk-auth-feature" aria-label="Konkani Samudai cinema">
+            <div className="kk-auth-kicker"><span className="kk-auth-dot" /> A community that loves cinema</div>
+            <div className="kk-auth-feature-copy">
+              <p className="kk-auth-eyebrow">Your next story starts here</p>
+              <h2>Big stories.<br />Shared together.</h2>
+              <p>Celebrate Konkani cinema, discover special screenings, and keep every movie night close.</p>
+              <div className="kk-auth-perks">
+                <div className="kk-auth-perk"><span className="kk-auth-perk-icon">▦</span><strong>Digital passes</strong><span>Tickets ready when you are</span></div>
+                <div className="kk-auth-perk"><span className="kk-auth-perk-icon">✦</span><strong>Member moments</strong><span>Special community screenings</span></div>
+                <div className="kk-auth-perk"><span className="kk-auth-perk-icon">◷</span><strong>Easy booking</strong><span>Pick seats in a few steps</span></div>
+              </div>
+            </div>
+          </section>
 
-        {signedIn ? (
-          <div className="space-y-4 text-sm text-[#B5AFA6]">
-            <div className="p-4 rounded-xl bg-[#1E2227] border border-[#B5AFA6]/20 space-y-1.5">
-              <p><strong className="text-[#F2F0EB]">Email:</strong> {account?.email || '—'}</p>
-              <p><strong className="text-[#F2F0EB]">Mobile:</strong> {account?.mobile || account?.phone || '—'}</p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <Link to="/my-tickets" className="px-4 py-2 rounded-xl bg-[#C8FF1F] text-[#1E2227] text-xs font-semibold">
-                My tickets
-              </Link>
-              <button
-                type="button"
-                onClick={signOut}
-                className="px-4 py-2 rounded-xl bg-[#1E2227] border border-[#B5AFA6]/25 text-xs font-semibold text-[#F2F0EB] hover:border-[#C8FF1F]"
-              >
-                Sign out
-              </button>
-            </div>
-          </div>
-        ) : (
-          <>
-            <div className="inline-flex items-center rounded-xl bg-[#1E2227] border border-[#B5AFA6]/20 p-1">
-              <button
-                type="button"
-                onClick={() => switchAuthTab('phone')}
-                className={`px-4 py-2 rounded-lg text-xs transition-colors ${
-                  phoneTabActive ? 'bg-[#C8FF1F] text-[#1E2227] font-semibold' : 'text-[#B5AFA6] hover:text-[#F2F0EB]'
-                }`}
-              >
-                Mobile OTP
-              </button>
-              <button
-                type="button"
-                onClick={() => switchAuthTab('email')}
-                className={`px-4 py-2 rounded-lg text-xs transition-colors ${
-                  !phoneTabActive ? 'bg-[#C8FF1F] text-[#1E2227] font-semibold' : 'text-[#B5AFA6] hover:text-[#F2F0EB]'
-                }`}
-              >
-                Email &amp; password
-              </button>
+          <section className="kk-auth-formside">
+            <div className="kk-auth-brand">
+              <div className="kk-auth-brandmark" aria-hidden="true">K</div>
+              <div><div className="kk-auth-brandname">KONKANI SAMUDAI</div><div className="kk-auth-brandtag">Theatrical community portal</div></div>
             </div>
 
-            {error && (
-              <div role="alert" className="px-4 py-3 rounded-xl bg-[#1E2227] border border-[#F08A80]/40 text-xs text-[#F0B0A6]">
-                {error}
+            {signedIn && (
+              <div className="kk-auth-signedin">
+                <span>Signed in as <strong>{account?.email || account?.displayName || 'member'}</strong></span>
+                <button type="button" onClick={handleSignOut}>Sign out</button>
               </div>
             )}
 
             {phoneTabActive ? (
-              <div className="space-y-4">
-                <div>
-                  <label htmlFor="mobile-input" className="mb-1.5 block text-[10px] font-mono uppercase tracking-wider text-[#B5AFA6]">
-                    Registered mobile number
-                  </label>
-                  <div className="flex rounded-xl bg-[#1E2227] border border-[#B5AFA6]/25 overflow-hidden">
-                    <span className="flex items-center px-3 text-sm font-mono text-[#B5AFA6] border-r border-[#B5AFA6]/20">
-                      +91
-                    </span>
-                    <input
-                      id="mobile-input"
-                      maxLength={10}
-                      onChange={(e) => setMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                      placeholder="98765 43210"
-                      ref={mobileRef}
-                      type="tel"
-                      inputMode="numeric"
-                      autoComplete="tel-national"
-                      value={mobile}
-                      aria-invalid={mobileError}
-                      disabled={otpSent}
-                      className="w-full bg-transparent px-3 py-3 font-mono text-sm text-[#F2F0EB] outline-none placeholder:text-[#B5AFA6]/50"
-                    />
-                  </div>
-                  {mobileError && <p className="mt-1.5 text-xs text-[#F08A80]">Enter a valid 10-digit mobile number.</p>}
-                </div>
+              <div className="kk-auth-fields" role="tabpanel" aria-labelledby="tab-phone">
+                {error && <div className="kk-auth-error" role="alert">{error}</div>}
 
-                {otpSent && (
-                  <div>
-                    <label htmlFor="otp-input" className="mb-1.5 block text-[10px] font-mono uppercase tracking-wider text-[#B5AFA6]">
-                      Enter the 6-digit OTP
-                    </label>
-                    <input
-                      id="otp-input"
-                      maxLength={6}
-                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                      placeholder="123456"
-                      type="text"
-                      inputMode="numeric"
-                      autoComplete="one-time-code"
-                      value={otp}
-                      className="w-full px-4 py-3 rounded-xl bg-[#1E2227] border border-[#B5AFA6]/25 font-mono text-sm text-[#F2F0EB] outline-none"
-                    />
-                    <div className="flex justify-between gap-3 mt-2">
-                      <button type="button" onClick={resetPhoneFlow} className="text-xs font-semibold text-[#C8FF1F]">Change number</button>
-                      <button type="button" onClick={sendOtp} disabled={cooldown > 0 || submitting} className="text-xs font-semibold text-[#C8FF1F] disabled:opacity-50">
-                        {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend OTP'}
-                      </button>
+                {!otpSent ? (
+                  <div className="kk-auth-fields kk-auth-step" key="mobile-step">
+                    <div>
+                      <label className="kk-auth-label" htmlFor="mobile-input"><span>Mobile number</span><small>WhatsApp OTP</small></label>
+                      <div className="kk-auth-inputwrap" style={mobileError ? { borderColor: '#C8FF1F', boxShadow: '0 0 0 3px rgba(200,255,31,.12)' } : undefined}>
+                        <div className="kk-auth-prefix"><span aria-hidden="true">🇮🇳</span><span>+91</span></div>
+                        <input className="kk-auth-field" id="mobile-input" maxLength={10} onChange={(e) => setMobile(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="98765 43210" ref={mobileRef} type="tel" inputMode="numeric" autoComplete="tel-national" value={mobile} aria-invalid={mobileError} />
+                      </div>
+                      {mobileError && <p style={{ color: '#C8FF1F', fontSize: 11, margin: '7px 0 0' }}>Enter a valid 10-digit mobile number.</p>}
                     </div>
-                    {otpMessage && <p className="mt-2 text-[11px] text-[#B5AFA6] leading-relaxed">{otpMessage}</p>}
+
+                    <button className="kk-auth-primary" disabled={submitting} onClick={sendOtp} type="button">
+                      {submitting ? (
+                        <>Sending<span className="kk-dots" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span></>
+                      ) : (
+                        'Send login OTP'
+                      )}
+                    </button>
+
+                    <p className="kk-auth-whatsapp">Tickets and all booking details will be sent on WhatsApp.</p>
+                  </div>
+                ) : (
+                  <div className="kk-auth-fields kk-auth-step" key="otp-step">
+                    <div>
+                      <label className="kk-auth-label">
+                        <span>Enter the 6-digit OTP</span>
+                        <small>{cooldown > 0 ? `Resend in ${cooldown}s` : 'Sent on WhatsApp'}</small>
+                      </label>
+                      <div className="kk-auth-otp" onPaste={handleOtpPaste}>
+                        {otpDigits.map((digit, index) => (
+                          <input
+                            key={index}
+                            ref={(element) => { otpInputs.current[index] = element; }}
+                            className="kk-auth-otp-box"
+                            value={digit}
+                            onChange={(event) => setOtpBox(index, event.target.value)}
+                            onKeyDown={(event) => handleOtpKeyDown(index, event)}
+                            inputMode="numeric"
+                            autoComplete={index === 0 ? 'one-time-code' : 'off'}
+                            maxLength={1}
+                            aria-label={`OTP digit ${index + 1}`}
+                          />
+                        ))}
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginTop: 10 }}>
+                        <button className="kk-auth-link" onClick={resetPhoneFlow} type="button">Change number</button>
+                        <button className="kk-auth-link" onClick={sendOtp} type="button" disabled={cooldown > 0 || submitting}>
+                          {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend OTP'}
+                        </button>
+                      </div>
+                      {otpMessage && <p style={{ fontSize: 10, color: '#B5AFA6', lineHeight: 1.5, margin: '7px 0 0' }}>{otpMessage}</p>}
+                    </div>
+
+                    <button className="kk-auth-primary" disabled={submitting || otp.length !== 6} onClick={verifyOtp} type="button">
+                      {submitting ? (
+                        <>Verifying<span className="kk-dots" aria-hidden="true"><i>.</i><i>.</i><i>.</i></span></>
+                      ) : (
+                        'Verify & sign in'
+                      )}
+                    </button>
                   </div>
                 )}
-
-                <label className="flex items-start gap-3 rounded-xl bg-[#1E2227] border border-[#B5AFA6]/20 p-3 text-xs text-[#B5AFA6] normal-case">
-                  <input type="checkbox" checked={whatsappOptin} onChange={(e) => setWhatsappOptin(e.target.checked)} className="mt-0.5 accent-[#C8FF1F]" />
-                  <span>
-                    <strong className="block text-[#F2F0EB] text-xs font-semibold">Send booking confirmations over WhatsApp</strong>
-                    Receive passes and booking links on WhatsApp. You can change this anytime.
-                  </span>
-                </label>
-
-                <button
-                  type="button"
-                  disabled={submitting}
-                  onClick={otpSent ? verifyOtp : sendOtp}
-                  className="w-full py-3 rounded-xl bg-[#C8FF1F] text-[#1E2227] text-xs font-semibold transition-colors hover:bg-[#B5AFA6] disabled:opacity-50"
-                >
-                  {submitting ? 'Please wait…' : otpSent ? 'Verify and sign in →' : 'Send login OTP →'}
-                </button>
-                <p className="text-[11px] text-[#B5AFA6] leading-relaxed">
-                  Your verified number is used for payment too, so checkout will not ask for it again.
-                </p>
               </div>
             ) : (
-              <form onSubmit={submitCredentials} className="space-y-3">
-                {isRegister && (
-                  <input
-                    name="displayName"
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    placeholder="Full name"
-                    type="text"
-                    autoComplete="name"
-                    value={displayName}
-                    className="w-full px-4 py-3 rounded-xl bg-[#1E2227] border border-[#B5AFA6]/25 text-sm text-[#F2F0EB] outline-none"
-                  />
-                )}
-                <input
-                  name="email"
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Email address"
-                  type="text"
-                  inputMode="email"
-                  autoComplete="username"
-                  autoCapitalize="none"
-                  required
-                  value={email}
-                  className="w-full px-4 py-3 rounded-xl bg-[#1E2227] border border-[#B5AFA6]/25 text-sm text-[#F2F0EB] outline-none"
-                />
-                <div className="relative">
-                  <input
-                    name="password"
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Password"
-                    type={showPassword ? 'text' : 'password'}
-                    autoComplete={isRegister ? 'new-password' : 'current-password'}
-                    required
-                    value={password}
-                    className="w-full px-4 py-3 pr-14 rounded-xl bg-[#1E2227] border border-[#B5AFA6]/25 text-sm text-[#F2F0EB] outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((value) => !value)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-semibold uppercase tracking-wider text-[#C8FF1F]"
-                  >
-                    {showPassword ? 'Hide' : 'Show'}
-                  </button>
+              <form className="kk-auth-fields" onSubmit={submitCredentials} role="tabpanel" aria-labelledby="tab-email">
+                {error && <div className="kk-auth-error" role="alert">{error}</div>}
+                {isRegister && <div><label className="kk-auth-label" htmlFor="display-name-input">Full name</label><div className="kk-auth-inputwrap"><input className="kk-auth-field" id="display-name-input" onChange={(e) => setDisplayName(e.target.value)} placeholder="Your name" type="text" autoComplete="name" value={displayName} /></div></div>}
+                <div><label className="kk-auth-label" htmlFor="email-input">Email address</label><div className="kk-auth-inputwrap"><input className="kk-auth-field" id="email-input" onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" type="text" inputMode="email" autoComplete="username" autoCapitalize="none" required value={email} /></div></div>
+                <div>
+                  <div className="kk-auth-label"><label htmlFor="password-input">Password</label><button className="kk-auth-forgot" type="button" onClick={() => setError('Password reset is not configured on this screen. Please contact support.')}>Forgot password?</button></div>
+                  <div className="kk-auth-inputwrap"><input className="kk-auth-field" id="password-input" onChange={(e) => setPassword(e.target.value)} placeholder="Enter your password" type={showPassword ? 'text' : 'password'} autoComplete={isRegister ? 'new-password' : 'current-password'} required value={password} /><button className="kk-auth-iconbtn" onClick={() => setShowPassword((v) => !v)} type="button" aria-label={showPassword ? 'Hide password' : 'Show password'}>{showPassword ? '◉' : '◎'}</button></div>
                 </div>
-                <button
-                  disabled={submitting}
-                  type="submit"
-                  className="w-full py-3 rounded-xl bg-[#C8FF1F] text-[#1E2227] text-xs font-semibold transition-colors hover:bg-[#B5AFA6] disabled:opacity-50"
-                >
-                  {submitting ? 'Please wait…' : isRegister ? 'Create account →' : 'Sign in securely →'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsRegister((value) => !value);
-                    setError('');
-                  }}
-                  className="w-full text-center text-xs font-semibold text-[#C8FF1F]"
-                >
-                  {isRegister ? 'Already a member? Sign in' : 'New to Konkani Samudai? Create an account'}
-                </button>
+                <button className="kk-auth-primary" disabled={submitting} type="submit">{submitting ? '◌  Please wait…' : isRegister ? 'Create account  →' : 'Sign in securely  →'}</button>
+                <div className="kk-auth-switch"><button className="kk-auth-link" onClick={() => { setIsRegister((v) => !v); setError(''); }} type="button">{isRegister ? 'Already a member? Sign in' : 'New to Konkani Samudai? Create an account'}</button></div>
               </form>
             )}
 
-            <div className="pt-4 border-t border-[#B5AFA6]/15">
-              <Link to="/movies" className="text-xs font-semibold text-[#F2F0EB] underline underline-offset-4 hover:text-[#C8FF1F]">
-                Continue browsing as a guest →
-              </Link>
-            </div>
-            <div className="flex flex-wrap gap-x-5 gap-y-2 text-[10px] font-semibold uppercase tracking-wider text-[#B5AFA6]">
-              <span>✓ Digital QR passes</span>
-              <span>◷ 8-minute seat hold</span>
-              <span>✦ Member rates</span>
-            </div>
-          </>
-        )}
-      </div>
-
-      <div className="lg:col-span-5 bg-[#B5AFA6] text-[#1E2227] rounded-[24px] p-6 sm:p-8 space-y-5">
-        <div className="flex justify-between items-start">
-          <div>
-            <p className="font-mono text-xs font-semibold text-[#2C3138]">KS · 1934 · MARGAO</p>
-            <h2 className="font-editorial text-2xl font-semibold mt-1">The Samudai card</h2>
-          </div>
-          <span className="font-mono text-2xl font-bold tabular-nums">₹1</span>
+            <div className="kk-auth-guest"><Link to="/movies">Continue browsing as a guest&nbsp; →</Link></div>
+            <div className="kk-auth-trust"><span><b>✓</b> Digital QR passes</span><span><b>✦</b> Community screenings</span></div>
+          </section>
         </div>
-        <p className="text-xs text-[#2C3138]">
-          Member rates on every film and festival · priority seats · AGM voting rights · Sunday Konkani classes.
-        </p>
-        <Link
-          to="/#join"
-          className="block w-full text-center py-3 rounded-xl bg-[#1E2227] text-[#C8FF1F] text-xs font-semibold hover:bg-[#C8FF1F] hover:text-[#1E2227] transition-colors"
-        >
-          Activate ₹1 Samudai Card
-        </Link>
       </div>
-    </div>
+    </main>
   );
 }

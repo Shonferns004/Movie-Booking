@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../services/api.js';
 import { useSileoNotice } from '../hooks/useSileoNotice.js';
+import { useModalMotion } from '../hooks/useMotion.js';
 import { openYoupiCheckout } from '../services/youpi.js';
 import UiIcon from '../components/UiIcon.jsx';
 
@@ -182,8 +183,13 @@ function TicketModal({ event, onClose }) {
     return `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(lines.join('\n'))}`;
   }, [event, tier, quantity, total, name, order]);
 
+  const backdropRef = useRef(null);
+  const panelRef = useRef(null);
+  useModalMotion(panelRef, backdropRef);
+
   return (
     <div
+      ref={backdropRef}
       className="fixed inset-0 z-[70] flex items-end justify-center bg-[#14181B]/85 backdrop-blur-md sm:items-center sm:p-6"
       role="dialog"
       aria-modal="true"
@@ -192,7 +198,7 @@ function TicketModal({ event, onClose }) {
         if (clickEvent.target === clickEvent.currentTarget) onClose();
       }}
     >
-      <div className="modal-in max-h-[92vh] w-full max-w-[460px] overflow-y-auto rounded-t-[26px] border border-[#F2F0EC]/12 bg-[#242A30] p-6 shadow-2xl sm:rounded-[26px]">
+      <div ref={panelRef} className="modal-in max-h-[92vh] w-full max-w-[460px] overflow-y-auto rounded-t-[26px] border border-[#F2F0EC]/12 bg-[#242A30] p-6 shadow-2xl sm:rounded-[26px]">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-[9px] font-bold uppercase tracking-[0.2em]" style={{ color: event.accent }}>
@@ -421,6 +427,9 @@ function TicketModal({ event, onClose }) {
 /* ----------------------------------------------------- membership modal */
 
 function MembershipModal({ onClose, plan: initialPlan, onMemberChange }) {
+  const backdropRef = useRef(null);
+  const panelRef = useRef(null);
+  useModalMotion(panelRef, backdropRef);
   const token = localStorage.getItem('token');
   const account = useMemo(() => {
     try {
@@ -633,6 +642,7 @@ function MembershipModal({ onClose, plan: initialPlan, onMemberChange }) {
 
   return (
     <div
+      ref={backdropRef}
       className="fixed inset-0 z-[70] flex items-end justify-center bg-[#14181B]/85 backdrop-blur-md sm:items-center sm:p-6"
       role="dialog"
       aria-modal="true"
@@ -641,13 +651,13 @@ function MembershipModal({ onClose, plan: initialPlan, onMemberChange }) {
         if (clickEvent.target === clickEvent.currentTarget) onClose();
       }}
     >
-      <div className="modal-in max-h-[93vh] w-full max-w-[700px] overflow-y-auto rounded-t-[26px] border border-[#F2F0EC]/12 bg-[#242A30] shadow-2xl sm:rounded-[26px]">
+      <div ref={panelRef} className="modal-in max-h-[93vh] w-full max-w-[700px] overflow-y-auto rounded-t-[26px] border border-[#F2F0EC]/12 bg-[#242A30] shadow-2xl sm:rounded-[26px]">
         <div className="p-6 sm:p-7">
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-[9px] font-bold uppercase tracking-[0.24em] text-[#C8FF1F]">Membership</p>
               <h3 className="mt-1.5 font-['Playfair Display',Georgia,serif] text-[26px] font-bold leading-[1.02] tracking-[-0.02em]">
-                Join Konkani Samudai
+                {stage === 'paid' || member ? 'Your membership' : 'Join Konkani Samudai'}
               </h3>
             </div>
             <button
@@ -662,7 +672,7 @@ function MembershipModal({ onClose, plan: initialPlan, onMemberChange }) {
 
           {!token ? (
             <div className="mt-8 text-center">
-              <UiIcon name="lock" className="text-[38px] text-[#C8FF1F]/70" />
+              <UiIcon name="lock" className="mx-auto text-[38px] text-[#C8FF1F]/70" />
               <p className="mt-3 text-[13px] leading-relaxed text-[#F2F0EC]/65">
                 You need an account before you can become a member. It takes a minute.
               </p>
@@ -679,7 +689,7 @@ function MembershipModal({ onClose, plan: initialPlan, onMemberChange }) {
             </div>
           ) : stage === 'paid' || member ? (
             <div className="mt-8 text-center">
-              <UiIcon name="verified" className="text-[44px] text-[#B6E36A]" />
+              <UiIcon name="verified" className="mx-auto text-[44px] text-[#C8FF1F]" />
               <h4 className="mt-3 font-['Playfair Display',Georgia,serif] text-[24px] font-bold">You're a member</h4>
               <p className="mt-2 text-[12px] leading-relaxed text-[#F2F0EC]/65">
                 {member?.name || name} · {rupees(Math.round(Number(member?.amountMinor || plan.amountMinor) / 100))} a year
@@ -694,7 +704,7 @@ function MembershipModal({ onClose, plan: initialPlan, onMemberChange }) {
               <button
                 type="button"
                 onClick={onClose}
-                className="mt-6 w-full rounded-full bg-[#B5AFA6] py-3 text-[11px] font-bold uppercase tracking-[0.14em] text-[#1A1E23]"
+                className="mt-6 w-full rounded-full bg-[#C8FF1F] py-3 text-[11px] font-bold uppercase tracking-[0.14em] text-[#1E2227] transition-colors hover:bg-[#B5AFA6]"
               >
                 Done
               </button>

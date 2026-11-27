@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import api from '../services/api.js';
+import TicketBarcode from '../components/TicketBarcode.jsx';
 import { useSileoNotice } from '../hooks/useSileoNotice.js';
+import { useScrollReveal } from '../hooks/useMotion.js';
 import notify from '../services/notify.js';
 
 const money = (minor = 0, currency = 'INR') =>
@@ -30,6 +32,8 @@ export default function BookingConfirmation() {
     || (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(`bookingToken:${reference}`) : null);
   const [booking, setBooking] = useState(null);
   const [error, setError] = useState('');
+  const pageRef = useRef(null);
+  useScrollReveal(pageRef, { refreshKey: `${booking?.tickets?.length || 0}-${booking?.status || ''}` });
 
   useSileoNotice(error, 'error', { title: 'Booking' });
   const confirmedToast = useRef(false);
@@ -110,7 +114,7 @@ export default function BookingConfirmation() {
   const tickets = booking.tickets || [];
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#1E2227] px-4 py-8 text-[#F2F0EC] sm:px-6 sm:py-12">
+    <main ref={pageRef} className="min-h-screen overflow-hidden bg-[#1E2227] px-4 py-8 text-[#F2F0EC] sm:px-6 sm:py-12">
       <div className="relative mx-auto max-w-[1100px]">
 
         <section className="overflow-hidden rounded-[28px] border border-[#F2F0EC]/10 bg-[#262C33] shadow-[0_24px_80px_rgba(0,0,0,0.24)]">
@@ -120,7 +124,7 @@ export default function BookingConfirmation() {
               <div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-[#C8FF1F]">Booking details</p>
                 <h1 className="mt-3 font-serif text-3xl leading-tight sm:text-4xl">{isPending ? 'Your booking is processing' : 'Your movie night, secured.'}</h1>
-                <p className="mt-3 max-w-xl text-sm leading-6 text-[#F2F0EC]/65">{isPending ? 'We’re waiting for the final payment confirmation. This page refreshes automatically.' : 'Keep your booking reference and ticket QR codes ready when you arrive at the cinema.'}</p>
+                <p className="mt-3 max-w-xl text-sm leading-6 text-[#F2F0EC]/65">{isPending ? 'We’re waiting for the final payment confirmation. This page refreshes automatically.' : 'Keep your booking reference and ticket barcodes ready when you arrive at the cinema.'}</p>
               </div>
               <div className={`inline-flex w-fit shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-bold capitalize ${bookingStatus.panel} ${bookingStatus.text}`}>
                 <span className={`h-2 w-2 rounded-full ${bookingStatus.dot}`} />
@@ -147,7 +151,7 @@ export default function BookingConfirmation() {
                 <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#C8FF1F]">Admission passes</p>
                 <h2 className="mt-2 font-serif text-2xl">Your tickets <span className="font-sans text-base text-[#F2F0EC]/40">({tickets.length})</span></h2>
               </div>
-              <p className="text-xs text-[#F2F0EC]/45">Present each QR code at entry</p>
+              <p className="text-xs text-[#F2F0EC]/45">Present each barcode at entry</p>
             </div>
 
             {tickets.length > 0 ? (
@@ -155,7 +159,7 @@ export default function BookingConfirmation() {
                 {tickets.map((ticket, index) => {
                   const ticketStatus = statusStyles(ticket.status);
                   return (
-                    <article key={ticket.id || ticket.ticket_reference} className="group relative overflow-hidden rounded-2xl border border-[#F2F0EC]/10 bg-[#1E2227]/65 transition duration-300 hover:-translate-y-1 hover:border-[#C8FF1F]/35">
+                    <article key={ticket.id || ticket.ticket_reference} data-reveal className="group relative overflow-hidden rounded-2xl border border-[#F2F0EC]/10 bg-[#1E2227]/65 transition duration-300 hover:-translate-y-1 hover:border-[#C8FF1F]/35">
                       <div className="flex items-center justify-between border-b border-dashed border-[#F2F0EC]/15 px-5 py-4">
                         <div>
                           <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#F2F0EC]/40">Digital ticket</p>
@@ -163,13 +167,28 @@ export default function BookingConfirmation() {
                         </div>
                         <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider ${ticketStatus.text}`}><span className={`h-1.5 w-1.5 rounded-full ${ticketStatus.dot}`} />{ticketStatus.label}</span>
                       </div>
-                      <div className="flex flex-col items-center px-5 py-6 text-center">
-                        <div className="rounded-2xl bg-[#B5AFA6] p-3 shadow-[0_8px_30px_rgba(0,0,0,0.2)]">
-                          <QRCodeSVG value={ticket.ticket_reference} size={148} level="M" includeMargin bgColor="#F2F0EC" fgColor="#1E2227" />
+                      <div className="flex items-center gap-5 px-5 py-6 text-left">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#F2F0EC]/40">Ticket reference</p>
+                          <p className="mt-1 max-w-full break-all font-mono text-sm font-bold tracking-wide text-[#C8FF1F]">{ticket.ticket_reference}</p>
+                          <p className="mt-2 text-xs text-[#F2F0EC]/45">Scan at the cinema entrance</p>
                         </div>
-                        <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.18em] text-[#F2F0EC]/40">Ticket reference</p>
-                        <p className="mt-1 max-w-full break-all font-mono text-sm font-bold tracking-wide text-[#C8FF1F]">{ticket.ticket_reference}</p>
-                        <p className="mt-2 text-xs text-[#F2F0EC]/45">Scan at the cinema entrance</p>
+                        <div className="flex shrink-0 items-center gap-2 rounded-lg bg-[#F2F0EC] p-1.5">
+                          <QRCodeSVG
+                            value={ticket.ticket_reference}
+                            size={52}
+                            level="M"
+                            bgColor="#F2F0EC"
+                            fgColor="#1E2227"
+                          />
+                          <TicketBarcode
+                            vertical
+                            value={ticket.ticket_reference}
+                            height={40}
+                            barColor="#16191D"
+                            className="h-24 w-9"
+                          />
+                        </div>
                       </div>
                       <div className="flex items-center gap-2 border-t border-dashed border-[#F2F0EC]/15 px-5 py-3 text-[10px] uppercase tracking-[0.14em] text-[#F2F0EC]/35">
                         <span className="h-2 w-2 rounded-full bg-[#C8FF1F]" />
@@ -183,7 +202,7 @@ export default function BookingConfirmation() {
               <div className="rounded-2xl border border-dashed border-[#F2F0EC]/15 px-5 py-10 text-center">
                 <div className="text-3xl text-[#C8FF1F]">◌</div>
                 <h3 className="mt-3 font-serif text-xl">Tickets are being prepared</h3>
-                <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#F2F0EC]/55">Your ticket QR codes will appear here when they’re available. Keep this page open while your booking is pending.</p>
+                <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#F2F0EC]/55">Your ticket barcodes will appear here when they’re available. Keep this page open while your booking is pending.</p>
               </div>
             )}
 
@@ -192,7 +211,7 @@ export default function BookingConfirmation() {
             <div className="mt-8 flex flex-col gap-3 rounded-2xl border border-[#C8FF1F]/20 bg-[#C8FF1F]/[0.06] p-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="font-semibold">Ready for the big screen?</p>
-                <p className="mt-1 text-xs leading-5 text-[#F2F0EC]/55">Keep your QR codes bright and ready to scan at entry.</p>
+                <p className="mt-1 text-xs leading-5 text-[#F2F0EC]/55">Keep your barcodes bright and ready to scan at entry.</p>
               </div>
               <Link to="/movies" className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[#C8FF1F] px-5 py-3 text-sm font-bold text-[#1E2227] shadow-lg shadow-[#C8FF1F]/15 transition hover:-translate-y-0.5 hover:bg-[#D6FF5C]">Explore more movies <span aria-hidden="true">→</span></Link>
             </div>

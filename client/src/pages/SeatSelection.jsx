@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { gsap } from 'gsap';
 import api, { assetUrl } from '../services/api.js';
 import { useSileoNotice } from '../hooks/useSileoNotice.js';
+import { prefersReducedMotion } from '../hooks/useMotion.js';
 import { useRealtime } from '../services/realtime.js';
 import UiIcon from '../components/UiIcon.jsx';
 import BookingPayment from '../components/BookingPayment.jsx';
@@ -112,6 +114,7 @@ function Legend({ color, label, filled = false }) {
 export default function SeatSelection() {
   const { showId } = useParams();
   const navigate = useNavigate();
+  const layoutRef = useRef(null);
 
   const [data, setData] = useState(null);
   const [movie, setMovie] = useState(null);
@@ -126,11 +129,39 @@ export default function SeatSelection() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [notice, setNotice] = useState('');
   const [loadingError, setLoadingError] = useState('');
+  const [selectionOpen, setSelectionOpen] = useState(false);
 
   useSileoNotice(notice, 'error', { title: 'Seat selection' });
   useSileoNotice(loadingError, 'error', { title: 'Could not load seats' });
   const [holding, setHolding] = useState(false);
   const [zoomIdx, setZoomIdx] = useState(2);
+
+  useEffect(() => {
+    if (selected.length === 0 || step !== 'seats') setSelectionOpen(false);
+  }, [selected.length, step]);
+
+  useLayoutEffect(() => {
+    const scope = layoutRef.current;
+    if (!scope || !data || prefersReducedMotion()) return undefined;
+    const context = gsap.context(() => {
+      const targets = gsap.utils.toArray('[data-seat-enter]', scope);
+      if (!targets.length) return;
+      gsap.fromTo(
+        targets,
+        { autoAlpha: 0, y: 18 },
+        {
+          autoAlpha: 1,
+          y: 0,
+          duration: 0.55,
+          ease: 'power3.out',
+          stagger: 0.07,
+          overwrite: 'auto',
+          clearProps: 'transform',
+        },
+      );
+    }, scope);
+    return () => context.revert();
+  }, [data, step]);
 
   async function load() {
     setLoadingError('');
@@ -291,6 +322,7 @@ export default function SeatSelection() {
       return;
     }
     setSelected((current) => [...current, seat.seat_id]);
+    setSelectionOpen(true);
   }
 
   async function hold() {
@@ -447,31 +479,30 @@ export default function SeatSelection() {
   const timeOptions = schedule.filter((item) => dateKey(item.starts_at) === currentDateKey).slice(0, 6);
 
   const stepBar = (
-    <div className="flex flex-wrap items-center gap-5 text-[10px] font-semibold uppercase tracking-[0.16em]">
+    <div className="flex flex-wrap items-center gap-3 text-[10px] font-semibold uppercase tracking-[0.16em]">
       <button
         type="button"
         onClick={() => setStep('seats')}
-        className={step === 'seats' ? 'flex items-center gap-2 border-b-2 border-[#C8FF1F] pb-2 text-[#C8FF1F]' : 'flex items-center gap-2 pb-2 text-[#B5AFA6]/60 hover:text-[#F2F0EB]'}
+        className={step === 'seats' ? 'border-b-2 border-[#C8FF1F] pb-2 text-[#C8FF1F]' : 'pb-2 text-[#B5AFA6]/60 hover:text-[#F2F0EB]'}
       >
-        <span className={`grid h-5 w-5 place-items-center rounded-full font-mono text-[10px] ${step === 'seats' ? 'bg-[#C8FF1F] text-[#1E2227]' : 'border border-[#B5AFA6]/40'}`}>1</span>
         Choose your place
       </button>
+      <span aria-hidden="true" className="pb-2 text-[#B5AFA6]/45">→</span>
       <button
         type="button"
         disabled={!activeHold}
         onClick={() => setStep('payment')}
-        className={step === 'payment' ? 'flex items-center gap-2 border-b-2 border-[#C8FF1F] pb-2 text-[#C8FF1F]' : 'flex items-center gap-2 pb-2 text-[#B5AFA6]/60 hover:text-[#F2F0EB] disabled:opacity-40'}
+        className={step === 'payment' ? 'border-b-2 border-[#C8FF1F] pb-2 text-[#C8FF1F]' : 'pb-2 text-[#B5AFA6]/60 hover:text-[#F2F0EB] disabled:opacity-40'}
       >
-        <span className={`grid h-5 w-5 place-items-center rounded-full font-mono text-[10px] ${step === 'payment' ? 'bg-[#C8FF1F] text-[#1E2227]' : 'border border-[#B5AFA6]/40'}`}>2</span>
         Payment
       </button>
+      <span aria-hidden="true" className="pb-2 text-[#B5AFA6]/45">→</span>
       <button
         type="button"
         disabled={!activeBooking}
         onClick={() => setStep('ticket')}
-        className={step === 'ticket' ? 'flex items-center gap-2 border-b-2 border-[#C8FF1F] pb-2 text-[#C8FF1F]' : 'flex items-center gap-2 pb-2 text-[#B5AFA6]/60 hover:text-[#F2F0EB] disabled:opacity-40'}
+        className={step === 'ticket' ? 'border-b-2 border-[#C8FF1F] pb-2 text-[#C8FF1F]' : 'pb-2 text-[#B5AFA6]/60 hover:text-[#F2F0EB] disabled:opacity-40'}
       >
-        <span className={`grid h-5 w-5 place-items-center rounded-full font-mono text-[10px] ${step === 'ticket' ? 'bg-[#C8FF1F] text-[#1E2227]' : 'border border-[#B5AFA6]/40'}`}>3</span>
         Ticket
       </button>
     </div>
@@ -509,13 +540,66 @@ export default function SeatSelection() {
     </div>
   );
 
+  const selectionPanel = (
+    <>
+      <div className="space-y-0">
+        {selectedSeats.length === 0 && (
+          <p className="py-3 text-xs leading-relaxed text-[#B5AFA6]">
+            Pick your seats on the map. Each seat is held for eight minutes.
+          </p>
+        )}
+        {selectedSeats.map((seat) => (
+          <div
+            key={seat.seat_id}
+            className="flex items-center justify-between gap-3 border-b border-[#B5AFA6]/10 py-2.5 text-xs"
+          >
+            <span className="text-[#B5AFA6]">Row {seat.row_label}</span>
+            <span className="font-mono text-[#F2F0EB]">Seat {seat.seat_number}</span>
+            <span className="font-mono text-[#C8FF1F]">{rupees(seat.price_minor || 0)}</span>
+            <button
+              type="button"
+              onClick={() => toggle(seat)}
+              aria-label={`Remove seat ${seat.row_label}-${seat.seat_number}`}
+              className="text-[#B5AFA6] transition-colors hover:text-[#C8FF1F]"
+            >
+              ×
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex items-center justify-between border-t border-[#B5AFA6]/20 pt-3">
+        <span className="text-[11px] uppercase tracking-[0.14em] text-[#B5AFA6]">Total</span>
+        <span className="font-mono text-xl font-bold text-[#F2F0EB]">{rupees(totalMinor)}</span>
+      </div>
+
+      <div className="flex items-center gap-3 pt-1">
+        <button
+          type="button"
+          onClick={() => navigate('/movies')}
+          className="flex-1 rounded-md border border-[#C8FF1F] px-3 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#C8FF1F] transition-colors hover:bg-[#C8FF1F] hover:text-[#1E2227]"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={hold}
+          disabled={!selected.length || holding}
+          className="flex-1 rounded-md bg-[#C8FF1F] px-3 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#1E2227] transition-colors hover:bg-[#D9FF66] disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {holding ? 'Holding…' : 'Next'}
+        </button>
+      </div>
+    </>
+  );
+
   return (
-    <div className={`seat-booking-page flex min-h-0 flex-col bg-[#1E2227] text-[#F2F0EB] ${step === 'seats' ? 'lg:h-[calc(100vh-92px)] lg:overflow-hidden' : ''}`}>
+    <div ref={layoutRef} className={`seat-booking-page flex min-h-0 flex-col bg-[#1E2227] text-[#F2F0EB] ${step === 'seats' ? 'lg:h-[calc(100vh-92px)] lg:overflow-hidden' : ''} ${selectionOpen && step === 'seats' ? 'pb-[48vh] lg:pb-0' : ''}`}>
       <style>{STYLES}</style>
       {step === 'seats' && (
         <div className="mx-auto max-w-7xl px-4 sm:px-6 py-5 grid grid-cols-1 lg:grid-cols-[250px_minmax(0,1fr)_170px] gap-7 items-start lg:h-full lg:min-h-0">
-          <aside className="order-2 lg:order-1 space-y-4 lg:self-start">
-            <div className="w-24 sm:w-28">
+          <aside className="order-3 hidden space-y-4 lg:order-1 lg:block lg:self-start" data-seat-enter>
+            <div className="hidden w-24 sm:w-28 lg:block">
               {poster ? (
                 <img
                   src={poster}
@@ -534,57 +618,10 @@ export default function SeatSelection() {
               <h2 className="font-editorial text-2xl font-semibold text-[#F2F0EB]">Seats</h2>
             </div>
 
-            <div className="space-y-0">
-              {selectedSeats.length === 0 && (
-                <p className="py-3 text-xs leading-relaxed text-[#B5AFA6]">
-                  Pick your seats on the map. Each seat is held for eight minutes.
-                </p>
-              )}
-              {selectedSeats.map((seat) => (
-                <div
-                  key={seat.seat_id}
-                  className="flex items-center justify-between gap-3 border-b border-[#B5AFA6]/10 py-2.5 text-xs"
-                >
-                  <span className="text-[#B5AFA6]">Row {seat.row_label}</span>
-                  <span className="font-mono text-[#F2F0EB]">Seat {seat.seat_number}</span>
-                  <span className="font-mono text-[#C8FF1F]">{rupees(seat.price_minor || 0)}</span>
-                  <button
-                    type="button"
-                    onClick={() => toggle(seat)}
-                    aria-label={`Remove seat ${seat.row_label}-${seat.seat_number}`}
-                    className="text-[#B5AFA6] transition-colors hover:text-[#C8FF1F]"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex items-center justify-between border-t border-[#B5AFA6]/20 pt-3">
-              <span className="text-[11px] uppercase tracking-[0.14em] text-[#B5AFA6]">Total</span>
-              <span className="font-mono text-xl font-bold text-[#F2F0EB]">{rupees(totalMinor)}</span>
-            </div>
-
-            <div className="flex items-center gap-3 pt-1">
-              <button
-                type="button"
-                onClick={() => navigate('/movies')}
-                className="flex-1 rounded-md border border-[#C8FF1F] px-3 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#C8FF1F] transition-colors hover:bg-[#C8FF1F] hover:text-[#1E2227]"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={hold}
-                disabled={!selected.length || holding}
-                className="flex-1 rounded-md bg-[#C8FF1F] px-3 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#1E2227] transition-colors hover:bg-[#D9FF66] disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                {holding ? 'Holding…' : 'Next'}
-              </button>
-            </div>
+            {selectionPanel}
           </aside>
 
-          <main className="order-1 lg:order-2 min-w-0 flex min-h-0 flex-col lg:h-full">
+          <main className="order-2 lg:order-2 min-w-0 flex min-h-0 flex-col lg:h-full" data-seat-enter>
             <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
               {titleBlock}
               <div className="shrink-0 xl:pt-1">{stepBar}</div>
@@ -684,42 +721,51 @@ export default function SeatSelection() {
             </div>
           </main>
 
-          <aside className="order-3 space-y-6 lg:self-start">
-            <div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#B5AFA6]">Date</p>
-              <p className="mt-1 font-editorial text-3xl font-semibold leading-none text-[#F2F0EB]">
-                {dayNumber} <span className="font-mono text-[10px] uppercase tracking-[0.18em]">{monthLabel}</span>
-              </p>
-            </div>
-            <div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#B5AFA6]">Time</p>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {(timeOptions.length ? timeOptions : [{ id: show.id, starts_at: show.starts_at }]).map((item) => (
-                  <Link
-                    key={item.id}
-                    to={`/shows/${item.id}/seats`}
-                    className={`rounded-md border px-2.5 py-1.5 font-mono text-[10px] ${
-                      item.id === show.id
-                        ? 'border-[#C8FF1F] bg-[#C8FF1F] font-semibold text-[#1E2227]'
-                        : 'border-[#B5AFA6]/20 text-[#B5AFA6] hover:border-[#C8FF1F] hover:text-[#C8FF1F]'
-                    }`}
-                  >
-                    {timeLabel(item.starts_at) || timeText}
-                  </Link>
-                ))}
+          <aside className="order-1 space-y-6 lg:order-3 lg:self-start" data-seat-enter>
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0 flex-1 space-y-6">
+                <div>
+                  <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#B5AFA6]">Date</p>
+                  <p className="mt-1 font-editorial text-3xl font-semibold leading-none text-[#F2F0EB]">
+                    {dayNumber} <span className="font-mono text-[10px] uppercase tracking-[0.18em]">{monthLabel}</span>
+                  </p>
+                </div>
+                <div>
+                  <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#B5AFA6]">Time</p>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {(timeOptions.length ? timeOptions : [{ id: show.id, starts_at: show.starts_at }]).map((item) => (
+                      <Link
+                        key={item.id}
+                        to={`/shows/${item.id}/seats`}
+                        className={`rounded-md border px-2.5 py-1.5 font-mono text-[10px] ${
+                          item.id === show.id
+                            ? 'border-[#C8FF1F] bg-[#C8FF1F] font-semibold text-[#1E2227]'
+                            : 'border-[#B5AFA6]/20 text-[#B5AFA6] hover:border-[#C8FF1F] hover:text-[#C8FF1F]'
+                        }`}
+                      >
+                        {timeLabel(item.starts_at) || timeText}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#B5AFA6]">Hall</p>
+                  <p className="mt-1 text-xs font-semibold leading-relaxed text-[#F2F0EB]">{showMeta?.auditorium_name || format}</p>
+                  <p className="mt-1 text-[11px] text-[#B5AFA6]">{showMeta?.theatre_name || locality}</p>
+                </div>
               </div>
-            </div>
-            <div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[#B5AFA6]">Hall</p>
-              <p className="mt-1 text-xs font-semibold leading-relaxed text-[#F2F0EB]">{showMeta?.auditorium_name || format}</p>
-              <p className="mt-1 text-[11px] text-[#B5AFA6]">{showMeta?.theatre_name || locality}</p>
+              {poster && (
+                <div className="h-40 w-28 shrink-0 overflow-hidden rounded-xl bg-[#16191D] lg:hidden">
+                  <img src={poster} alt={title} className="h-full w-full object-cover" />
+                </div>
+              )}
             </div>
           </aside>
         </div>
       )}
 
       {step !== 'seats' && (
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 py-5">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 py-5" data-seat-enter>
           <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
             {titleBlock}
             <div className="shrink-0 xl:pt-1">{stepBar}</div>
@@ -751,6 +797,34 @@ export default function SeatSelection() {
               />
             )}
           </div>
+        </div>
+      )}
+
+      {selectionOpen && selectedSeats.length > 0 && step === 'seats' && (
+        <div
+          className="fixed inset-x-0 bottom-0 z-[60] max-h-[46vh] overflow-y-auto rounded-t-[24px] border-t border-[#B5AFA6]/20 bg-[#252A30] px-4 pb-5 pt-3 shadow-[0_-20px_60px_rgba(0,0,0,0.55)] lg:hidden"
+          role="dialog"
+          aria-modal="false"
+          aria-label="Your seat selection"
+        >
+          <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-[#B5AFA6]/30" />
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[#C8FF1F]">Your selection</p>
+              <h2 className="font-editorial text-xl font-semibold text-[#F2F0EB]">
+                {selectedSeats.length} {selectedSeats.length === 1 ? 'seat' : 'seats'}
+              </h2>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSelectionOpen(false)}
+              aria-label="Close selection"
+              className="grid h-8 w-8 place-items-center rounded-full border border-[#B5AFA6]/20 text-[#B5AFA6] transition-colors hover:text-[#C8FF1F]"
+            >
+              ×
+            </button>
+          </div>
+          <div className="mt-2 space-y-3">{selectionPanel}</div>
         </div>
       )}
 

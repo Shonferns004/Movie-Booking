@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import api from '../services/api.js';
+import { useModalMotion, useScrollReveal } from '../hooks/useMotion.js';
 import UiIcon from '../components/UiIcon.jsx';
 
 /**
@@ -12,6 +13,12 @@ export default function Gallery() {
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [active, setActive] = useState(null);
+  const pageRef = useRef(null);
+  const lightboxRef = useRef(null);
+  const lightboxPanelRef = useRef(null);
+
+  useScrollReveal(pageRef, { refreshKey: `${loading}-${images.length}` });
+  useModalMotion(lightboxPanelRef, lightboxRef, active == null ? 'closed' : 'open');
 
   useEffect(() => {
     let stop = false;
@@ -60,7 +67,7 @@ export default function Gallery() {
   const current = active != null ? images[active] : null;
 
   return (
-    <main className="gallery-page">
+    <main ref={pageRef} className="gallery-page">
       <style>{CSS}</style>
 
       <header className="g-head">
@@ -117,6 +124,7 @@ export default function Gallery() {
                 type="button"
                 onClick={() => setActive(index)}
                 className={`g-photo g-photo--${index + 1}`}
+                data-reveal
                 aria-label={`Open photograph ${index + 1} of ${images.length}`}
               >
                 <img
@@ -152,6 +160,7 @@ export default function Gallery() {
 
       {current && (
         <div
+          ref={lightboxRef}
           className="g-lightbox"
           role="dialog"
           aria-modal="true"
@@ -173,7 +182,7 @@ export default function Gallery() {
             </button>
           </div>
 
-          <div className="g-lightbox__stage" onClick={(event) => event.stopPropagation()}>
+          <div ref={lightboxPanelRef} className="g-lightbox__stage" onClick={(event) => event.stopPropagation()}>
             {images.length > 1 && (
               <button
                 type="button"

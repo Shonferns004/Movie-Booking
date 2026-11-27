@@ -3,8 +3,8 @@ import { createPortal } from 'react-dom';
 import { Link, Navigate } from 'react-router-dom';
 import { gsap } from 'gsap';
 import api, { assetUrl } from '../services/api.js';
-import { QRCodeSVG } from 'qrcode.react';
 import { useSileoNotice } from '../hooks/useSileoNotice.js';
+import { useScrollReveal, useHoverLift, prefersReducedMotion } from '../hooks/useMotion.js';
 import TicketArtwork from '../components/TicketArtwork.jsx';
 import MovieTicketModal from '../components/MovieTicketModal.jsx';
 import EventTicketArtwork from '../components/EventTicketArtwork.jsx';
@@ -413,6 +413,7 @@ export default function MyTickets() {
   const token = localStorage.getItem('token');
 
   useEffect(() => {
+    if (prefersReducedMotion()) return undefined;
     if (pageRef.current) {
       gsap.fromTo(
         pageRef.current,
@@ -420,14 +421,25 @@ export default function MyTickets() {
         { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out', clearProps: 'transform' },
       );
     }
+    const setters = gsap.utils.toArray('.kk-blob').map((blob) => ({
+      x: gsap.quickTo(blob, 'x', { duration: 0.9, ease: 'power2.out' }),
+      y: gsap.quickTo(blob, 'y', { duration: 0.9, ease: 'power2.out' }),
+    }));
     const onMove = (event) => {
       const x = (event.clientX / window.innerWidth - 0.5) * 20;
       const y = (event.clientY / window.innerHeight - 0.5) * 20;
-      gsap.to('.kk-blob', { x, y, duration: 1, ease: 'power2.out' });
+      setters.forEach((setter) => {
+        setter.x(x);
+        setter.y(y);
+      });
     };
-    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mousemove', onMove, { passive: true });
     return () => window.removeEventListener('mousemove', onMove);
   }, [loading]);
+
+  const revealKey = `${loading}-${bookings.length}-${eventPasses.length}`;
+  useScrollReveal(pageRef, { refreshKey: revealKey });
+  useHoverLift(pageRef, '[data-hover-lift]', revealKey);
 
   useEffect(() => {
     if (!token) {
@@ -458,7 +470,11 @@ export default function MyTickets() {
         }
 
         if (passesResult.status === 'fulfilled' && Array.isArray(passesResult.value.data)) {
-          setEventPasses(passesResult.value.data);
+          setEventPasses(
+            (Array.isArray(passesResult.value.data) ? passesResult.value.data : []).filter(
+              (pass) => pass.status !== 'cancelled',
+            ),
+          );
         }
 
         if (communityResult.status === 'fulfilled') {
@@ -534,7 +550,9 @@ export default function MyTickets() {
     }
   })();
   const email = account?.email || '';
-  const movieRows = [...bookings].sort((a, b) => new Date(a.starts_at || 0) - new Date(b.starts_at || 0));
+  const movieRows = bookings
+    .filter((booking) => booking.status !== 'cancelled')
+    .sort((a, b) => new Date(a.starts_at || 0) - new Date(b.starts_at || 0));
   const formatFor = (name = '') => {
     if (/dolby/i.test(name)) return 'Dolby Atmos';
     if (/2k|laser/i.test(name)) return '2K Laser';
@@ -634,7 +652,7 @@ export default function MyTickets() {
           <div className="kk-wallet-card flex flex-col items-center rounded-[20px] px-6 py-14 text-center">
             <h2 className="kk-ticket-display text-3xl text-[#F2F0EB]">No passes issued yet</h2>
             <p className="mt-3 max-w-md text-sm leading-6 text-[#B5AFA6]">
-              Book seats at Samudai Cineplex or pick up festival tickets to see your QR passes here.
+              Book seats at Samudai Cineplex or pick up festival tickets to see your barcode passes here.
             </p>
             <Link to="/movies" className="mt-6 rounded-xl bg-[#C8FF1F] px-5 py-3 text-xs font-semibold text-[#1E2227]">
               Browse Movies
@@ -660,6 +678,8 @@ export default function MyTickets() {
                 }
               }}
               className="group cursor-pointer overflow-hidden rounded-[20px] bg-[#252A30] transition-colors duration-200 hover:bg-[#2A3037] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#C8FF1F]"
+              data-reveal
+              data-hover-lift
             >
               <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:gap-6">
                 <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-[#16191D]">
@@ -714,7 +734,7 @@ export default function MyTickets() {
                   </p>
                 </div>
 
-                <div className="flex items-center justify-between gap-5">
+                <div className="flex items-center justify-between gap-4 sm:justify-end">
                   <div className="text-left sm:text-right">
                     <p className="text-[11px] text-[#B5AFA6]">Total Paid</p>
                     <p className="font-mono text-2xl font-bold leading-tight text-[#C8FF1F] tabular-nums">
@@ -723,12 +743,12 @@ export default function MyTickets() {
                     <p className="text-[10px] text-[#B5AFA6]">YouPI · Paid</p>
                   </div>
                   <div className="rounded-lg bg-white p-1.5">
-                    <QRCodeSVG
+                    <StyledQr
                       value={qrFor(booking) || booking.booking_reference}
-                      size={84}
-                      level="M"
-                      bgColor="#ffffff"
-                      fgColor="#16191D"
+                      size={112}
+                      background="#ffffff"
+                      accent="#1E2227"
+                      logo={false}
                     />
                   </div>
                 </div>
@@ -758,6 +778,8 @@ export default function MyTickets() {
           <article
             key={pass.id || pass.orderId}
             className="overflow-hidden rounded-[20px] bg-[#252A30]"
+            data-reveal
+            data-hover-lift
           >
             <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:gap-6">
               <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-[#16191D]">
@@ -786,7 +808,7 @@ export default function MyTickets() {
                   Passes: <span className="font-semibold text-[#F2F0EB]">{pass.quantity} × {pass.tierName}</span>
                 </p>
               </div>
-              <div className="flex items-center justify-between gap-5">
+              <div className="flex items-center justify-between gap-4 sm:justify-end">
                 <div className="text-left sm:text-right">
                   <p className="text-[11px] text-[#B5AFA6]">Total Paid</p>
                   <p className="font-mono text-2xl font-bold leading-tight text-[#C8FF1F] tabular-nums">
@@ -794,11 +816,18 @@ export default function MyTickets() {
                   </p>
                   <p className="text-[10px] text-[#B5AFA6]">YouPI · Paid</p>
                 </div>
-                <Link to={`/event-ticket/${pass.orderId}`} className="rounded-lg bg-white p-1.5">
-                  <QRCodeSVG value={pass.orderId} size={84} level="M" bgColor="#ffffff" fgColor="#16191D" />
+                <Link to={`/event-ticket/${pass.orderId}`} className="shrink-0 rounded-lg bg-white p-1.5">
+                  <StyledQr
+                    value={pass.orderId}
+                    size={112}
+                    background="#ffffff"
+                    accent="#1E2227"
+                    logo={false}
+                  />
                 </Link>
               </div>
             </div>
+
             <div className="flex flex-wrap items-center justify-between gap-3 bg-[#1E2227]/40 px-5 py-3 text-[11px] text-[#B5AFA6]">
               <span>Issued to {pass.buyerName || email || 'member'}</span>
               <Link to={`/event-ticket/${pass.orderId}`} className="font-medium transition-colors hover:text-[#F2F0EB]">
@@ -816,6 +845,10 @@ export default function MyTickets() {
           onManage={() => {
             setPreviewBooking(ticketPreview);
             setTicketPreview(null);
+          }}
+          onDownload={(booking) => {
+            setTicketPreview(null);
+            setPrintBooking(booking);
           }}
         />
       )}
